@@ -11,3 +11,5 @@ This is where **RetroStore** comes in. It aims to provide an open platform to st
 For now we aim to only support application without commercial interest. Should there be desire to at some point have authors sell games and apps for these old platforms, we would rethink this model and add an incentive model.
 
 Initial platform will be the TRS-80. If you are an emulator developer for this or another platform, feel free to reach out so we can expand support.
+
+Contact: info@retrostore.org
