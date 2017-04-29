@@ -22,7 +22,7 @@ dependencies {
   appengineSdk "com.google.appengine:appengine-java-sdk:${appengineVersion}"
   compile "javax.servlet:servlet-api:2.5"
   compile "com.google.appengine:appengine-api-1.0-sdk:${appengineVersion}"
-  compile 'com.google.guava:guava:21.0'
+  compile 'com.google.guava:guava:20.0'
   compile group: 'com.googlecode.objectify', name: 'objectify', version: '5.1.13'
 }
 
