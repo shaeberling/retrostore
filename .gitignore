@@ -31,5 +31,6 @@ hs_err_pid*
 .idea/runConfigurations.xml
 *.iml
 
+local_db.bin
 appengine/build
 appengine/local.properties
