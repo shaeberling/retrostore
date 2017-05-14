@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.puder.trs80.appstore.data;
+package org.puder.trs80.appstore.data.user;
 
 import com.google.common.base.Optional;
 import org.puder.trs80.appstore.ui.Template;
@@ -43,14 +43,14 @@ public class UserViewUtil {
       return;
     }
 
-    Trs80User newUser = new Trs80User();
+    RetroStoreUser newUser = new RetroStoreUser();
     newUser.firstName = req.getParameter("firstName");
     newUser.lastName = req.getParameter("lastName");
     newUser.email = email.get();
 
     // If there is no admin in the system, this user will be an admin. This helps bootstrapping the process on a fresh
     // install.
-    newUser.type = userManagement.hasAdmin() ? Trs80User.AccountType.PUBLISHER : Trs80User.AccountType.ADMIN;
+    newUser.type = userManagement.hasAdmin() ? UserAccountType.PUBLISHER : UserAccountType.ADMIN;
     userManagement.addOrChangeUser(newUser);
     LOG.info("New user created (" + newUser.email + ") with role " + newUser.type);
   }
@@ -66,15 +66,15 @@ public class UserViewUtil {
     LOG.info("type: " + type);
 
     // If the given e-mail matches an existing user, we edit the entry.
-    Optional<Trs80User> existingUser = userManagement.getUserByEmail(email);
-    Trs80User trs80User = existingUser.isPresent() ? existingUser.get() : new Trs80User();
+    Optional<RetroStoreUser> existingUser = userManagement.getUserByEmail(email);
+    RetroStoreUser retroStoreUser = existingUser.isPresent() ? existingUser.get() : new RetroStoreUser();
 
-    trs80User.firstName = firstName;
-    trs80User.lastName = lastName;
-    trs80User.email = email;
-    trs80User.type = "admin".equals(type) ? Trs80User.AccountType.ADMIN : Trs80User.AccountType.PUBLISHER;
-    userManagement.addOrChangeUser(trs80User);
-    LOG.info("User updated/created (" + trs80User.email + ")");
+    retroStoreUser.firstName = firstName;
+    retroStoreUser.lastName = lastName;
+    retroStoreUser.email = email;
+    retroStoreUser.type = "admin".equals(type) ? UserAccountType.ADMIN : UserAccountType.PUBLISHER;
+    userManagement.addOrChangeUser(retroStoreUser);
+    LOG.info("User updated/created (" + retroStoreUser.email + ")");
   }
 
   public void handleRemoveRequest(HttpServletRequest req, HttpServletResponse resp) {
@@ -84,10 +84,10 @@ public class UserViewUtil {
   }
 
   public Template fillUserManagementView(UserManagement userManagement) throws IOException {
-    List<Trs80User> users = userManagement.getAllUsers();
+    List<RetroStoreUser> users = userManagement.getAllUsers();
     StringBuilder builder = new StringBuilder();
 
-    for (Trs80User user : users) {
+    for (RetroStoreUser user : users) {
       builder.append(Template.fromFile("WEB-INF/html/user/user_table_row.inc.html")
           .with("e_mail", user.email)
           .with("first_name", user.firstName)

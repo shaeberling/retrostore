@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.puder.trs80.appstore.data;
+package org.puder.trs80.appstore.data.user;
 
 import com.google.appengine.api.users.User;
 import com.google.appengine.api.users.UserService;
@@ -43,11 +43,11 @@ public class UserManagement {
     if (!loggedInEmail.isPresent()) {
       return false;
     }
-    Optional<Trs80User> user = getUserByEmail(loggedInEmail.get());
+    Optional<RetroStoreUser> user = getUserByEmail(loggedInEmail.get());
     if (!user.isPresent()) {
       return false;
     }
-    return user.get().type == Trs80User.AccountType.ADMIN;
+    return user.get().type == UserAccountType.ADMIN;
   }
 
   /**
@@ -65,9 +65,9 @@ public class UserManagement {
    * @return Whether an admin exists in the system.
    */
   public boolean hasAdmin() {
-    List<Trs80User> users = ofy().load().type(Trs80User.class).list();
-    for (Trs80User user : users) {
-      if (user.type == Trs80User.AccountType.ADMIN) {
+    List<RetroStoreUser> users = ofy().load().type(RetroStoreUser.class).list();
+    for (RetroStoreUser user : users) {
+      if (user.type == UserAccountType.ADMIN) {
         return true;
       }
     }
@@ -77,7 +77,7 @@ public class UserManagement {
   /**
    * Adds a new user if one with the given ID does not exist yet, otherwise changes the existing user with the given ID.
    */
-  public void addOrChangeUser(Trs80User user) {
+  public void addOrChangeUser(RetroStoreUser user) {
     ofy().save().entity(user).now();
   }
 
@@ -87,24 +87,24 @@ public class UserManagement {
    * @param email the email of the user to delete.
    */
   public void removeUser(String email) {
-    ofy().delete().key(Trs80User.key(email)).now();
+    ofy().delete().key(RetroStoreUser.key(email)).now();
   }
 
   /**
    * @return A list of all users in the system.
    */
-  public List<Trs80User> getAllUsers() {
-    return ofy().load().type(Trs80User.class).list();
+  public List<RetroStoreUser> getAllUsers() {
+    return ofy().load().type(RetroStoreUser.class).list();
   }
 
   /**
    * If it exists in the system, returns the user with the given email address.
    */
-  public Optional<Trs80User> getUserByEmail(String email) {
-    return Optional.fromNullable(ofy().load().key(Trs80User.key(email)).now());
+  public Optional<RetroStoreUser> getUserByEmail(String email) {
+    return Optional.fromNullable(ofy().load().key(RetroStoreUser.key(email)).now());
   }
 
-  public Optional<Trs80User> getCurrentUser() {
+  public Optional<RetroStoreUser> getCurrentUser() {
     User systemUser = userService.getCurrentUser();
     if (systemUser == null) {
       return Optional.absent();

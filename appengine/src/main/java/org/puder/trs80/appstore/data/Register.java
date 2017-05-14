@@ -17,6 +17,7 @@
 package org.puder.trs80.appstore.data;
 
 import com.googlecode.objectify.ObjectifyService;
+import org.puder.trs80.appstore.data.user.RetroStoreUser;
 
 /**
  * Call this to ensure all data classes are registered.
@@ -29,7 +30,7 @@ public class Register {
       ObjectifyService.register(AppStoreItem.class);
       ObjectifyService.register(Author.class);
       ObjectifyService.register(ScreenshotSet.class);
-      ObjectifyService.register(Trs80User.class);
+      ObjectifyService.register(RetroStoreUser.class);
       isRegistered = true;
     }
   }

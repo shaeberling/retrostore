@@ -108,7 +108,6 @@ public class AppStoreItem {
     public String toString() {
       return readableName;
     }
-
   }
 
   /**

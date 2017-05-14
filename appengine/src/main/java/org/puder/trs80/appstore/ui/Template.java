@@ -48,7 +48,6 @@ public class Template {
   public static Template fromFile(String filename) throws IOException {
     // TODO: need to cache file contents.
     InputStream fileStream = new FileInputStream(new File(filename));
-    Preconditions.checkNotNull(fileStream, "Cannot load file " + filename);
     return new Template(CharStreams.toString(new InputStreamReader(fileStream, Charsets.UTF_8)));
   }
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.puder.trs80.appstore.data;
+package org.puder.trs80.appstore.data.user;
 
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.annotation.Cache;
@@ -27,22 +27,16 @@ import com.googlecode.objectify.annotation.Index;
  */
 @Entity
 @Cache
-public class Trs80User {
-  /**
-   * Roles that a user can have.
-   */
-  public enum AccountType {
-    ADMIN, PUBLISHER
-  }
+public class RetroStoreUser {
 
   /**
    * Create a key based on the email.
    */
-  public static Key<Trs80User> key(String email) {
-    return Key.create(Trs80User.class, email);
+  public static Key<RetroStoreUser> key(String email) {
+    return Key.create(RetroStoreUser.class, email);
   }
 
-  Trs80User() {
+  public RetroStoreUser() {
   }
 
   @Id
@@ -50,7 +44,7 @@ public class Trs80User {
   public String firstName;
   public String lastName;
   @Index
-  public AccountType type;
+  public UserAccountType type;
 
   // TODO: Add sanity checks before persisting the data.
 }

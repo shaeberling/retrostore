@@ -16,19 +16,20 @@
 
 package org.puder.trs80.appstore;
 
-import com.google.appengine.api.users.UserService;
 import com.google.appengine.api.users.UserServiceFactory;
-import com.google.common.base.Optional;
 import org.puder.trs80.appstore.data.ItemsViewUtil;
-import org.puder.trs80.appstore.data.Trs80User;
-import org.puder.trs80.appstore.data.UserManagement;
-import org.puder.trs80.appstore.data.UserViewUtil;
-import org.puder.trs80.appstore.ui.Template;
+import org.puder.trs80.appstore.data.user.UserManagement;
+import org.puder.trs80.appstore.data.user.UserService;
+import org.puder.trs80.appstore.data.user.UserServiceImpl;
+import org.puder.trs80.appstore.data.user.UserViewUtil;
+import org.puder.trs80.appstore.rpc.internal.RpcCallServing;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
 
 /**
@@ -42,10 +43,22 @@ public class MainServlet extends Trs80Servlet {
   private static final String REQUEST_CREATE_ACCOUNT = "createAccount";
 
   private static GfxServingUtil sGfxServingUtil = new GfxServingUtil();
-  private static UserService sUserService = UserServiceFactory.getUserService();
+  private static com.google.appengine.api.users.UserService sUserService = UserServiceFactory.getUserService();
   private static UserManagement sUserManagement = new UserManagement(sUserService);
+  private static UserService sAccountTypeProvider = new UserServiceImpl(sUserManagement, sUserService);
   private static UserViewUtil sUserViewUtil = new UserViewUtil(sUserManagement);
   private static ItemsViewUtil sItemsViewUtil = new ItemsViewUtil();
+
+  private static List<RequestServing> sRequestServers;
+
+  static {
+    sRequestServers = new ArrayList<>();
+    sRequestServers.add(new LoginServing());
+    sRequestServers.add(new EnsureAdminExistsServing(sUserManagement));
+    sRequestServers.add(new PolymerServing());
+    sRequestServers.add(new RpcCallServing());
+    // Note: Add more request servers here. Keep in mind that this is in priority-order.
+  }
 
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -74,48 +87,45 @@ public class MainServlet extends Trs80Servlet {
   }
 
   private void serveMainHtml(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-    resp.setContentType("text/html");
-
-    String thisUrl = req.getRequestURI();
-
-    // If the user is not logged in, forward to login page.
-    if (req.getUserPrincipal() == null) {
-      String html = Template.fromFile("WEB-INF/html/login_forward.html")
-          .with("forwarding_url", sUserService.createLoginURL(thisUrl))
-          .render();
-      resp.getWriter().write(html);
-      return;
+    Responder responder = new Responder(resp);
+    for (RequestServing server : sRequestServers) {
+      if (server.serveUrl(new RequestImpl(req), responder, sAccountTypeProvider)) {
+        return;
+      }
     }
-    LOG.info("Logout URL: " + sUserService.createLogoutURL(thisUrl));
-    Optional<String> loggedInEmail = sUserManagement.getLoggedInEmail();
-    Optional<Trs80User> currentUser = sUserManagement.getCurrentUser();
+    resp.sendError(HttpServletResponse.SC_NOT_FOUND);
 
-    // User needs to create an account first.
-    if (!currentUser.isPresent()) {
-      String content = Template.fromFile("WEB-INF/html/create_account.html")
-          .with("logged_in_email", loggedInEmail.get())
-          .render();
-      resp.getWriter().write(content);
-      return;
-    }
 
-    if ("/".equals(req.getRequestURI())) {
-      Template newItemTpl = sItemsViewUtil.fillNewItemView();
-      Template userManagementTpl = sUserManagement.isCurrentUserAdmin() ?
-          sUserViewUtil.fillUserManagementView(sUserManagement) : Template.empty();
-      String content = Template.fromFile("WEB-INF/html/index.html")
-          .withHtml("new_item_content", newItemTpl.render())
-          .withHtml("user_management_content", userManagementTpl.render())
-          .withHtml("logged_in_user", currentUser.get().firstName)
-          .render();
-      resp.getWriter().write(content);
-      return;
-    }
-
-    if (sGfxServingUtil.serve(req, resp)) {
-      return;
-    }
-
-    resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+//    LOG.info("Logout URL: " + sUserService.createLogoutURL(thisUrl));
+//    Optional<String> loggedInEmail = sUserManagement.getLoggedInEmail();
+//    Optional<RetroStoreUser> currentUser = sUserManagement.getCurrentUser();
+//
+//    // User needs to create an account first.
+//    if (!currentUser.isPresent()) {
+//      String content = Template.fromFile("WEB-INF/html/create_account.html")
+//          .with("logged_in_email", loggedInEmail.get())
+//          .render();
+//      resp.getWriter().write(content);
+//      return;
+//    }
+//
+//    if ("/".equals(req.getRequestURI())) {
+//      Template newItemTpl = sItemsViewUtil.fillNewItemView();
+//      Template userManagementTpl = sUserManagement.isCurrentUserAdmin() ?
+//          sUserViewUtil.fillUserManagementView(sUserManagement) : Template.empty();
+//      String content = Template.fromFile("WEB-INF/html/index.html")
+//          .withHtml("new_item_content", newItemTpl.render())
+//          .withHtml("user_management_content", userManagementTpl.render())
+//          .withHtml("logged_in_user", currentUser.get().firstName)
+//          .render();
+//      resp.getWriter().write(content);
+//      return;
+//    }
+//
+//    if (sGfxServingUtil.serve(req, resp)) {
+//      return;
+//    }
+//
+//    resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
   }
 }
