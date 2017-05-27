@@ -22,7 +22,13 @@ import org.puder.trs80.appstore.data.user.UserManagement;
 import org.puder.trs80.appstore.data.user.UserService;
 import org.puder.trs80.appstore.data.user.UserServiceImpl;
 import org.puder.trs80.appstore.data.user.UserViewUtil;
-import org.puder.trs80.appstore.rpc.internal.RpcCallServing;
+import org.puder.trs80.appstore.request.EnsureAdminExistsRequest;
+import org.puder.trs80.appstore.request.LoginRequest;
+import org.puder.trs80.appstore.request.PolymerRequest;
+import org.puder.trs80.appstore.request.RequestDataImpl;
+import org.puder.trs80.appstore.request.Request;
+import org.puder.trs80.appstore.request.Responder;
+import org.puder.trs80.appstore.rpc.internal.RpcCallRequest;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -43,30 +49,34 @@ public class MainServlet extends Trs80Servlet {
   private static final String REQUEST_CREATE_ACCOUNT = "createAccount";
 
   private static GfxServingUtil sGfxServingUtil = new GfxServingUtil();
-  private static com.google.appengine.api.users.UserService sUserService = UserServiceFactory.getUserService();
+  private static com.google.appengine.api.users.UserService sUserService =
+      UserServiceFactory.getUserService();
   private static UserManagement sUserManagement = new UserManagement(sUserService);
-  private static UserService sAccountTypeProvider = new UserServiceImpl(sUserManagement, sUserService);
+  private static UserService sAccountTypeProvider =
+      new UserServiceImpl(sUserManagement, sUserService);
   private static UserViewUtil sUserViewUtil = new UserViewUtil(sUserManagement);
   private static ItemsViewUtil sItemsViewUtil = new ItemsViewUtil();
 
-  private static List<RequestServing> sRequestServers;
+  private static List<Request> sRequestServers;
 
   static {
     sRequestServers = new ArrayList<>();
-    sRequestServers.add(new LoginServing());
-    sRequestServers.add(new EnsureAdminExistsServing(sUserManagement));
-    sRequestServers.add(new PolymerServing());
-    sRequestServers.add(new RpcCallServing());
+    sRequestServers.add(new LoginRequest());
+    sRequestServers.add(new EnsureAdminExistsRequest(sUserManagement));
+    sRequestServers.add(new PolymerRequest());
+    sRequestServers.add(new RpcCallRequest());
     // Note: Add more request servers here. Keep in mind that this is in priority-order.
   }
 
   @Override
-  protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+  protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+      throws ServletException, IOException {
     serveMainHtml(req, resp);
   }
 
   @Override
-  protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+  protected void doPost(HttpServletRequest req, HttpServletResponse resp)
+      throws ServletException, IOException {
     String requestParam = req.getParameter("request");
 
     // The following actions are only allowed for admin users.
@@ -78,7 +88,8 @@ public class MainServlet extends Trs80Servlet {
       }
     }
 
-    // Users create their own account, so no need for admin rights. Only the logged in user's e-mail will be used.
+    // Users create their own account, so no need for admin rights. Only the logged in user's
+    // e-mail will be used.
     if (REQUEST_CREATE_ACCOUNT.equals(requestParam)) {
       sUserViewUtil.handleAccountCreateRequest(req, resp);
     }
@@ -86,10 +97,11 @@ public class MainServlet extends Trs80Servlet {
     serveMainHtml(req, resp);
   }
 
-  private void serveMainHtml(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+  private void serveMainHtml(HttpServletRequest req, HttpServletResponse resp)
+      throws ServletException, IOException {
     Responder responder = new Responder(resp);
-    for (RequestServing server : sRequestServers) {
-      if (server.serveUrl(new RequestImpl(req), responder, sAccountTypeProvider)) {
+    for (Request server : sRequestServers) {
+      if (server.serveUrl(new RequestDataImpl(req), responder, sAccountTypeProvider)) {
         return;
       }
     }

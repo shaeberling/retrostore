@@ -15,7 +15,7 @@
  */
 
 
-package org.puder.trs80.appstore;
+package org.puder.trs80.appstore.request;
 
 import com.google.common.base.Optional;
 import org.puder.trs80.appstore.data.user.RetroStoreUser;
@@ -28,19 +28,21 @@ import java.util.logging.Logger;
 /**
  * Bootstrapping! After being logged in, if there is not admin, this ensure one is being created.
  */
-public class EnsureAdminExistsServing implements RequestServing {
+public class EnsureAdminExistsRequest implements Request {
   private static final Logger LOG = Logger.getLogger("EnsureAdminExists");
   private final UserManagement mUserManagement;
 
-  public EnsureAdminExistsServing(UserManagement userManagement) {
+  public EnsureAdminExistsRequest(UserManagement userManagement) {
     mUserManagement = userManagement;
   }
 
   @Override
-  public boolean serveUrl(Request request, Responder responder, UserService userService) {
+  public boolean serveUrl(RequestData requestData, Responder responder, UserService userService) {
     // Nothing to do here if the user is not logged in or an admin already exists.
-    // Note, if an admin already exists, he/she can then add other admins and users through the regular user management.
-    if (userService.getForCurrentUser().equals(UserAccountType.NOT_LOGGED_IN) || userService.systemHasAdmin()) {
+    // Note, if an admin already exists, he/she can then add other admins and users through the
+    // regular user management.
+    if (userService.getForCurrentUser().equals(UserAccountType.NOT_LOGGED_IN) || userService
+        .systemHasAdmin()) {
       return false;
     }
 
@@ -58,7 +60,8 @@ public class EnsureAdminExistsServing implements RequestServing {
     mUserManagement.addOrChangeUser(firstAdminUser);
     LOG.info("Added first admin user to th system");
 
-    responder.respond("You have been added as the initial admin user of the system", Responder.ContentType.PLAIN);
+    responder.respond("You have been added as the initial admin user of the system", Responder
+        .ContentType.PLAIN);
     return true;
   }
 }

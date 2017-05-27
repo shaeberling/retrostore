@@ -22,7 +22,9 @@ import com.google.common.base.Optional;
  * Parameters for am RPC call.
  */
 public interface RpcParameters {
+  /** Returns an RPC parameter as an int, if it exists. */
   Optional<Integer> getInt(String name);
 
+  /** Returns an RPC parameter as a string, if it exists. */
   Optional<String> getString(String name);
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.puder.trs80.appstore;
+package org.puder.trs80.appstore.request;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
@@ -34,8 +34,8 @@ import java.util.logging.Logger;
 /**
  * Serves files that are part of the polymer frontend.
  */
-public class PolymerServing implements RequestServing {
-  private static final Logger LOG = Logger.getLogger("PolymerServing");
+public class PolymerRequest implements Request {
+  private static final Logger LOG = Logger.getLogger("PolymerRequest");
 
   private static final String POLYMER_ROOT = "WEB-INF/polymer-app";
 
@@ -43,8 +43,10 @@ public class PolymerServing implements RequestServing {
       "/images", "/src", "/service-worker.js", "/manifest.json", "/index.html");
 
   @Override
-  public boolean serveUrl(Request request, Responder responder, UserService accountTypeProvider) {
-    String url = request.getUrl();
+  public boolean serveUrl(RequestData requestData,
+                          Responder responder,
+                          UserService accountTypeProvider) {
+    String url = requestData.getUrl();
     LOG.info("URL: " + url);
 
     if (url.equals("/") || url.equals("") || url.startsWith("/view")) {

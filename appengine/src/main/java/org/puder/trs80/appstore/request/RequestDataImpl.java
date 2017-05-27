@@ -14,12 +14,29 @@
  * limitations under the License.
  */
 
-package org.puder.trs80.appstore;
+package org.puder.trs80.appstore.request;
+
+import javax.servlet.http.HttpServletRequest;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * Created by haeberling on 5/8/17.
+ * Default RequestData implementation based on an HttpServletRequest.
  */
-public interface Request {
-  String getUrl();
-  String getParameter(String name);
+public class RequestDataImpl implements RequestData {
+  private final HttpServletRequest mRequest;
+
+  public RequestDataImpl(HttpServletRequest request) {
+    mRequest = checkNotNull(request);
+  }
+
+  @Override
+  public String getUrl() {
+    return mRequest.getRequestURI();
+  }
+
+  @Override
+  public String getParameter(String name) {
+    return mRequest.getParameter(name);
+  }
 }

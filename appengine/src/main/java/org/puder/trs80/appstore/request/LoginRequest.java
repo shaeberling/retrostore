@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.puder.trs80.appstore;
+package org.puder.trs80.appstore.request;
 
 import com.google.common.collect.ImmutableList;
 import org.puder.trs80.appstore.data.user.UserAccountType;
@@ -26,11 +26,11 @@ import java.util.List;
 import java.util.logging.Logger;
 
 /**
- * Checks whether the current URL needs a logged-in user. If so, will ensure the user is forwarded to the login-page
- * first.
+ * Checks whether the current URL needs a logged-in user. If so, will ensure the user is forwarded
+ * to the login-page first.
  */
-public class LoginServing implements RequestServing {
-  private static final Logger LOG = Logger.getLogger("PolymerServing");
+public class LoginRequest implements Request {
+  private static final Logger LOG = Logger.getLogger("PolymerRequest");
   private static List<String> sLoginPrefixes = getLoginPrefixes();
 
   private static List<String> getLoginPrefixes() {
@@ -48,17 +48,18 @@ public class LoginServing implements RequestServing {
 
 
   @Override
-  public boolean serveUrl(Request request, Responder responder, UserService userService) {
-    // TODO: At the moment, there is not non-admin user-visible page. Once that exists and we have moved the admin
-    // portion to /admin, this filter can go away since we do not require normal users to be logged in.
-    if (!request.getUrl().equals("/") && !matchesPrefix(request.getUrl())) {
+  public boolean serveUrl(RequestData requestData, Responder responder, UserService userService) {
+    // TODO: At the moment, there is not non-admin user-visible page. Once that exists and we
+    // have moved the admin portion to /admin, this filter can go away since we do not require
+    // normal users to be logged in.
+    if (!requestData.getUrl().equals("/") && !matchesPrefix(requestData.getUrl())) {
       return false;
     }
 
     // If the user is not logged in, forward to login page.
     if (userService.getForCurrentUser() == UserAccountType.NOT_LOGGED_IN) {
       try {
-        String thisUrl = request.getUrl();
+        String thisUrl = requestData.getUrl();
         String html = Template.fromFile("WEB-INF/html/login_forward.html")
             .with("forwarding_url", userService.createLoginURL(thisUrl))
             .render();

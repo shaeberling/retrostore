@@ -17,7 +17,7 @@
 package org.puder.trs80.appstore.rpc.internal;
 
 import com.google.common.base.Optional;
-import org.puder.trs80.appstore.Request;
+import org.puder.trs80.appstore.request.RequestData;
 
 import java.util.logging.Logger;
 
@@ -26,15 +26,15 @@ import java.util.logging.Logger;
  */
 public class RpcParametersImpl implements RpcParameters {
   private static final Logger LOG = Logger.getLogger("RpcParametersImpl");
-  private final Request mRequest;
+  private final RequestData mRequestData;
 
-  RpcParametersImpl(Request request) {
-    mRequest = request;
+  RpcParametersImpl(RequestData requestData) {
+    mRequestData = requestData;
   }
 
   @Override
   public Optional<Integer> getInt(String name) {
-    String value = mRequest.getParameter(name);
+    String value = mRequestData.getParameter(name);
     if (value == null) {
       return Optional.absent();
     }
@@ -48,6 +48,6 @@ public class RpcParametersImpl implements RpcParameters {
 
   @Override
   public Optional<String> getString(String name) {
-    return Optional.fromNullable(mRequest.getParameter(name));
+    return Optional.fromNullable(mRequestData.getParameter(name));
   }
 }

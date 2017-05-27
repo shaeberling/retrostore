@@ -14,22 +14,22 @@
  * limitations under the License.
  */
 
-package org.puder.trs80.appstore;
+package org.puder.trs80.appstore.request;
 
 import org.puder.trs80.appstore.data.user.UserService;
 
 /**
  * Interface for serving requests of any kind.
  */
-public interface RequestServing {
+public interface Request {
   /**
-   * Attempts to serve the given request.
+   * Attempts to serve the given requestData.
    *
-   * @param request     the request to serve
-   * @param responder   used to serve the request
+   * @param requestData the requestData to serve
+   * @param responder   used to serve the requestData
    * @param userService informs the server about the account type of the currently logged-in user.
-   * @return Whether the request has been served. If true, no other attempt should be made to serve this request, and
-   * serving is to be considered complete.
+   * @return Whether the requestData has been served. If true, no other attempt should be made to
+   * serve this requestData, and serving is to be considered complete.
    */
-  boolean serveUrl(Request request, Responder responder, UserService userService);
+  boolean serveUrl(RequestData requestData, Responder responder, UserService userService);
 }

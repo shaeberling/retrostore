@@ -16,7 +16,7 @@
 
 package org.puder.trs80.appstore.rpc.internal;
 
-import org.puder.trs80.appstore.Responder;
+import org.puder.trs80.appstore.request.Responder;
 import org.puder.trs80.appstore.data.user.UserAccountType;
 
 /**

@@ -35,7 +35,7 @@ public class JspUtils {
                                    String path,
                                    TemplateModel model) throws ServletException, IOException {
     Preconditions.checkNotNull(context, "Context necessary");
-    Preconditions.checkNotNull(request, "Request necessary");
+    Preconditions.checkNotNull(request, "RequestData necessary");
     Preconditions.checkNotNull(response, "Response necessary");
     Preconditions.checkNotNull(path, "Path necessary");
 

@@ -18,9 +18,9 @@ package org.puder.trs80.appstore.rpc.internal;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import org.puder.trs80.appstore.Request;
-import org.puder.trs80.appstore.RequestServing;
-import org.puder.trs80.appstore.Responder;
+import org.puder.trs80.appstore.request.RequestData;
+import org.puder.trs80.appstore.request.Request;
+import org.puder.trs80.appstore.request.Responder;
 import org.puder.trs80.appstore.data.user.UserService;
 import org.puder.trs80.appstore.rpc.AdminUserListRpcCall;
 
@@ -32,8 +32,8 @@ import java.util.logging.Logger;
 /**
  * Serves RPC calls
  */
-public class RpcCallServing implements RequestServing {
-  private static final Logger LOG = Logger.getLogger("RpcCallServing");
+public class RpcCallRequest implements Request {
+  private static final Logger LOG = Logger.getLogger("RpcCallRequest");
 
   private static final String RPC_PREFIX = "/rpc";
   private static final String RPC_METHOD_PARAM = "m";
@@ -55,13 +55,14 @@ public class RpcCallServing implements RequestServing {
   }
 
   @Override
-  public boolean serveUrl(Request request, Responder responder, UserService accountTypeProvider) {
-    String url = request.getUrl();
+  public boolean serveUrl(RequestData requestData, Responder responder,
+                          UserService accountTypeProvider) {
+    String url = requestData.getUrl();
     if (!url.startsWith(RPC_PREFIX)) {
       return false;
     }
 
-    String method = request.getParameter(RPC_METHOD_PARAM);
+    String method = requestData.getParameter(RPC_METHOD_PARAM);
     if (method == null) {
       responder.respondBadRequest("No method name specified.");
     } else if (!mRpcCalls.containsKey(method)) {
@@ -71,7 +72,7 @@ public class RpcCallServing implements RequestServing {
       if (!rpcCall.isPermitted(accountTypeProvider.getForCurrentUser())) {
         responder.respondBadRequest("Current user not permitted.");
       } else {
-        RpcParametersImpl params = new RpcParametersImpl(request);
+        RpcParametersImpl params = new RpcParametersImpl(requestData);
         rpcCall.call(params, responder);
       }
     }

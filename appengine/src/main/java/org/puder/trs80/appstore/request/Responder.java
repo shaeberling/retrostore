@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.puder.trs80.appstore;
+package org.puder.trs80.appstore.request;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;

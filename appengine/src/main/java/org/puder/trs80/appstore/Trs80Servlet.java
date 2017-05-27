@@ -21,8 +21,8 @@ import org.puder.trs80.appstore.data.Register;
 import javax.servlet.http.HttpServlet;
 
 /**
- * Common servlet class for all TRS80 app store servlets. Ensures that all required data classes are registered with
- * Objectify.
+ * Common servlet class for all TRS80 app store servlets. Ensures that all required data classes are
+ * registered with Objectify.
  */
 public abstract class Trs80Servlet extends HttpServlet {
   static {
