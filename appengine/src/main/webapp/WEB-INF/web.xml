@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd">
     <servlet>
         <servlet-name>mainServlet</servlet-name>
-        <servlet-class>org.puder.trs80.appstore.MainServlet</servlet-class>
+        <servlet-class>org.retrostore.MainServlet</servlet-class>
     </servlet>
     <servlet-mapping>
         <servlet-name>mainServlet</servlet-name>
