@@ -22,7 +22,7 @@ import org.retrostore.request.RequestData;
 import java.util.logging.Logger;
 
 /**
- * Maps Rwquests to RpcParamters.
+ * Maps Requests to RpcParameters.
  */
 public class RpcParametersImpl implements RpcParameters {
   private static final Logger LOG = Logger.getLogger("RpcParametersImpl");
