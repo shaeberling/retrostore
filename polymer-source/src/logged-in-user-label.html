@@ -1,0 +1,43 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="logged-in-user-label">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+        padding: 10px;
+        float: right;
+      }
+    </style>
+
+    <div>Hi, <span id="username">[[username]]</span>
+    </div>
+  </template>
+
+  <script>
+    class LoggedInUserLabel extends Polymer.Element {
+      static get is() { return "logged-in-user-label"; }
+
+      static get properties() {
+        return {
+          username: {
+            type: String,
+            observer: '_usernameChanged',
+          }
+        };
+      }
+
+      ready() {
+        super.ready();
+      }
+
+      // Observer method defined as a class method
+     _usernameChanged(newValue, oldValue) {
+       this.username = newValue;
+     }
+    }
+
+    window.customElements.define(LoggedInUserLabel.is, LoggedInUserLabel);
+  </script>
+</dom-module>

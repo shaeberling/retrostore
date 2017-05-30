@@ -22,6 +22,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="my-icons.html">
 
+<link rel="import" href="logged-in-user-label.html">
+<script src="js/retrostore.js"></script>
+
 <dom-module id="retrostore-app">
   <template>
     <style>
@@ -88,6 +91,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           <app-toolbar>
             <paper-icon-button icon="my-icons:menu" drawer-toggle></paper-icon-button>
             <div main-title>RetroStore.org</div>
+            <logged-in-user-label id="user_label" username="..."></logged-in-user-label>
           </app-toolbar>
         </app-header>
 
@@ -124,6 +128,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return [
           '_routePageChanged(routeData.page)',
         ];
+      }
+
+      ready() {
+        super.ready();
+        console.log("App is ready");
+        retrostore.rpc("getSiteContext", "", function(context) {
+          this._onSiteContextLoaded(context);
+        }.bind(this));
+      }
+
+      _onSiteContextLoaded(context) {
+        this.$.user_label.username = context.firstName;
       }
 
       _routePageChanged(page) {

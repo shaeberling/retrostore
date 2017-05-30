@@ -25,8 +25,8 @@ import org.retrostore.data.user.UserViewUtil;
 import org.retrostore.request.EnsureAdminExistsRequest;
 import org.retrostore.request.LoginRequest;
 import org.retrostore.request.PolymerRequest;
-import org.retrostore.request.RequestDataImpl;
 import org.retrostore.request.Request;
+import org.retrostore.request.RequestDataImpl;
 import org.retrostore.request.Responder;
 import org.retrostore.rpc.internal.RpcCallRequest;
 
@@ -56,6 +56,7 @@ public class MainServlet extends Trs80Servlet {
       new UserServiceImpl(sUserManagement, sUserService);
   private static UserViewUtil sUserViewUtil = new UserViewUtil(sUserManagement);
   private static ItemsViewUtil sItemsViewUtil = new ItemsViewUtil();
+  private static FileUtil sFileUtil = new FileUtil();
 
   private static List<Request> sRequestServers;
 
@@ -63,8 +64,8 @@ public class MainServlet extends Trs80Servlet {
     sRequestServers = new ArrayList<>();
     sRequestServers.add(new LoginRequest());
     sRequestServers.add(new EnsureAdminExistsRequest(sUserManagement));
-    sRequestServers.add(new PolymerRequest());
-    sRequestServers.add(new RpcCallRequest());
+    sRequestServers.add(new PolymerRequest(sFileUtil));
+    sRequestServers.add(new RpcCallRequest(sUserManagement));
     // Note: Add more request servers here. Keep in mind that this is in priority-order.
   }
 

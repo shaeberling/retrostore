@@ -2,6 +2,7 @@
   "entrypoint": "index.html",
   "shell": "src/retrostore-app.html",
   "fragments": [
+    "src/logged-in-user-label.html",
     "src/my-view1.html",
     "src/my-view2.html",
     "src/user-management-view.html",

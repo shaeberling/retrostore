@@ -18,11 +18,13 @@ package org.retrostore.rpc.internal;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import org.retrostore.data.user.UserManagement;
 import org.retrostore.request.RequestData;
 import org.retrostore.request.Request;
 import org.retrostore.request.Responder;
 import org.retrostore.data.user.UserService;
 import org.retrostore.rpc.AdminUserListRpcCall;
+import org.retrostore.rpc.GetSiteContextRpcCall;
 
 import java.util.HashMap;
 import java.util.List;
@@ -38,11 +40,14 @@ public class RpcCallRequest implements Request {
   private static final String RPC_PREFIX = "/rpc";
   private static final String RPC_METHOD_PARAM = "m";
 
-  private final Map<String, RpcCall> mRpcCalls = getRpcCalls();
+  private final Map<String, RpcCall> mRpcCalls;
 
-  private static Map<String, RpcCall> getRpcCalls() {
+
+  public RpcCallRequest(UserManagement userManagement) {
     // Note: Add new RPC calls here.
-    List<RpcCall> calls = ImmutableList.<RpcCall>of(new AdminUserListRpcCall());
+    List<RpcCall> calls = ImmutableList.of(
+        new AdminUserListRpcCall(),
+        new GetSiteContextRpcCall(userManagement));
 
     Map<String, RpcCall> callsMapped = new HashMap<>();
     for (RpcCall call : calls) {
@@ -51,7 +56,7 @@ public class RpcCallRequest implements Request {
       }
       callsMapped.put(call.getName(), call);
     }
-    return ImmutableMap.copyOf(callsMapped);
+    mRpcCalls = ImmutableMap.copyOf(callsMapped);
   }
 
   @Override

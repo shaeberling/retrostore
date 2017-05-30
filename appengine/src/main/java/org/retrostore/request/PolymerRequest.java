@@ -16,19 +16,12 @@
 
 package org.retrostore.request;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
-import com.google.common.io.CharStreams;
+import org.retrostore.FileUtil;
 import org.retrostore.data.user.UserService;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -38,9 +31,14 @@ public class PolymerRequest implements Request {
   private static final Logger LOG = Logger.getLogger("PolymerRequest");
 
   private static final String POLYMER_ROOT = "WEB-INF/polymer-app";
-
   private static final Set<String> FORWARD = Sets.newHashSet("/bower_components",
       "/images", "/src", "/service-worker.js", "/manifest.json", "/index.html");
+
+  private final FileUtil mFileUtil;
+
+  public PolymerRequest(FileUtil fileUtil) {
+    mFileUtil = fileUtil;
+  }
 
   @Override
   public boolean serveUrl(RequestData requestData,
@@ -55,7 +53,7 @@ public class PolymerRequest implements Request {
 
     for (String path : FORWARD) {
       if (url.startsWith(path)) {
-        Optional<String> content = load(POLYMER_ROOT + url);
+        Optional<String> content = mFileUtil.load(POLYMER_ROOT + url);
         if (content.isPresent()) {
           responder.respond(content.get(), fromFilename(url));
         }
@@ -63,18 +61,6 @@ public class PolymerRequest implements Request {
       }
     }
     return false;
-  }
-
-  private Optional<String> load(String filename) {
-    // TODO: Cache!
-    try {
-      InputStream fileStream = new FileInputStream(new File(filename));
-      String content = CharStreams.toString(new InputStreamReader(fileStream, Charsets.UTF_8));
-      return Optional.of(content);
-    } catch (IOException e) {
-      LOG.log(Level.SEVERE, "Cannot load file.", e);
-    }
-    return Optional.absent();
   }
 
   private Responder.ContentType fromFilename(String filename) {

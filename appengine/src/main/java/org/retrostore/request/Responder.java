@@ -16,6 +16,8 @@
 
 package org.retrostore.request;
 
+import com.google.gson.Gson;
+
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.logging.Level;
@@ -59,6 +61,15 @@ public class Responder {
     }
   }
 
+  public void respondObject(Object object) {
+    try {
+      mResponse.setContentType(ContentType.JSON.str);
+      mResponse.getWriter().write((new Gson()).toJson(object));
+    } catch (IOException ex) {
+      LOG.log(Level.SEVERE, "Cannot serve data", ex);
+    }
+  }
+
   public void respondBadRequest(String content) {
     try {
       mResponse.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -68,4 +79,15 @@ public class Responder {
       LOG.log(Level.SEVERE, "Cannot serve data", ex);
     }
   }
+
+  public void respondNotFound() {
+    try {
+      mResponse.setStatus(HttpServletResponse.SC_NOT_FOUND);
+      mResponse.setContentType(ContentType.PLAIN.str);
+      mResponse.getWriter().write("");
+    } catch (IOException ex) {
+      LOG.log(Level.SEVERE, "Cannot serve data", ex);
+    }
+  }
+
 }
