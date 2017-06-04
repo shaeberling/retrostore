@@ -16,18 +16,25 @@
 
 package org.retrostore.rpc.internal;
 
-import com.google.common.base.Optional;
+import org.retrostore.request.Responder;
 
 /**
- * Parameters for am RPC call.
+ * Generic response sent back to the client for RPC requests;
  */
-public interface RpcParameters {
-  /** Returns an RPC parameter as an int, if it exists. */
-  Optional<Integer> getInt(String name);
+public class RpcResponse {
+  /** Whether the request was a success. */
+  public boolean success = false;
 
-  /** Returns an RPC parameter as a string, if it exists. */
-  Optional<String> getString(String name);
+  /** A success or failure message, human-readable. */
+  public String message = "";
 
-  /** Returns the body of the request, if there was one. */
-  String getBody();
+  /** Optional response data. */
+  public Object data = null;
+
+  public static void respond(boolean success, String message, Responder responder) {
+    RpcResponse response = new RpcResponse();
+    response.success = success;
+    response.message = message;
+    responder.respondObject(response);
+  }
 }

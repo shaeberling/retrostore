@@ -16,7 +16,13 @@
 
 package org.retrostore.request;
 
+import com.google.common.base.Charsets;
+import com.google.common.io.CharStreams;
+
 import javax.servlet.http.HttpServletRequest;
+
+import java.io.IOException;
+import java.io.InputStreamReader;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -38,5 +44,15 @@ public class RequestDataImpl implements RequestData {
   @Override
   public String getParameter(String name) {
     return mRequest.getParameter(name);
+  }
+
+  @Override
+  public String getBody() {
+    try {
+      return CharStreams.toString(
+          new InputStreamReader(mRequest.getInputStream(), Charsets.UTF_8));
+    } catch (IOException e) {
+      return "";
+    }
   }
 }

@@ -23,6 +23,7 @@ import org.retrostore.request.RequestData;
 import org.retrostore.request.Request;
 import org.retrostore.request.Responder;
 import org.retrostore.data.user.UserService;
+import org.retrostore.rpc.AddEditUserRpcCall;
 import org.retrostore.rpc.AdminUserListRpcCall;
 import org.retrostore.rpc.GetSiteContextRpcCall;
 
@@ -47,7 +48,8 @@ public class RpcCallRequest implements Request {
     // Note: Add new RPC calls here.
     List<RpcCall> calls = ImmutableList.of(
         new AdminUserListRpcCall(userManagement),
-        new GetSiteContextRpcCall(userManagement));
+        new GetSiteContextRpcCall(userManagement),
+        new AddEditUserRpcCall(userManagement));
 
     Map<String, RpcCall> callsMapped = new HashMap<>();
     for (RpcCall call : calls) {

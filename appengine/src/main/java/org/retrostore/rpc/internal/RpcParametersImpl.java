@@ -50,4 +50,9 @@ public class RpcParametersImpl implements RpcParameters {
   public Optional<String> getString(String name) {
     return Optional.fromNullable(mRequestData.getParameter(name));
   }
+
+  @Override
+  public String getBody() {
+    return mRequestData.getBody();
+  }
 }

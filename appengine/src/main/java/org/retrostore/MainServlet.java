@@ -17,12 +17,12 @@
 package org.retrostore;
 
 import com.google.appengine.api.users.UserServiceFactory;
+import com.google.common.base.Charsets;
 import com.google.common.base.Strings;
-import org.retrostore.data.ItemsViewUtil;
+import com.google.common.io.CharStreams;
 import org.retrostore.data.user.UserManagement;
 import org.retrostore.data.user.UserService;
 import org.retrostore.data.user.UserServiceImpl;
-import org.retrostore.data.user.UserViewUtil;
 import org.retrostore.request.EnsureAdminExistsRequest;
 import org.retrostore.request.LoginRequest;
 import org.retrostore.request.PolymerRequest;
@@ -38,6 +38,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -48,18 +49,11 @@ import java.util.logging.Logger;
 public class MainServlet extends RetroStoreServlet {
   private static final Logger LOG = Logger.getLogger("MainServlet");
 
-  private static final String REQUEST_REMOVE_USER = "removeUser";
-  private static final String REQUEST_ADD_EDIT_USER = "addEditUser";
-  private static final String REQUEST_CREATE_ACCOUNT = "createAccount";
-
-  private static GfxServingUtil sGfxServingUtil = new GfxServingUtil();
   private static com.google.appengine.api.users.UserService sUserService =
       UserServiceFactory.getUserService();
   private static UserManagement sUserManagement = new UserManagement(sUserService);
   private static UserService sAccountTypeProvider =
       new UserServiceImpl(sUserManagement, sUserService);
-  private static UserViewUtil sUserViewUtil = new UserViewUtil(sUserManagement);
-  private static ItemsViewUtil sItemsViewUtil = new ItemsViewUtil();
   private static DefaultResourceLoader sDefaultResourceLoader = new DefaultResourceLoader();
 
   private static List<Request> sRequestServers;
@@ -93,23 +87,6 @@ public class MainServlet extends RetroStoreServlet {
   @Override
   protected void doPost(HttpServletRequest req, HttpServletResponse resp)
       throws ServletException, IOException {
-    String requestParam = req.getParameter("request");
-
-    // The following actions are only allowed for admin users.
-    if (sUserManagement.isCurrentUserAdmin()) {
-      if (REQUEST_ADD_EDIT_USER.equals(requestParam)) {
-        sUserViewUtil.handleAddEditRequest(req, resp);
-      } else if (REQUEST_REMOVE_USER.equals(requestParam)) {
-        sUserViewUtil.handleRemoveRequest(req, resp);
-      }
-    }
-
-    // Users create their own account, so no need for admin rights. Only the logged in user's
-    // e-mail will be used.
-    if (REQUEST_CREATE_ACCOUNT.equals(requestParam)) {
-      sUserViewUtil.handleAccountCreateRequest(req, resp);
-    }
-
     serveMainHtml(req, resp);
   }
 
@@ -122,38 +99,5 @@ public class MainServlet extends RetroStoreServlet {
       }
     }
     resp.sendError(HttpServletResponse.SC_NOT_FOUND);
-
-
-//    LOG.info("Logout URL: " + sUserService.createLogoutURL(thisUrl));
-//    Optional<String> loggedInEmail = sUserManagement.getLoggedInEmail();
-//    Optional<RetroStoreUser> currentUser = sUserManagement.getCurrentUser();
-//
-//    // User needs to create an account first.
-//    if (!currentUser.isPresent()) {
-//      String content = Template.fromFile("WEB-INF/html/create_account.html")
-//          .with("logged_in_email", loggedInEmail.get())
-//          .render();
-//      resp.getWriter().write(content);
-//      return;
-//    }
-//
-//    if ("/".equals(req.getRequestURI())) {
-//      Template newItemTpl = sItemsViewUtil.fillNewItemView();
-//      Template userManagementTpl = sUserManagement.isCurrentUserAdmin() ?
-//          sUserViewUtil.fillUserManagementView(sUserManagement) : Template.empty();
-//      String content = Template.fromFile("WEB-INF/html/index.html")
-//          .withHtml("new_item_content", newItemTpl.render())
-//          .withHtml("user_management_content", userManagementTpl.render())
-//          .withHtml("logged_in_user", currentUser.get().firstName)
-//          .render();
-//      resp.getWriter().write(content);
-//      return;
-//    }
-//
-//    if (sGfxServingUtil.serve(req, resp)) {
-//      return;
-//    }
-//
-//    resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
   }
 }

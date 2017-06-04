@@ -25,4 +25,7 @@ public interface RequestData {
 
   /** Returns the request parameter with the given name. */
   String getParameter(String name);
+
+  /** If one was sent, this will contains the body content. */
+  String getBody();
 }
