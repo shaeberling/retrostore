@@ -41,7 +41,7 @@ import java.util.logging.Logger;
 /**
  * Enables adding/removing of users.
  */
-public class MainServlet extends Trs80Servlet {
+public class MainServlet extends RetroStoreServlet {
   private static final Logger LOG = Logger.getLogger("MainServlet");
 
   private static final String REQUEST_REMOVE_USER = "removeUser";
@@ -64,8 +64,8 @@ public class MainServlet extends Trs80Servlet {
     sRequestServers = new ArrayList<>();
     sRequestServers.add(new LoginRequest());
     sRequestServers.add(new EnsureAdminExistsRequest(sUserManagement));
-    sRequestServers.add(new PolymerRequest(sFileUtil));
     sRequestServers.add(new RpcCallRequest(sUserManagement));
+    sRequestServers.add(new PolymerRequest(sFileUtil));
     // Note: Add more request servers here. Keep in mind that this is in priority-order.
   }
 
