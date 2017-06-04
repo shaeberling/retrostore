@@ -46,7 +46,7 @@ public class RpcCallRequest implements Request {
   public RpcCallRequest(UserManagement userManagement) {
     // Note: Add new RPC calls here.
     List<RpcCall> calls = ImmutableList.of(
-        new AdminUserListRpcCall(),
+        new AdminUserListRpcCall(userManagement),
         new GetSiteContextRpcCall(userManagement));
 
     Map<String, RpcCall> callsMapped = new HashMap<>();

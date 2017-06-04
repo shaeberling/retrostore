@@ -16,15 +16,24 @@
 
 package org.retrostore.rpc;
 
-import org.retrostore.request.Responder;
 import org.retrostore.data.user.UserAccountType;
+import org.retrostore.data.user.UserManagement;
+import org.retrostore.request.Responder;
 import org.retrostore.rpc.internal.RpcCall;
 import org.retrostore.rpc.internal.RpcParameters;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Return a list of RetroStore users.
  */
 public class AdminUserListRpcCall implements RpcCall {
+  private final UserManagement mUserManagement;
+
+  public AdminUserListRpcCall(UserManagement userManagement) {
+    mUserManagement = checkNotNull(userManagement);
+  }
+
   @Override
   public String getName() {
     return "userlist";
@@ -37,6 +46,6 @@ public class AdminUserListRpcCall implements RpcCall {
 
   @Override
   public void call(RpcParameters params, Responder responder) {
-    responder.respond("Yes this worked", Responder.ContentType.PLAIN);
+    responder.respondObject(mUserManagement.getAllUsers());
   }
 }
