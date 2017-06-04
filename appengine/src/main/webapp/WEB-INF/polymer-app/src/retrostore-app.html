@@ -67,7 +67,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   window.Polymer._polymerFn = function(info) { // eslint-disable-line no-unused-vars
     throw new Error('Load polymer.html to use the Polymer() function.');
   }
-  window.Polymer.version = '2.0-preview';
+  window.Polymer.version = '2.0.1';
 
   /* eslint-disable no-unused-vars */
   /*
@@ -985,7 +985,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       /**
        * Enqueues a function called at `requestAnimationFrame` timing.
        *
-       * @memberof Polymer.Async.timeOut
+       * @memberof Polymer.Async.animationFrame
        * @param {Function} fn Callback to run
        * @return {number} Handle used for canceling task
        */
@@ -1011,7 +1011,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       /**
        * Enqueues a function called at `requestIdleCallback` timing.
        *
-       * @memberof Polymer.Async.timeOut
+       * @memberof Polymer.Async.idlePeriod
        * @param {function(IdleDeadline)} fn Callback to run
        * @return {number} Handle used for canceling task
        */
@@ -1023,7 +1023,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       /**
        * Cancels a previously enqueued `idlePeriod` callback.
        *
-       * @memberof Polymer.Async.timeOut
+       * @memberof Polymer.Async.idlePeriod
        * @param {number} handle Handle returned from `run` of callback to cancel
        */
       cancel(handle) {
@@ -1052,7 +1052,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       /**
        * Enqueues a function called at microtask timing.
        *
-       * @memberof Polymer.Async.timeOut
+       * @memberof Polymer.Async.microTask
        * @param {Function} callback Callback to run
        * @return {*} Handle used for canceling task
        */
@@ -1065,6 +1065,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       /**
        * Cancels a previously enqueued `microTask` callback.
        *
+       * @memberof Polymer.Async.microTask
        * @param {number} handle Handle returned from `run` of callback to cancel
        */
       cancel(handle) {
@@ -1206,7 +1207,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _initializeProperties() {
         this.__serializing = false;
         this.__dataCounter = 0;
-        this.__dataInitialized = false;
+        this.__dataEnabled = false;
+        this.__dataReady = false;
         this.__dataInvalid = false;
         // initialize data with prototype values saved when creating accessors
         this.__data = {};
@@ -1533,7 +1535,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * @protected
        */
       _invalidateProperties() {
-        if (!this.__dataInvalid && this.__dataInitialized) {
+        if (!this.__dataInvalid && this.__dataReady) {
           this.__dataInvalid = true;
           microtask.run(() => {
             if (this.__dataInvalid) {
@@ -1545,20 +1547,35 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       /**
+       * Call to enable property accessor processing. Before this method is
+       * called accessor values will be set but side effects are
+       * queued. When called, any pending side effects occur immediately.
+       * For elements, generally `connectedCallback` is a normal spot to do so.
+       * It is safe to call this method multiple times as it only turns on
+       * property accessors once.
+       */
+      _enableProperties() {
+        if (!this.__dataEnabled) {
+          this.__dataEnabled = true;
+          if (this.__dataInstanceProps) {
+            this._initializeInstanceProperties(this.__dataInstanceProps);
+            this.__dataInstanceProps = null;
+          }
+          this.ready()
+        }
+      }
+
+      /**
        * Calls the `_propertiesChanged` callback with the current set of
        * pending changes (and old values recorded when pending changes were
-       * set), and resets the pending set of changes.
+       * set), and resets the pending set of changes. Generally, this method
+       * should not be called in user code.
        *
-       * Note that this method must be called once to enable the property
-       * accessors system.  For elements, generally `connectedCallback`
-       * is a normal spot to do so.
        *
        * @protected
        */
       _flushProperties() {
-        if (!this.__dataInitialized) {
-          this.ready()
-        } else if (this.__dataPending) {
+        if (this.__dataPending) {
           let changedProps = this.__dataPending;
           this.__dataPending = null;
           this.__dataCounter++;
@@ -1582,13 +1599,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * @public
        */
       ready() {
-        // Update instance properties that shadowed proto accessors; these take
-        // priority over any defaults set in constructor or attributeChangedCallback
-        if (this.__dataInstanceProps) {
-          this._initializeInstanceProperties(this.__dataInstanceProps);
-          this.__dataInstanceProps = null;
-        }
-        this.__dataInitialized = true;
+        this.__dataReady = true;
         // Run normal flush
         this._flushProperties();
       }
@@ -1759,11 +1770,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
      */
     class TemplateStamp extends superClass {
 
-      _initializeProperties() {
-        super._initializeProperties();
-        this.$ = null;
-      }
-
       /**
        * Scans a template to produce template metadata.
        *
@@ -1777,43 +1783,46 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * The template metadata object returned from this method has the following
        * structure (many fields optional):
        *
+       * ```js
        *   {
        *     // Flattened list of node metadata (for nodes that generated metadata)
        *     nodeInfoList: [
        *       {
        *         // `id` attribute for any nodes with id's for generating `$` map
-       *         id: '<id>',
+       *         id: {string},
        *         // `on-event="handler"` metadata
        *         events: [
        *           {
-       *             name: '<name>'
-       *             value: '<handler name>'
+       *             name: {string},   // event name
+       *             value: {string},  // handler method name
        *           }, ...
        *         ],
        *         // Notes when the template contained a `<slot>` for shady DOM
        *         // optimization purposes
-       *         hasInsertionPoint: <boolean>,
-       *         // For nested <template> nodes, nested template metadata
-       *         templateInfo: <nested template metadata>,
+       *         hasInsertionPoint: {boolean},
+       *         // For nested `<template>`` nodes, nested template metadata
+       *         templateInfo: {object}, // nested template metadata
        *         // Metadata to allow efficient retrieval of instanced node
        *         // corresponding to this metadata
-       *         parentInfo: <reference to parent nodeInfo>,
-       *         parentIndex: <integer index in parent's `childNodes` collection>
-       *         infoIndex: <integer index of this `nodeInfo` in `templateInfo.nodeInfoList`
+       *         parentInfo: {number},   // reference to parent nodeInfo>
+       *         parentIndex: {number},  // index in parent's `childNodes` collection
+       *         infoIndex: {number},    // index of this `nodeInfo` in `templateInfo.nodeInfoList`
        *       },
        *       ...
        *     ],
        *     // When true, the template had the `strip-whitespace` attribute
        *     // or was nested in a template with that setting
-       *     stripWhitespace: <boolean>
+       *     stripWhitespace: {boolean},
        *     // For nested templates, nested template content is moved into
        *     // a document fragment stored here; this is an optimization to
        *     // avoid the cost of nested template cloning
-       *     content: <DocumentFragment>
+       *     content: {DocumentFragment}
        *   }
+       * ```
        *
        * This method kicks off a recursive treewalk as follows:
        *
+       * ```
        *    _parseTemplate <---------------------+
        *      _parseTemplateContent              |
        *        _parseTemplateNode  <------------|--+
@@ -1821,6 +1830,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        *          _parseTemplateChildNodes ---------+
        *          _parseTemplateNodeAttributes
        *            _parseTemplateNodeAttribute
+       *
+       * ```
        *
        * These methods may be overridden to add custom metadata about templates
        * to either `templateInfo` or `nodeInfo`.
@@ -1922,7 +1933,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           if (this._parseTemplateNode(node, templateInfo, childInfo)) {
             childInfo.infoIndex = templateInfo.nodeInfoList.push(childInfo) - 1;
           }
-          parentIndex++;
+          // Increment if not removed
+          if (node.parentNode) {
+            parentIndex++;
+          }
         }
       }
 
@@ -2037,7 +2051,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        *
        * Note that the memoized template parsing process is destructive to the
        * template: attributes for bindings and declarative event listeners are
-       * removed after being noted in notes, and any nested <template>.content
+       * removed after being noted in notes, and any nested `<template>.content`
        * is removed and stored in notes as well.
        *
        * @param {HTMLTemplateElement} template Template to stamp
@@ -2286,7 +2300,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     let changedProp = info.property;
     if (fn) {
       fn.call(inst, inst.__data[changedProp], oldProps[changedProp]);
-    } else {
+    } else if (!info.dynamicFn) {
       console.warn('observer method `' + info.methodName + '` not defined');
     }
   }
@@ -2324,9 +2338,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
     }
     // Flush host if we actually notified and host was batching
+    // And the host has already initialized clients; this prevents
+    // an issue with a host observing data changes before clients are ready.
     let host;
-    if (notified && (host = inst.__dataHost) && host._flushProperties) {
-      host._flushProperties();
+    if (notified && (host = inst.__dataHost) && host._invalidateProperties) {
+      host._invalidateProperties();
     }
   }
 
@@ -2603,7 +2619,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
    * Implements the "binding" (property/path binding) effect.
    *
    * Note that binding syntax is overridable via `_parseBindings` and
-   * `_evaluateBindings`.  This method will call `_evaluateBinding` for any
+   * `_evaluateBinding`.  This method will call `_evaluateBinding` for any
    * non-literal parts returned from `_parseBindings`.  However,
    * there is no support for _path_ bindings via custom binding parts,
    * as this is specific to Polymer's path binding syntax.
@@ -2702,7 +2718,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   /**
    * Returns true if a binding's metadata meets all the requirements to allow
-   * 2-way binding, and therefore a <property>-changed event listener should be
+   * 2-way binding, and therefore a `<property>-changed` event listener should be
    * added:
    * - used curly braces
    * - is a property (not attribute) binding
@@ -2812,13 +2828,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
    * @param {Function} effectFn Function to run when arguments change
    * @param {*=} methodInfo Effect-specific information to be included in
    *   method effect metadata
-   * @param {Object=} dynamicFns Map indicating whether method names should
-   *   be included as a dependency to the effect. Note, defaults to true
-   *   if the signature is statci (sig.static is true).
+   * @param {boolean|Object=} dynamicFn Boolean or object map indicating whether
+   *   method names should be included as a dependency to the effect. Note,
+   *   defaults to true if the signature is static (sig.static is true).
    * @private
    */
-  function createMethodEffect(model, sig, type, effectFn, methodInfo, dynamicFns) {
-    let dynamicFn = sig.static || dynamicFns && dynamicFns[sig.methodName];
+  function createMethodEffect(model, sig, type, effectFn, methodInfo, dynamicFn) {
+    dynamicFn = sig.static || (dynamicFn &&
+      (typeof dynamicFn !== 'object' || dynamicFn[sig.methodName]));
     let info = {
       methodName: sig.methodName,
       args: sig.args,
@@ -3120,21 +3137,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
    * Element class mixin that provides meta-programming for Polymer's template
    * binding and data observation (collectively, "property effects") system.
    *
-   * This mixin uses provides the following key methods for adding property effects
-   * to this element:
-   * - `_createPropertyObserver`
-   * - `_createMethodObserver`
-   * - `_createNotifyingProperty`
-   * - `_createReadOnlyProperty`
-   * - `_createReflectedProperty`
-   * - `_createComputedProperty`
-   * - `_bindTemplate`
+   * This mixin uses provides the following key static methods for adding
+   * property effects to an element class:
+   * - `addPropertyEffect`
+   * - `createPropertyObserver`
+   * - `createMethodObserver`
+   * - `createNotifyingProperty`
+   * - `createReadOnlyProperty`
+   * - `createReflectedProperty`
+   * - `createComputedProperty`
+   * - `bindTemplate`
    *
    * Each method creates one or more property accessors, along with metadata
    * used by this mixin's implementation of `_propertiesChanged` to perform
-   * the property effects.  These methods may be called on element instances,
-   * but are designed to be called on element prototypes such that the work to
-   * set up accessors and effect metadata are done once per element class.
+   * the property effects.
+   *
+   * Underscored versions of the above methods also exist on the element
+   * prototype for adding property effects on instances at runtime.
    *
    * Note that this mixin overrides several `PropertyAccessors` methods, in
    * many cases to maintain guarantees provided by the Polymer 1.x features;
@@ -3178,7 +3197,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        */
       _initializeProperties() {
         super._initializeProperties();
-        this.__dataClientsInitialized = false;
+        hostStack.registerHost(this);
+        this.__dataClientsReady = false;
         this.__dataPendingClients = null;
         this.__dataToNotify = null;
         this.__dataLinkedPaths = null;
@@ -3222,41 +3242,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       // Prototype setup ----------------------------------------
 
       /**
-       * Ensures an accessor exists for the specified property, and adds
-       * to a list of "property effects" that will run when the accessor for
-       * the specified property is set.  Effects are grouped by "type", which
-       * roughly corresponds to a phase in effect processing.  The effect
-       * metadata should be in the following form:
-       *
-       *   {
-       *     fn: effectFunction, // Reference to function to call to perform effect
-       *     info: { ... }       // Effect metadata passed to function
-       *     trigger: {          // Optional triggering metadata; if not provided
-       *       name: string      // the property is treated as a wildcard
-       *       structured: boolean
-       *       wildcard: boolean
-       *     }
-       *   }
-       *
-       * Effects are called from `_propertiesChanged` in the following order by
-       * type:
-       *
-       * 1. COMPUTE
-       * 2. PROPAGATE
-       * 3. REFLECT
-       * 4. OBSERVE
-       * 5. NOTIFY
-       *
-       * Effect functions are called with the following signature:
-       *
-       *   effectFunction(inst, path, props, oldProps, info, hasPaths)
-       *
-       * This method may be called either on the prototype of a class
-       * using the PropertyEffects mixin (for best performance), or on
-       * an instance to add dynamic effects.  When called on an instance or
-       * subclass of a class that has already had property effects added to
-       * its prototype, the property effect lists will be cloned and added as
-       * own properties of the caller.
+       * Equivalent to static `addPropertyEffect` API but can be called on
+       * an instance to add effects at runtime.  See that method for
+       * full API docs.
        *
        * @param {string} property Property that should trigger the effect
        * @param {string} type Effect type, from this.PROPERTY_EFFECT_TYPES
@@ -3372,7 +3360,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * @param {boolean=} shouldNotify Set to true if this change should
        *  cause a property notification event dispatch
        * @param {boolean=} isPathNotification If the path being set is a path
-       *   notification of an already changed value, as opposed to a requestData
+       *   notification of an already changed value, as opposed to a request
        *   to set and notify the change.  In the latter `false` case, a dirty
        *   check is performed and then the value is set to the path before
        *   enqueuing the pending property change.
@@ -3419,7 +3407,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        *
        * The implementation makes a best-effort at binding interop:
        * Some native element properties have side-effects when
-       * re-setting the same value (e.g. setting <input>.value resets the
+       * re-setting the same value (e.g. setting `<input>.value` resets the
        * cursor position), so we do a dirty-check before setting the value.
        * However, for better interop with non-Polymer custom elements that
        * accept objects, we explicitly re-set object changes coming from the
@@ -3518,14 +3506,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       /**
        * Overrides `PropertyAccessor`'s default async queuing of
-       * `_propertiesChanged`: if `__dataInitialized` is false (has not yet been
+       * `_propertiesChanged`: if `__dataReady` is false (has not yet been
        * manually flushed), the function no-ops; otherwise flushes
        * `_propertiesChanged` synchronously.
        *
        * @override
        */
       _invalidateProperties() {
-        if (this.__dataInitialized) {
+        if (this.__dataReady) {
           this._flushProperties();
         }
       }
@@ -3552,20 +3540,54 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * @protected
        */
       _flushClients() {
-        if (!this.__dataClientsInitialized) {
+        if (!this.__dataClientsReady) {
+          this.__dataClientsReady = true;
           this._readyClients();
+          // Override point where accessors are turned on; importantly,
+          // this is after clients have fully readied, providing a guarantee
+          // that any property effects occur only after all clients are ready.
+          this.__dataReady = true;
+        } else {
+          this.__enableOrFlushClients();
         }
-        // Flush all clients
+      }
+
+      // NOTE: We ensure clients either enable or flush as appropriate. This
+      // handles two corner cases:
+      // (1) clients flush properly when connected/enabled before the host
+      // enables; e.g.
+      //   (a) Templatize stamps with no properties and does not flush and
+      //   (b) the instance is inserted into dom and
+      //   (c) then the instance flushes.
+      // (2) clients enable properly when not connected/enabled when the host
+      // flushes; e.g.
+      //   (a) a template is runtime stamped and not yet connected/enabled
+      //   (b) a host sets a property, causing stamped dom to flush
+      //   (c) the stamped dom enables.
+      __enableOrFlushClients() {
         let clients = this.__dataPendingClients;
         if (clients) {
           this.__dataPendingClients = null;
           for (let i=0; i < clients.length; i++) {
             let client = clients[i];
-            if (!client.__dataInitialized || client.__dataPending) {
+            if (!client.__dataEnabled) {
+              client._enableProperties();
+            } else if (client.__dataPending) {
               client._flushProperties();
             }
           }
         }
+      }
+
+      /**
+       * Perform any initial setup on client dom. Called before the first
+       * `_flushProperties` call on client dom and before any element
+       * observers are called.
+       *
+       * @protected
+       */
+      _readyClients() {
+        this.__enableOrFlushClients();
       }
 
       /**
@@ -3596,27 +3618,29 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       /**
-       * Overrides `PropertyAccessors` to call `_readyClients` callback
-       * if it was not called as a result of flushing properties.
+       * Overrides `PropertyAccessors` so that property accessor
+       * side effects are not enabled until after client dom is fully ready.
+       * Also calls `_flushClients` callback to ensure client dom is enabled
+       * that was not enabled as a result of flushing properties.
        *
        * @override
        */
       ready() {
-        super.ready();
-        if (!this.__dataClientsInitialized) {
-          this._readyClients();
+        // It is important that `super.ready()` is not called here as it
+        // immediately turns on accessors. Instead, we wait until `readyClients`
+        // to enable accessors to provide a guarantee that clients are ready
+        // before processing any accessors side effects.
+        this._flushProperties();
+        // If no data was pending, `_flushProperties` will not `flushClients`
+        // so ensure this is done.
+        if (!this.__dataClientsReady) {
+          this._flushClients();
         }
-      }
-
-      /**
-       * Perform any initial setup on client dom. Called before the first
-       * `_flushProperties` call on client dom and before any element
-       * observers are called.
-       *
-       * @protected
-       */
-      _readyClients() {
-        this.__dataClientsInitialized = true;
+        // Before ready, client notifications do not trigger _flushProperties.
+        // Therefore a flush is necessary here if data has been set.
+        if (this.__dataPending) {
+          this._flushProperties();
+        }
       }
 
       /**
@@ -3969,14 +3993,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       /**
-       * Creates a read-only accessor for the given property.
-       *
-       * To set the property, use the protected `_setProperty` API.
-       * To create a custom protected setter (e.g. `_setMyProp()` for
-       * property `myProp`), pass `true` for `protectedSetter`.
-       *
-       * Note, if the property will have other property effects, this method
-       * should be called first, before adding other effects.
+       * Equivalent to static `createReadOnlyProperty` API but can be called on
+       * an instance to add effects at runtime.  See that method for
+       * full API docs.
        *
        * @param {string} property Property name
        * @param {boolean=} protectedSetter Creates a custom protected setter
@@ -3993,7 +4012,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       /**
-       * Creates a single-property observer for the given property.
+       * Equivalent to static `createPropertyObserver` API but can be called on
+       * an instance to add effects at runtime.  See that method for
+       * full API docs.
        *
        * @param {string} property Property name
        * @param {string} methodName Name of observer method to call
@@ -4002,7 +4023,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * @protected
        */
       _createPropertyObserver(property, methodName, dynamicFn) {
-        let info = { property, methodName };
+        let info = { property, methodName, dynamicFn };
         this._addPropertyEffect(property, TYPES.OBSERVE, {
           fn: runObserverEffect, info, trigger: {name: property}
         });
@@ -4014,28 +4035,27 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       /**
-       * Creates a multi-property "method observer" based on the provided
-       * expression, which should be a string in the form of a normal Javascript
-       * function signature: `'methodName(arg1, [..., argn])'`.  Each argument
-       * should correspond to a property or path in the context of this
-       * prototype (or instance), or may be a literal string or number.
+       * Equivalent to static `createMethodObserver` API but can be called on
+       * an instance to add effects at runtime.  See that method for
+       * full API docs.
        *
        * @param {string} expression Method expression
-       * @param {Object=} dynamicFns Map indicating whether method names should
-       *   be included as a dependency to the effect.
+       * @param {boolean|Object=} dynamicFn Boolean or object map indicating
+       *   whether method names should be included as a dependency to the effect.
        * @protected
        */
-      _createMethodObserver(expression, dynamicFns) {
+      _createMethodObserver(expression, dynamicFn) {
         let sig = parseMethod(expression);
         if (!sig) {
           throw new Error("Malformed observer expression '" + expression + "'");
         }
-        createMethodEffect(this, sig, TYPES.OBSERVE, runMethodEffect, null, dynamicFns);
+        createMethodEffect(this, sig, TYPES.OBSERVE, runMethodEffect, null, dynamicFn);
       }
 
       /**
-       * Causes the setter for the given property to dispatch `<property>-changed`
-       * events to notify of changes to the property.
+       * Equivalent to static `createNotifyingProperty` API but can be called on
+       * an instance to add effects at runtime.  See that method for
+       * full API docs.
        *
        * @param {string} property Property name
        * @protected
@@ -4051,8 +4071,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       /**
-       * Causes the setter for the given property to reflect the property value
-       * to a (dash-cased) attribute of the same name.
+       * Equivalent to static `createReflectedProperty` API but can be called on
+       * an instance to add effects at runtime.  See that method for
+       * full API docs.
        *
        * @param {string} property Property name
        * @protected
@@ -4073,6 +4094,136 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       /**
+       * Equivalent to static `createComputedProperty` API but can be called on
+       * an instance to add effects at runtime.  See that method for
+       * full API docs.
+       *
+       * @param {string} property Name of computed property to set
+       * @param {string} expression Method expression
+       * @param {boolean|Object=} dynamicFn Boolean or object map indicating
+       *   whether method names should be included as a dependency to the effect.
+       * @protected
+       */
+      _createComputedProperty(property, expression, dynamicFn) {
+        let sig = parseMethod(expression);
+        if (!sig) {
+          throw new Error("Malformed computed expression '" + expression + "'");
+        }
+        createMethodEffect(this, sig, TYPES.COMPUTE, runComputedEffect, property, dynamicFn);
+      }
+
+      // -- static class methods ------------
+
+      /**
+       * Ensures an accessor exists for the specified property, and adds
+       * to a list of "property effects" that will run when the accessor for
+       * the specified property is set.  Effects are grouped by "type", which
+       * roughly corresponds to a phase in effect processing.  The effect
+       * metadata should be in the following form:
+       *
+       *   {
+       *     fn: effectFunction, // Reference to function to call to perform effect
+       *     info: { ... }       // Effect metadata passed to function
+       *     trigger: {          // Optional triggering metadata; if not provided
+       *       name: string      // the property is treated as a wildcard
+       *       structured: boolean
+       *       wildcard: boolean
+       *     }
+       *   }
+       *
+       * Effects are called from `_propertiesChanged` in the following order by
+       * type:
+       *
+       * 1. COMPUTE
+       * 2. PROPAGATE
+       * 3. REFLECT
+       * 4. OBSERVE
+       * 5. NOTIFY
+       *
+       * Effect functions are called with the following signature:
+       *
+       *   effectFunction(inst, path, props, oldProps, info, hasPaths)
+       *
+       * @param {string} property Property that should trigger the effect
+       * @param {string} type Effect type, from this.PROPERTY_EFFECT_TYPES
+       * @param {Object=} effect Effect metadata object
+       * @protected
+       */
+      static addPropertyEffect(property, type, effect) {
+        this.prototype._addPropertyEffect(property, type, effect);
+      }
+
+      /**
+       * Creates a single-property observer for the given property.
+       *
+       * @param {string} property Property name
+       * @param {string} methodName Name of observer method to call
+       * @param {boolean=} dynamicFn Whether the method name should be included as
+       *   a dependency to the effect.
+       * @protected
+       */
+      static createPropertyObserver(property, methodName, dynamicFn) {
+        this.prototype._createPropertyObserver(property, methodName, dynamicFn);
+      }
+
+      /**
+       * Creates a multi-property "method observer" based on the provided
+       * expression, which should be a string in the form of a normal Javascript
+       * function signature: `'methodName(arg1, [..., argn])'`.  Each argument
+       * should correspond to a property or path in the context of this
+       * prototype (or instance), or may be a literal string or number.
+       *
+       * @param {string} expression Method expression
+       * @param {boolean|Object=} dynamicFn Boolean or object map indicating
+       *   whether method names should be included as a dependency to the effect.
+       * @protected
+       */
+      static createMethodObserver(expression, dynamicFn) {
+        this.prototype._createMethodObserver(expression, dynamicFn);
+      }
+
+      /**
+       * Causes the setter for the given property to dispatch `<property>-changed`
+       * events to notify of changes to the property.
+       *
+       * @param {string} property Property name
+       * @protected
+       */
+      static createNotifyingProperty(property) {
+        this.prototype._createNotifyingProperty(property);
+      }
+
+      /**
+       * Creates a read-only accessor for the given property.
+       *
+       * To set the property, use the protected `_setProperty` API.
+       * To create a custom protected setter (e.g. `_setMyProp()` for
+       * property `myProp`), pass `true` for `protectedSetter`.
+       *
+       * Note, if the property will have other property effects, this method
+       * should be called first, before adding other effects.
+       *
+       * @param {string} property Property name
+       * @param {boolean=} protectedSetter Creates a custom protected setter
+       *   when `true`.
+       * @protected
+       */
+      static createReadOnlyProperty(property, protectedSetter) {
+        this.prototype._createReadOnlyProperty(property, protectedSetter);
+      }
+
+      /**
+       * Causes the setter for the given property to reflect the property value
+       * to a (dash-cased) attribute of the same name.
+       *
+       * @param {string} property Property name
+       * @protected
+       */
+      static createReflectedProperty(property) {
+        this.prototype._createReflectedProperty(property);
+      }
+
+      /**
        * Creates a computed property whose value is set to the result of the
        * method described by the given `expression` each time one or more
        * arguments to the method changes.  The expression should be a string
@@ -4081,19 +4232,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        *
        * @param {string} property Name of computed property to set
        * @param {string} expression Method expression
-       * @param {Object=} dynamicFns Map indicating whether method names should
-       *   be included as a dependency to the effect.
+       * @param {boolean|Object=} dynamicFn Boolean or object map indicating whether
+       *   method names should be included as a dependency to the effect.
        * @protected
        */
-      _createComputedProperty(property, expression, dynamicFns) {
-        let sig = parseMethod(expression);
-        if (!sig) {
-          throw new Error("Malformed computed expression '" + expression + "'");
-        }
-        createMethodEffect(this, sig, TYPES.COMPUTE, runComputedEffect, property, dynamicFns);
+      static createComputedProperty(property, expression, dynamicFn) {
+        this.prototype._createComputedProperty(property, expression, dynamicFn);
       }
-
-      // -- binding ----------------------------------------------
 
       /**
        * Parses the provided template to ensure binding effects are created
@@ -4101,6 +4246,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * dependent properties in the template.  Binding effects for bound
        * templates are stored in a linked list on the instance so that
        * templates can be efficiently stamped and unstamped.
+       *
+       * @param {HTMLTemplateElement} template Template containing binding
+       *   bindings
+       * @return {Object} Template metadata object
+       * @protected
+       */
+      static bindTemplate(template) {
+        return this.prototype._bindTemplate(template);
+      }
+
+      // -- binding ----------------------------------------------
+
+      /**
+       * Equivalent to static `bindTemplate` API but can be called on
+       * an instance to add effects at runtime.  See that method for
+       * full API docs.
        *
        * This method may be called on the prototype (for prototypical template
        * binding, to avoid creating accessors every instance) once per prototype,
@@ -4135,8 +4296,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           templateInfo = Object.create(templateInfo);
           templateInfo.wasPreBound = wasPreBound;
           if (!wasPreBound && this.__templateInfo) {
-            templateInfo.nextTemplateInfo = this.__templateInfo;
-            this.__templateInfo.previousTemplateInfo = templateInfo;
+            let last = this.__templateInfoLast || this.__templateInfo;
+            this.__templateInfoLast = last.nextTemplateInfo = templateInfo;
+            templateInfo.previousTemplateInfo = last;
+            return templateInfo;
           }
         }
         return this.__templateInfo = templateInfo;
@@ -4182,7 +4345,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * @protected
        */
       _stampTemplate(template) {
+        // Ensures that created dom is `_enqueueClient`'d to this element so
+        // that it can be flushed on next call to `_flushProperties`
+        hostStack.beginHosting(this);
         let dom = super._stampTemplate(template);
+        hostStack.endHosting(this);
         let templateInfo = this._bindTemplate(template, true);
         // Add template-instance-specific data to instanced templateInfo
         templateInfo.nodeList = dom.nodeList;
@@ -4197,7 +4364,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         // Setup compound storage, 2-way listeners, and dataHost for bindings
         setupBindings(this, templateInfo);
         // Flush properties into template nodes if already booted
-        if (this.__dataInitialized) {
+        if (this.__dataReady) {
           runEffects(this, templateInfo.propertyEffects, this.__data, null,
             false, templateInfo.nodeList);
         }
@@ -4223,6 +4390,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           templateInfo.nextTemplateInfo.previousTemplateInfo =
             templateInfo.previousTemplateInfo;
         }
+        if (this.__templateInfoLast == templateInfo) {
+          this.__templateInfoLast = templateInfo.previousTemplateInfo;
+        }
+        templateInfo.previousTemplateInfo = templateInfo.nextTemplateInfo = null;
         // Remove stamped nodes
         let nodes = templateInfo.childNodes;
         for (let i=0; i<nodes.length; i++) {
@@ -4414,6 +4585,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             let dynamicFns = templateInfo.dynamicFns;
             if (dynamicFns && dynamicFns[methodName] || signature.static) {
               dependencies.push(methodName);
+              signature.dynamicFn = true;
             }
           } else {
             // Property or path
@@ -4476,6 +4648,53 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     return PropertyEffects;
   });
+
+  /**
+   * Helper api for enqueing client dom created by a host element.
+   *
+   * By default elements are flushed via `_flushProperties` when
+   * `connectedCallback` is called. Elements attach their client dom to
+   * themselves at `ready` time which results from this first flush.
+   * This provides an ordering guarantee that the client dom an element
+   * creates is flushed before the element itself (i.e. client `ready`
+   * fires before host `ready`).
+   *
+   * However, if `_flushProperties` is called *before* an element is connected,
+   * as for example `Templatize` does, this ordering guarantee cannot be
+   * satisfied because no elements are connected. (Note: Bound elements that
+   * receive data do become enqueued clients and are properly ordered but
+   * unbound elements are not.)
+   *
+   * To maintain the desired "client before host" ordering guarantee for this
+   * case we rely on the "host stack. Client nodes registers themselves with
+   * the creating host element when created. This ensures that all client dom
+   * is readied in the proper order, maintaining the desired guarantee.
+   *
+   * @private
+   */
+  let hostStack = {
+
+    stack: [],
+
+    registerHost(inst) {
+      if (this.stack.length) {
+        let host = this.stack[this.stack.length-1];
+        host._enqueueClient(inst);
+      }
+    },
+
+    beginHosting(inst) {
+      this.stack.push(inst);
+    },
+
+    endHosting(inst) {
+      let stackLen = this.stack.length;
+      if (stackLen && this.stack[stackLen-1] == inst) {
+        this.stack.pop();
+      }
+    }
+
+  }
 
 })();
 </script>
@@ -4586,8 +4805,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     const polymerElementBase = Polymer.PropertyEffects(base);
 
     let caseMap = Polymer.CaseMap;
-
-    const DISABLED = 'disable-upgrade';
 
     /**
      * Returns the `properties` object specifically on `klass`. Use for:
@@ -4916,8 +5133,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       proto._bindTemplate(template);
     }
 
-    function flushPropertiesStub() {}
-
     /**
      * @polymerMixinClass
      * @unrestricted
@@ -4935,7 +5150,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        */
       static get observedAttributes() {
         if (!this.hasOwnProperty(JSCompiler_renameProperty('__observedAttributes', this))) {
-          let list = [DISABLED];
+          let list = [];
           let properties = propertiesForClass(this);
           for (let prop in properties) {
             list.push(Polymer.CaseMap.camelToDashCase(prop));
@@ -5043,7 +5258,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        */
       _initializeProperties() {
         Polymer.telemetry.instanceCount++;
-        hostStack.registerHost(this);
         this.constructor.finalize();
         const importPath = this.constructor.importPath;
         // note: finalize template when we have access to `localName` to
@@ -5098,9 +5312,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         if (window.ShadyCSS && this._template) {
           window.ShadyCSS.styleElement(this);
         }
-        if (!this.__dataInitialized) {
-          this._flushProperties();
-        }
+        this._enableProperties();
       }
 
       /**
@@ -5118,9 +5330,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        */
       ready() {
         if (this._template) {
-          hostStack.beginHosting(this);
           this.root = this._stampTemplate(this._template);
-          hostStack.endHosting(this);
           this.$ = this.root.$;
         }
         super.ready();
@@ -5136,10 +5346,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * @override
        */
       _readyClients() {
-        super._readyClients();
         if (this._template) {
           this.root = this._attachDom(this.root);
         }
+        // The super._readyClients here sets the clients initialized flag.
+        // We must wait to do this until after client dom is created/attached
+        // so that this flag can be checked to prevent notifications fired
+        // during this process from being handled before clients are ready.
+        super._readyClients();
       }
 
 
@@ -5183,19 +5397,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * @override
        */
       attributeChangedCallback(name, old, value) {
-        // process `disable-upgrade` specially:
-        // First we see `disable-upgrade` added and disable `_flushProperties`,
-        // then when it's removed, restore regular flushing and flush.
-        // This should only be allowed before "readying".
-        if (name === DISABLED && !this.__dataInitialized) {
-          if (value !== null) {
-            this.__flushProperties = this._flushProperties;
-            this._flushProperties = flushPropertiesStub;
-          } else {
-            this._flushProperties = this.__flushProperties;
-            this._flushProperties();
-          }
-        } else if (old !== value) {
+        if (old !== value) {
           let property = caseMap.dashToCamelCase(name);
           let type = propertiesForClass(this.constructor)[property].type;
           if (!this._hasReadOnlyEffect(property)) {
@@ -5261,53 +5463,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     return PolymerElement;
   });
-
-  /**
-   * Helper api for enqueing client dom created by a host element.
-   *
-   * By default elements are flushed via `_flushProperties` when
-   * `connectedCallback` is called. Elements attach their client dom to
-   * themselves at `ready` time which results from this first flush.
-   * This provides an ordering guarantee that the client dom an element
-   * creates is flushed before the element itself (i.e. client `ready`
-   * fires before host `ready`).
-   *
-   * However, if `_flushProperties` is called *before* an element is connected,
-   * as for example `Templatize` does, this ordering guarantee cannot be
-   * satisfied because no elements are connected. (Note: Bound elements that
-   * receive data do become enqueued clients and are properly ordered but
-   * unbound elements are not.)
-   *
-   * To maintain the desired "client before host" ordering guarantee for this
-   * case we rely on the "host stack. Client nodes registers themselves with
-   * the creating host element when created. This ensures that all client dom
-   * is readied in the proper order, maintaining the desired guarantee.
-   *
-   * @private
-   */
-  let hostStack = {
-
-    stack: [],
-
-    registerHost(inst) {
-      if (this.stack.length) {
-        let host = this.stack[this.stack.length-1];
-        host._enqueueClient(inst);
-      }
-    },
-
-    beginHosting(inst) {
-      this.stack.push(inst);
-    },
-
-    endHosting(inst) {
-      let stackLen = this.stack.length;
-      if (stackLen && this.stack[stackLen-1] == inst) {
-        this.stack.pop();
-      }
-    }
-
-  }
 
   /**
    * Provides basic tracking of element definitions (registrations) and
@@ -5444,8 +5599,7 @@ The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
 The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
 Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
---><script>(function(){
-/*
+--><script>(function(){/*
 
 Copyright (c) 2017 The Polymer Project Authors. All rights reserved.
 This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
@@ -5454,23 +5608,22 @@ The complete set of contributors may be found at http://polymer.github.io/CONTRI
 Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 */
-'use strict';var l={};function m(){this.end=this.start=0;this.rules=this.parent=this.previous=null;this.cssText=this.parsedCssText="";this.atRule=!1;this.type=0;this.parsedSelector=this.selector=this.keyframesName=""}
-function p(a){a=a.replace(aa,"").replace(ba,"");var b=q,c=a,d=new m;d.start=0;d.end=c.length;for(var e=d,f=0,h=c.length;f<h;f++)if("{"===c[f]){e.rules||(e.rules=[]);var g=e,k=g.rules[g.rules.length-1]||null,e=new m;e.start=f+1;e.parent=g;e.previous=k;g.rules.push(e)}else"}"===c[f]&&(e.end=f+1,e=e.parent||d);return b(d,a)}
-function q(a,b){var c=b.substring(a.start,a.end-1);a.parsedCssText=a.cssText=c.trim();a.parent&&((c=b.substring(a.previous?a.previous.end:a.parent.start,a.start-1),c=ca(c),c=c.replace(r," "),c=c.substring(c.lastIndexOf(";")+1),c=a.parsedSelector=a.selector=c.trim(),a.atRule=!c.indexOf("@"),a.atRule)?c.indexOf("@media")?c.match(da)&&(a.type=u,a.keyframesName=a.selector.split(r).pop()):a.type=t:a.type=c.indexOf("--")?v:y);if(c=a.rules)for(var d=0,e=c.length,f;d<e&&(f=c[d]);d++)q(f,b);return a}
+'use strict';var k={};function n(){this.end=this.start=0;this.rules=this.parent=this.previous=null;this.cssText=this.parsedCssText="";this.atRule=!1;this.type=0;this.parsedSelector=this.selector=this.keyframesName=""}
+function p(a){a=a.replace(aa,"").replace(ba,"");var b=q,c=a,d=new n;d.start=0;d.end=c.length;for(var e=d,f=0,h=c.length;f<h;f++)if("{"===c[f]){e.rules||(e.rules=[]);var g=e,m=g.rules[g.rules.length-1]||null,e=new n;e.start=f+1;e.parent=g;e.previous=m;g.rules.push(e)}else"}"===c[f]&&(e.end=f+1,e=e.parent||d);return b(d,a)}
+function q(a,b){var c=b.substring(a.start,a.end-1);a.parsedCssText=a.cssText=c.trim();a.parent&&((c=b.substring(a.previous?a.previous.end:a.parent.start,a.start-1),c=ca(c),c=c.replace(r," "),c=c.substring(c.lastIndexOf(";")+1),c=a.parsedSelector=a.selector=c.trim(),a.atRule=!c.indexOf("@"),a.atRule)?c.indexOf("@media")?c.match(da)&&(a.type=u,a.keyframesName=a.selector.split(r).pop()):a.type=t:a.type=c.indexOf("--")?v:x);if(c=a.rules)for(var d=0,e=c.length,f;d<e&&(f=c[d]);d++)q(f,b);return a}
 function ca(a){return a.replace(/\\([0-9a-f]{1,6})\s/gi,function(a,c){a=c;for(c=6-a.length;c--;)a="0"+a;return"\\"+a})}
-function z(a,b,c){c=void 0===c?"":c;var d="";if(a.cssText||a.rules){var e=a.rules,f;if(f=e)f=e[0],f=!(f&&f.selector&&0===f.selector.indexOf("--"));if(f){f=0;for(var h=e.length,g;f<h&&(g=e[f]);f++)d=z(g,b,d)}else b?b=a.cssText:(b=a.cssText,b=b.replace(ea,"").replace(fa,""),b=b.replace(ga,"").replace(ha,"")),(d=b.trim())&&(d="  "+d+"\n")}d&&(a.selector&&(c+=a.selector+" {\n"),c+=d,a.selector&&(c+="}\n\n"));return c}
-var v=1,u=7,t=4,y=1E3,aa=/\/\*[^*]*\*+([^/*][^*]*\*+)*\//gim,ba=/@import[^;]*;/gim,ea=/(?:^[^;\-\s}]+)?--[^;{}]*?:[^{};]*?(?:[;\n]|$)/gim,fa=/(?:^[^;\-\s}]+)?--[^;{}]*?:[^{};]*?{[^}]*?}(?:[;\n]|$)?/gim,ga=/@apply\s*\(?[^);]*\)?\s*(?:[;\n]|$)?/gim,ha=/[^;:]*?:[^;]*?var\([^;]*\)(?:[;\n]|$)?/gim,da=/^@[^\s]*keyframes/,r=/\s+/g;var ia=Promise.resolve();function ja(a){if(a=l[a])a._applyShimCurrentVersion=a._applyShimCurrentVersion||0,a._applyShimValidatingVersion=a._applyShimValidatingVersion||0,a._applyShimNextVersion=(a._applyShimNextVersion||0)+1}function A(a){return a._applyShimCurrentVersion===a._applyShimNextVersion}function ka(a){a._applyShimValidatingVersion=a._applyShimNextVersion;a.a||(a.a=!0,ia.then(function(){a._applyShimCurrentVersion=a._applyShimNextVersion;a.a=!1}))};var B=/(?:^|[;\s{]\s*)(--[\w-]*?)\s*:\s*(?:([^;{]*)|{([^}]*)})(?:(?=[;\s}])|$)/gi,C=/(?:^|\W+)@apply\s*\(?([^);\n]*)\)?/gi,la=/@media[^(]*(\([^)]*\))/;var D=!(window.ShadyDOM&&window.ShadyDOM.inUse),E=!navigator.userAgent.match("AppleWebKit/601")&&window.CSS&&CSS.supports&&CSS.supports("box-shadow","0 0 0 var(--foo)");function F(a){a&&(E=E&&!a.nativeCss&&!a.shimcssproperties,D=D&&!a.nativeShadow&&!a.shimshadow)}window.ShadyCSS?F(window.ShadyCSS):window.WebComponents&&F(window.WebComponents.flags);var ma=D,G=E;function H(a){if(!a)return"";"string"===typeof a&&(a=p(a));return z(a,G)}function I(a){!a.__cssRules&&a.textContent&&(a.__cssRules=p(a.textContent));return a.__cssRules||null}function J(a,b,c,d){if(a){var e=!1,f=a.type;if(d&&f===t){var h=a.selector.match(la);h&&(window.matchMedia(h[1]).matches||(e=!0))}f===v?b(a):c&&f===u?c(a):f===y&&(e=!0);if((a=a.rules)&&!e)for(var e=0,f=a.length,g;e<f&&(g=a[e]);e++)J(g,b,c,d)}}
-function K(a,b){var c=a.indexOf("var(");if(-1===c)return b(a,"","","");var d;a:{var e=0;d=c+3;for(var f=a.length;d<f;d++)if("("===a[d])e++;else if(")"===a[d]&&!--e)break a;d=-1}e=a.substring(c+4,d);c=a.substring(0,c);a=K(a.substring(d+1),b);d=e.indexOf(",");return-1===d?b(c,e.trim(),"",a):b(c,e.substring(0,d).trim(),e.substring(d+1).trim(),a)};var na=/;\s*/m,oa=/^\s*(initial)|(inherit)\s*$/;function L(){this.a={}}L.prototype.set=function(a,b){a=a.trim();this.a[a]={h:b,i:{}}};L.prototype.get=function(a){a=a.trim();return this.a[a]||null};var M=null;function N(){this.b=this.c=null;this.a=new L}N.prototype.o=function(a){a=C.test(a)||B.test(a);C.lastIndex=0;B.lastIndex=0;return a};N.prototype.m=function(a,b){a=a.content.querySelector("style");var c=null;a&&(c=this.j(a,b));return c};
-N.prototype.j=function(a,b){b=void 0===b?"":b;var c=I(a);this.l(c,b);a.textContent=H(c);return c};N.prototype.f=function(a){var b=this,c=I(a);J(c,function(a){":root"===a.selector&&(a.selector="html");b.g(a)});a.textContent=H(c);return c};N.prototype.l=function(a,b){var c=this;this.c=b;J(a,function(a){c.g(a)});this.c=null};N.prototype.g=function(a){a.cssText=pa(this,a.parsedCssText);":root"===a.selector&&(a.selector=":host > *")};
-function pa(a,b){b=b.replace(B,function(b,d,e,f){return qa(a,b,d,e,f)});return O(a,b)}function O(a,b){for(var c;c=C.exec(b);){var d=c[0],e=c[1];c=c.index;var f=b.slice(0,c+d.indexOf("@apply"));b=b.slice(c+d.length);var h=P(a,f),g,k,d=void 0;g=a;var e=e.replace(na,""),n=[];k=g.a.get(e);k||(g.a.set(e,{}),k=g.a.get(e));if(k)for(d in g.c&&(k.i[g.c]=!0),k.h)g=h&&h[d],k=[d,": var(",e,"_-_",d],g&&k.push(",",g),k.push(")"),n.push(k.join(""));d=n.join("; ");b=""+f+d+b;C.lastIndex=c+d.length}return b}
-function P(a,b){b=b.split(";");for(var c,d,e={},f=0,h;f<b.length;f++)if(c=b[f])if(h=c.split(":"),1<h.length){c=h[0].trim();var g=a;d=c;h=h.slice(1).join(":");var k=oa.exec(h);k&&(k[1]?(g.b||(g.b=document.createElement("meta"),g.b.setAttribute("apply-shim-measure",""),g.b.style.all="initial",document.head.appendChild(g.b)),d=window.getComputedStyle(g.b).getPropertyValue(d)):d="apply-shim-inherit",h=d);d=h;e[c]=d}return e}function ra(a,b){if(M)for(var c in b.i)c!==a.c&&M(c)}
-function qa(a,b,c,d,e){d&&K(d,function(b,c){c&&a.a.get(c)&&(e="@apply "+c+";")});if(!e)return b;var f=O(a,e),h=b.slice(0,b.indexOf("--")),g=f=P(a,f),k=a.a.get(c),n=k&&k.h;n?g=Object.assign(Object.create(n),f):a.a.set(c,g);var X=[],w,x,Y=!1;for(w in g)x=f[w],void 0===x&&(x="initial"),!n||w in n||(Y=!0),X.push(""+c+"_-_"+w+": "+x);Y&&ra(a,k);k&&(k.h=g);d&&(h=b+";"+h);return""+h+X.join("; ")+";"}N.prototype.detectMixin=N.prototype.o;N.prototype.transformStyle=N.prototype.j;
-N.prototype.transformCustomStyle=N.prototype.f;N.prototype.transformRules=N.prototype.l;N.prototype.transformRule=N.prototype.g;N.prototype.transformTemplate=N.prototype.m;N.prototype._separator="_-_";Object.defineProperty(N.prototype,"invalidCallback",{get:function(){return M},set:function(a){M=a}});var Q=null,R=window.HTMLImports&&window.HTMLImports.whenReady||null,S;function sa(a){requestAnimationFrame(function(){R?R(a):(Q||(Q=new Promise(function(a){S=a}),"complete"===document.readyState?S():document.addEventListener("readystatechange",function(){"complete"===document.readyState&&S()})),Q.then(function(){a&&a()}))})};var T=new N;function U(){var a=this;this.a=null;this.b=!1;sa(function(){V(a)});T.invalidCallback=ja}function V(a){a.b||(a.a=window.ShadyCSS.CustomStyleInterface,a.a&&(a.a.transformCallback=function(a){T.f(a)},a.a.validateCallback=function(){requestAnimationFrame(function(){a.a.enqueued&&W(a)})}),a.b=!0)}U.prototype.prepareTemplate=function(a,b){V(this);l[b]=a;b=T.m(a,b);a._styleAst=b};
+function y(a,b,c){c=void 0===c?"":c;var d="";if(a.cssText||a.rules){var e=a.rules,f;if(f=e)f=e[0],f=!(f&&f.selector&&0===f.selector.indexOf("--"));if(f){f=0;for(var h=e.length,g;f<h&&(g=e[f]);f++)d=y(g,b,d)}else b?b=a.cssText:(b=a.cssText,b=b.replace(ea,"").replace(fa,""),b=b.replace(ga,"").replace(ha,"")),(d=b.trim())&&(d="  "+d+"\n")}d&&(a.selector&&(c+=a.selector+" {\n"),c+=d,a.selector&&(c+="}\n\n"));return c}
+var v=1,u=7,t=4,x=1E3,aa=/\/\*[^*]*\*+([^/*][^*]*\*+)*\//gim,ba=/@import[^;]*;/gim,ea=/(?:^[^;\-\s}]+)?--[^;{}]*?:[^{};]*?(?:[;\n]|$)/gim,fa=/(?:^[^;\-\s}]+)?--[^;{}]*?:[^{};]*?{[^}]*?}(?:[;\n]|$)?/gim,ga=/@apply\s*\(?[^);]*\)?\s*(?:[;\n]|$)?/gim,ha=/[^;:]*?:[^;]*?var\([^;]*\)(?:[;\n]|$)?/gim,da=/^@[^\s]*keyframes/,r=/\s+/g;var ia=Promise.resolve();function ja(a){if(a=k[a])a._applyShimCurrentVersion=a._applyShimCurrentVersion||0,a._applyShimValidatingVersion=a._applyShimValidatingVersion||0,a._applyShimNextVersion=(a._applyShimNextVersion||0)+1}function z(a){return a._applyShimCurrentVersion===a._applyShimNextVersion}function ka(a){a._applyShimValidatingVersion=a._applyShimNextVersion;a.a||(a.a=!0,ia.then(function(){a._applyShimCurrentVersion=a._applyShimNextVersion;a.a=!1}))};var A=/(?:^|[;\s{]\s*)(--[\w-]*?)\s*:\s*(?:((?:'(?:\\'|.)*?'|"(?:\\"|.)*?"|\([^\)]*?\)|[^};{])+)|\{([^\}]*)\}(?:(?=[;\s}])|$))/gi,B=/(?:^|\W+)@apply\s*\(?([^);\n]*)\)?/gi,la=/@media[^(]*(\([^)]*\))/;var C=!(window.ShadyDOM&&window.ShadyDOM.inUse),E;function F(a){E=a&&a.shimcssproperties?!1:C||!(navigator.userAgent.match("AppleWebKit/601")||!window.CSS||!CSS.supports||!CSS.supports("box-shadow","0 0 0 var(--foo)"))}window.ShadyCSS&&void 0!==window.ShadyCSS.nativeCss?E=window.ShadyCSS.nativeCss:window.ShadyCSS?(F(window.ShadyCSS),window.ShadyCSS=void 0):F(window.WebComponents&&window.WebComponents.flags);var G=E;function H(a){if(!a)return"";"string"===typeof a&&(a=p(a));return y(a,G)}function I(a){!a.__cssRules&&a.textContent&&(a.__cssRules=p(a.textContent));return a.__cssRules||null}function J(a,b,c,d){if(a){var e=!1,f=a.type;if(d&&f===t){var h=a.selector.match(la);h&&(window.matchMedia(h[1]).matches||(e=!0))}f===v?b(a):c&&f===u?c(a):f===x&&(e=!0);if((a=a.rules)&&!e)for(var e=0,f=a.length,g;e<f&&(g=a[e]);e++)J(g,b,c,d)}}
+function K(a,b){var c=a.indexOf("var(");if(-1===c)return b(a,"","","");a:{var d=0;var e=c+3;for(var f=a.length;e<f;e++)if("("===a[e])d++;else if(")"===a[e]&&!--d)break a;e=-1}d=a.substring(c+4,e);c=a.substring(0,c);a=K(a.substring(e+1),b);e=d.indexOf(",");return-1===e?b(c,d.trim(),"",a):b(c,d.substring(0,e).trim(),d.substring(e+1).trim(),a)};var ma=/;\s*/m,na=/^\s*(initial)|(inherit)\s*$/;function L(){this.a={}}L.prototype.set=function(a,b){a=a.trim();this.a[a]={h:b,i:{}}};L.prototype.get=function(a){a=a.trim();return this.a[a]||null};var M=null;function N(){this.b=this.c=null;this.a=new L}N.prototype.o=function(a){a=B.test(a)||A.test(a);B.lastIndex=0;A.lastIndex=0;return a};N.prototype.m=function(a,b){a=a.content.querySelector("style");var c=null;a&&(c=this.j(a,b));return c};
+N.prototype.j=function(a,b){b=void 0===b?"":b;var c=I(a);this.l(c,b);a.textContent=H(c);return c};N.prototype.f=function(a){var b=this,c=I(a);J(c,function(a){":root"===a.selector&&(a.selector="html");b.g(a)});a.textContent=H(c);return c};N.prototype.l=function(a,b){var c=this;this.c=b;J(a,function(a){c.g(a)});this.c=null};N.prototype.g=function(a){a.cssText=oa(this,a.parsedCssText);":root"===a.selector&&(a.selector=":host > *")};
+function oa(a,b){b=b.replace(A,function(b,d,e,f){return pa(a,b,d,e,f)});return O(a,b)}function O(a,b){for(var c;c=B.exec(b);){var d=c[0],e=c[1];c=c.index;var f=b.slice(0,c+d.indexOf("@apply"));b=b.slice(c+d.length);var h=P(a,f),d=void 0;var g=a;var e=e.replace(ma,""),m=[];var l=g.a.get(e);l||(g.a.set(e,{}),l=g.a.get(e));if(l)for(d in g.c&&(l.i[g.c]=!0),l.h)g=h&&h[d],l=[d,": var(",e,"_-_",d],g&&l.push(",",g),l.push(")"),m.push(l.join(""));d=m.join("; ");b=""+f+d+b;B.lastIndex=c+d.length}return b}
+function P(a,b){b=b.split(";");for(var c,d,e={},f=0,h;f<b.length;f++)if(c=b[f])if(h=c.split(":"),1<h.length){c=h[0].trim();var g=a;d=c;h=h.slice(1).join(":");var m=na.exec(h);m&&(m[1]?(g.b||(g.b=document.createElement("meta"),g.b.setAttribute("apply-shim-measure",""),g.b.style.all="initial",document.head.appendChild(g.b)),d=window.getComputedStyle(g.b).getPropertyValue(d)):d="apply-shim-inherit",h=d);d=h;e[c]=d}return e}function qa(a,b){if(M)for(var c in b.i)c!==a.c&&M(c)}
+function pa(a,b,c,d,e){d&&K(d,function(b,c){c&&a.a.get(c)&&(e="@apply "+c+";")});if(!e)return b;var f=O(a,e),h=b.slice(0,b.indexOf("--")),g=f=P(a,f),m=a.a.get(c),l=m&&m.h;l?g=Object.assign(Object.create(l),f):a.a.set(c,g);var X=[],w,Y=!1;for(w in g){var D=f[w];void 0===D&&(D="initial");!l||w in l||(Y=!0);X.push(""+c+"_-_"+w+": "+D)}Y&&qa(a,m);m&&(m.h=g);d&&(h=b+";"+h);return""+h+X.join("; ")+";"}N.prototype.detectMixin=N.prototype.o;N.prototype.transformStyle=N.prototype.j;
+N.prototype.transformCustomStyle=N.prototype.f;N.prototype.transformRules=N.prototype.l;N.prototype.transformRule=N.prototype.g;N.prototype.transformTemplate=N.prototype.m;N.prototype._separator="_-_";Object.defineProperty(N.prototype,"invalidCallback",{get:function(){return M},set:function(a){M=a}});var Q=null,R=window.HTMLImports&&window.HTMLImports.whenReady||null,S;function ra(a){requestAnimationFrame(function(){R?R(a):(Q||(Q=new Promise(function(a){S=a}),"complete"===document.readyState?S():document.addEventListener("readystatechange",function(){"complete"===document.readyState&&S()})),Q.then(function(){a&&a()}))})};var T=new N;function U(){var a=this;this.a=null;ra(function(){V(a)});T.invalidCallback=ja}function V(a){a.a||(a.a=window.ShadyCSS.CustomStyleInterface,a.a&&(a.a.transformCallback=function(a){T.f(a)},a.a.validateCallback=function(){requestAnimationFrame(function(){a.a.enqueued&&W(a)})}))}U.prototype.prepareTemplate=function(a,b){V(this);k[b]=a;b=T.m(a,b);a._styleAst=b};
 function W(a){V(a);if(a.a){var b=a.a.processStyles();if(a.a.enqueued){for(var c=0;c<b.length;c++){var d=a.a.getStyleForCustomStyle(b[c]);d&&T.f(d)}a.a.enqueued=!1}}}U.prototype.styleSubtree=function(a,b){V(this);if(b)for(var c in b)null===c?a.style.removeProperty(c):a.style.setProperty(c,b[c]);if(a.shadowRoot)for(this.styleElement(a),a=a.shadowRoot.children||a.shadowRoot.childNodes,b=0;b<a.length;b++)this.styleSubtree(a[b]);else for(a=a.children||a.childNodes,b=0;b<a.length;b++)this.styleSubtree(a[b])};
-U.prototype.styleElement=function(a){V(this);var b=a.localName,c;b?-1<b.indexOf("-")?c=b:c=a.getAttribute&&a.getAttribute("is")||"":c=a.is;if((b=l[c])&&!A(b)){if(A(b)||b._applyShimValidatingVersion!==b._applyShimNextVersion)this.prepareTemplate(b,c),ka(b);if(a=a.shadowRoot)if(a=a.querySelector("style"))a.__cssRules=b._styleAst,a.textContent=H(b._styleAst)}};U.prototype.styleDocument=function(a){V(this);this.styleSubtree(document.body,a)};
-if(!window.ShadyCSS||!window.ShadyCSS.ScopingShim){var Z=new U,ta=window.ShadyCSS&&window.ShadyCSS.CustomStyleInterface;window.ShadyCSS={prepareTemplate:function(a,b){W(Z);Z.prepareTemplate(a,b)},styleSubtree:function(a,b){W(Z);Z.styleSubtree(a,b)},styleElement:function(a){W(Z);Z.styleElement(a)},styleDocument:function(a){W(Z);Z.styleDocument(a)},getComputedStyleValue:function(a,b){return(a=window.getComputedStyle(a).getPropertyValue(b))?a.trim():""},nativeCss:G,nativeShadow:ma};ta&&(window.ShadyCSS.CustomStyleInterface=
-ta)}window.ShadyCSS.ApplyShim=T;
-}).call(self);
+U.prototype.styleElement=function(a){V(this);var b=a.localName,c;b?-1<b.indexOf("-")?c=b:c=a.getAttribute&&a.getAttribute("is")||"":c=a.is;if((b=k[c])&&!z(b)){if(z(b)||b._applyShimValidatingVersion!==b._applyShimNextVersion)this.prepareTemplate(b,c),ka(b);if(a=a.shadowRoot)if(a=a.querySelector("style"))a.__cssRules=b._styleAst,a.textContent=H(b._styleAst)}};U.prototype.styleDocument=function(a){V(this);this.styleSubtree(document.body,a)};
+if(!window.ShadyCSS||!window.ShadyCSS.ScopingShim){var Z=new U,sa=window.ShadyCSS&&window.ShadyCSS.CustomStyleInterface;window.ShadyCSS={prepareTemplate:function(a,b){W(Z);Z.prepareTemplate(a,b)},styleSubtree:function(a,b){W(Z);Z.styleSubtree(a,b)},styleElement:function(a){W(Z);Z.styleElement(a)},styleDocument:function(a){W(Z);Z.styleDocument(a)},getComputedStyleValue:function(a,b){return(a=window.getComputedStyle(a).getPropertyValue(b))?a.trim():""},nativeCss:G,nativeShadow:C};sa&&(window.ShadyCSS.CustomStyleInterface=
+sa)}window.ShadyCSS.ApplyShim=T;}).call(this);
 
 //# sourceMappingURL=apply-shim.min.js.map
 </script>
@@ -5555,7 +5708,28 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     }
   /**
    * Creates a debouncer if no debouncer is passed as a parameter
-   * or it cancels an active debouncer otherwise.
+   * or it cancels an active debouncer otherwise. The following
+   * example shows how a debouncer can be called multiple times within a
+   * microtask and "debounced" such that the provided callback function is
+   * called once. Add this method to a custom element:
+   *
+   * _debounceWork() {
+   *   this._debounceJob = Polymer.Debouncer.debounce(this._debounceJob,
+   *       Polymer.Async.microTask, () => {
+   *     this._doWork();
+   *   });
+   * }
+   *
+   * If the `_debounceWork` method is called multiple times within the same
+   * microtask, the `_doWork` function will be called only once at the next
+   * microtask checkpoint.
+   *
+   * Note: In testing it is often convenient to avoid asynchrony. To accomplish
+   * this with a debouncer, you can use `Polymer.enqueueDebouncer` and
+   * `Polymer.flush`. For example, extend the above example by adding
+   * `Polymer.enqueueDebouncer(this._debounceJob)` at the end of the
+   * `_debounceWork` method. Then in a test, call `Polymer.flush` to ensure
+   * the debouncer has completed.
    *
    * @param {Polymer.Debouncer?} debouncer Debouncer object.
    * @param {!AsyncModule} asyncModule Object with Async interface
@@ -7073,7 +7247,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   /**
    * Class that listens for changes (additions or removals) to
    * "flattened nodes" on a given `node`. The list of flattened nodes consists
-   * of a node's children and, for any children that are <slot> elements,
+   * of a node's children and, for any children that are `<slot>` elements,
    * the expanded flattened list of `assignedNodes`.
    * For example, if the observed node has children `<a></a><slot></slot><b></b>`
    * and the `<slot>` has one `<div>` assigned to it, then the flattened
@@ -7087,7 +7261,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
    *
    * Note: the callback is called asynchronous to any changes
    * at a microtask checkpoint. This is because observation is performed using
-   * `MutationObserver` and the `<slot> element's `slotchange` event which
+   * `MutationObserver` and the `<slot>` element's `slotchange` event which
    * are asynchronous.
    *
    * @memberof Polymer
@@ -7102,7 +7276,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     /**
      * Returns the list of flattened nodes for the given `node`.
      * This list consists of a node's children and, for any children
-     * that are <slot> elements, the expanded flattened list of `assignedNodes`.
+     * that are `<slot>` elements, the expanded flattened list of `assignedNodes`.
      * For example, if the observed node has children `<a></a><slot></slot><b></b>`
      * and the `<slot>` has one `<div>` assigned to it, then the flattened
      * nodes list is `<a></a><div></div><b></b>`. If the `<slot>` has other
@@ -8087,7 +8261,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * are not automatically handled. For example,
        * a user should call `distributeContent` if distribution has been
        * invalidated due to an element being added or removed from the shadowRoot
-       * that contains an insertion point (<slot>) inside its subtree.
+       * that contains an insertion point (`<slot>`) inside its subtree.
        */
       distributeContent() {
         if (window.ShadyDOM && this.shadowRoot) {
@@ -8249,7 +8423,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       /**
        * Call `debounce` to collapse multiple requests for a named task into
        * one invocation which is made after the wait time has elapsed with
-       * no new requestData.  If no wait time is given, the callback will be called
+       * no new request.  If no wait time is given, the callback will be called
        * at microtask timing (guaranteed before paint).
        *
        *     debouncedClickAction(e) {
@@ -9206,7 +9380,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         // or when there isn't instance props.
         let options = this.__templatizeOptions;
         if ((props && options.instanceProps) || !options.instanceProps) {
-          this._flushProperties();
+          this._enableProperties();
         }
       }
       /**
@@ -9394,7 +9568,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         template.__dataTemp = {};
         template.__dataPending = null;
         template.__dataOld = null;
-        template._flushProperties();
+        template._enableProperties();
       }
     }
 
@@ -9836,7 +10010,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           for (let n=this.root.firstChild; n; n=n.nextSibling) {
             this.__children[this.__children.length] = n;
           }
-          this._flushProperties();
+          this._enableProperties();
         }
         this.__insertChildren();
         this.dispatchEvent(new CustomEvent('dom-change', {
@@ -10003,8 +10177,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         /**
          * The name of the variable to add to the binding scope with the index
-         * for the inst.  If `sort` is provided, the index will reflect the
-         * sorted order (rather than the original array order).
+         * of the instance in the sorted and filtered list of rendered items.
+         * Note, for the index in the `this.items` array, use the value of the
+         * `itemsIndexAs` property.
          */
         indexAs: {
           type: String,
@@ -10013,8 +10188,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         /**
          * The name of the variable to add to the binding scope with the index
-         * for the inst.  If `sort` is provided, the index will reflect the
-         * sorted order (rather than the original array order).
+         * of the instance in the `this.items` array. Note, for the index of
+         * this instance in the sorted and filtered list of rendered items,
+         * use the value of the `indexAs` property.
          */
         itemsIndexAs: {
           type: String,
@@ -11210,8 +11386,7 @@ The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
 The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
 Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
---><script>(function(){
-/*
+--><script>(function(){/*
 
 Copyright (c) 2017 The Polymer Project Authors. All rights reserved.
 This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
@@ -11220,10 +11395,9 @@ The complete set of contributors may be found at http://polymer.github.io/CONTRI
 Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 */
-'use strict';var c=!(window.ShadyDOM&&window.ShadyDOM.inUse),f=!navigator.userAgent.match("AppleWebKit/601")&&window.CSS&&CSS.supports&&CSS.supports("box-shadow","0 0 0 var(--foo)");function g(a){a&&(f=f&&!a.nativeCss&&!a.shimcssproperties,c=c&&!a.nativeShadow&&!a.shimshadow)}window.ShadyCSS?g(window.ShadyCSS):window.WebComponents&&g(window.WebComponents.flags);var h=c,k=f;function l(a,b){for(var d in b)null===d?a.style.removeProperty(d):a.style.setProperty(d,b[d])};var m=null,n=window.HTMLImports&&window.HTMLImports.whenReady||null,r;function t(){var a=u;requestAnimationFrame(function(){n?n(a):(m||(m=new Promise(function(a){r=a}),"complete"===document.readyState?r():document.addEventListener("readystatechange",function(){"complete"===document.readyState&&r()})),m.then(function(){a&&a()}))})};var v=null,u=null;function x(){this.customStyles=[];this.enqueued=!1}function y(a){!a.enqueued&&u&&(a.enqueued=!0,t())}x.prototype.c=function(a){a.__seenByShadyCSS||(a.__seenByShadyCSS=!0,this.customStyles.push(a),y(this))};x.prototype.b=function(a){if(a.__shadyCSSCachedStyle)return a.__shadyCSSCachedStyle;var b;a.getStyle?b=a.getStyle():b=a;return b};
-x.prototype.a=function(){for(var a=this.customStyles,b=0;b<a.length;b++){var d=a[b];if(!d.__shadyCSSCachedStyle){var e=this.b(d);if(e){var p=e.__appliedElement;if(p)for(var q=0;q<e.attributes.length;q++){var w=e.attributes[q];p.setAttribute(w.name,w.value)}e=p||e;v&&v(e);d.__shadyCSSCachedStyle=e}}}return a};x.prototype.addCustomStyle=x.prototype.c;x.prototype.getStyleForCustomStyle=x.prototype.b;x.prototype.processStyles=x.prototype.a;
-Object.defineProperties(x.prototype,{transformCallback:{get:function(){return v},set:function(a){v=a}},validateCallback:{get:function(){return u},set:function(a){var b=!1;u||(b=!0);u=a;b&&y(this)}}});var z=new x;window.ShadyCSS||(window.ShadyCSS={prepareTemplate:function(){},styleSubtree:function(a,b){z.a();l(a,b)},styleElement:function(){z.a()},styleDocument:function(a){z.a();l(document.body,a)},getComputedStyleValue:function(a,b){return(a=window.getComputedStyle(a).getPropertyValue(b))?a.trim():""},nativeCss:k,nativeShadow:h});window.ShadyCSS.CustomStyleInterface=z;
-}).call(self);
+'use strict';var c=!(window.ShadyDOM&&window.ShadyDOM.inUse),f;function g(a){f=a&&a.shimcssproperties?!1:c||!(navigator.userAgent.match("AppleWebKit/601")||!window.CSS||!CSS.supports||!CSS.supports("box-shadow","0 0 0 var(--foo)"))}window.ShadyCSS&&void 0!==window.ShadyCSS.nativeCss?f=window.ShadyCSS.nativeCss:window.ShadyCSS?(g(window.ShadyCSS),window.ShadyCSS=void 0):g(window.WebComponents&&window.WebComponents.flags);var h=f;function k(a,b){for(var d in b)null===d?a.style.removeProperty(d):a.style.setProperty(d,b[d])};var l=null,m=window.HTMLImports&&window.HTMLImports.whenReady||null,q;function r(){var a=t;requestAnimationFrame(function(){m?m(a):(l||(l=new Promise(function(a){q=a}),"complete"===document.readyState?q():document.addEventListener("readystatechange",function(){"complete"===document.readyState&&q()})),l.then(function(){a&&a()}))})};var u=null,t=null;function v(){this.customStyles=[];this.enqueued=!1}function x(a){!a.enqueued&&t&&(a.enqueued=!0,r())}v.prototype.c=function(a){a.__seenByShadyCSS||(a.__seenByShadyCSS=!0,this.customStyles.push(a),x(this))};v.prototype.b=function(a){if(a.__shadyCSSCachedStyle)return a.__shadyCSSCachedStyle;var b;a.getStyle?b=a.getStyle():b=a;return b};
+v.prototype.a=function(){for(var a=this.customStyles,b=0;b<a.length;b++){var d=a[b];if(!d.__shadyCSSCachedStyle){var e=this.b(d);if(e){var n=e.__appliedElement;if(n)for(var p=0;p<e.attributes.length;p++){var w=e.attributes[p];n.setAttribute(w.name,w.value)}e=n||e;u&&u(e);d.__shadyCSSCachedStyle=e}}}return a};v.prototype.addCustomStyle=v.prototype.c;v.prototype.getStyleForCustomStyle=v.prototype.b;v.prototype.processStyles=v.prototype.a;
+Object.defineProperties(v.prototype,{transformCallback:{get:function(){return u},set:function(a){u=a}},validateCallback:{get:function(){return t},set:function(a){var b=!1;t||(b=!0);t=a;b&&x(this)}}});var y=new v;window.ShadyCSS||(window.ShadyCSS={prepareTemplate:function(){},styleSubtree:function(a,b){y.a();k(a,b)},styleElement:function(){y.a()},styleDocument:function(a){y.a();k(document.body,a)},getComputedStyleValue:function(a,b){return(a=window.getComputedStyle(a).getPropertyValue(b))?a.trim():""},nativeCss:h,nativeShadow:c});window.ShadyCSS.CustomStyleInterface=y;}).call(this);
 
 //# sourceMappingURL=custom-style-interface.min.js.map
 </script>
@@ -11874,6 +12048,17 @@ Custom property                  | Description                            | Defa
 `--app-drawer-content-container` | Mixin for the drawer content container | {}
 `--app-drawer-scrim-background`  | Background for the scrim               | rgba(0, 0, 0, 0.5)
 
+**NOTE:** If you use <app-drawer> with <app-drawer-layout> and specify a value for
+`--app-drawer-width`, that value must be accessible by both elements. This can be done by
+defining the value on the `:host` that contains <app-drawer-layout> (or `html` if outside
+a shadow root):
+
+```css
+:host {
+  --app-drawer-width: 300px;
+}
+```
+
 @group App Elements
 @element app-drawer
 @demo app-drawer/demo/left-drawer.html Simple Left Drawer
@@ -11930,11 +12115,11 @@ Custom property                  | Description                            | Defa
         @apply --app-drawer-content-container;
       }
 
-      :host([persistent]) > #contentContainer {
+      #contentContainer[persistent] {
         width: 100%;
       }
 
-      :host([position=right]) > #contentContainer {
+      #contentContainer[position=right] {
         right: 0;
         left: auto;
 
@@ -11942,7 +12127,7 @@ Custom property                  | Description                            | Defa
         transform: translate3d(100%, 0, 0);
       }
 
-      :host([swipe-open]) > #contentContainer::after {
+      #contentContainer[swipe-open]::after {
         position: fixed;
         top: 0;
         bottom: 0;
@@ -11955,12 +12140,12 @@ Custom property                  | Description                            | Defa
         content: '';
       }
 
-      :host([swipe-open][position=right]) > #contentContainer::after {
+      #contentContainer[swipe-open][position=right]::after {
         right: 100%;
         left: auto;
       }
 
-      :host([opened]) > #contentContainer {
+      #contentContainer[opened] {
         -webkit-transform: translate3d(0, 0, 0);
         transform: translate3d(0, 0, 0);
       }
@@ -11980,24 +12165,20 @@ Custom property                  | Description                            | Defa
         background: var(--app-drawer-scrim-background, rgba(0, 0, 0, 0.5));
       }
 
-      :host([opened]) > #scrim {
+      #scrim.visible {
         opacity: 1;
       }
 
-      :host([opened][persistent]) > #scrim {
-        visibility: hidden;
-        /**
-         * NOTE(keanulee): Keep both opacity: 0 and visibility: hidden to prevent the
-         * scrim from showing when toggling between closed and opened/persistent.
-         */
-
-        opacity: 0;
+      :host([no-transition]) #contentContainer {
+        transition-property: none;
       }
     </style>
 
     <div id="scrim" on-click="close"></div>
 
-    <div id="contentContainer">
+    <!-- HACK(keanulee): Bind attributes here (in addition to :host) for styling to workaround Safari
+    bug. https://bugs.webkit.org/show_bug.cgi?id=170762 -->
+    <div id="contentContainer" opened$="[[opened]]" persistent$="[[persistent]]" position$="[[position]]" swipe-open$="[[swipeOpen]]">
       <slot></slot>
     </div>
   </template>
@@ -12464,7 +12645,9 @@ Custom property                  | Description                            | Defa
         }
       },
 
-      _openedPersistentChanged: function() {
+      _openedPersistentChanged: function(opened, persistent) {
+        this.toggleClass('visible', opened && !persistent, this.$.scrim);
+
         // Use a debounce timer instead of transitionend since transitionend won't fire when
         // app-drawer is display: none.
         this.debounce('_resetDrawerState', this._resetDrawerState, this.transitionDuration);
@@ -12683,7 +12866,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     },
 
     listeners: {
-      'iron-requestData-resize-notifications': '_onIronRequestResizeNotifications'
+      'iron-request-resize-notifications': '_onIronRequestResizeNotifications'
     },
 
     created: function() {
@@ -12708,7 +12891,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         });
         return;
       }
-      this.fire('iron-requestData-resize-notifications', null, {
+      this.fire('iron-request-resize-notifications', null, {
         node: this,
         bubbles: true,
         cancelable: true
@@ -12750,7 +12933,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     /**
      * Used to assign the closest resizable ancestor to this resizable
-     * if the ancestor detects a requestData for notifications.
+     * if the ancestor detects a request for notifications.
      */
     assignParentResizable: function(parentResizable) {
       this._parentResizable = parentResizable;
@@ -13015,7 +13198,19 @@ Add the `fullbleed` attribute to app-drawer-layout to make it fit the size of it
 
 Custom property                          | Description                          | Default
 -----------------------------------------|--------------------------------------|---------
+`--app-drawer-width`                     | Width of the drawer                  | 256px
 `--app-drawer-layout-content-transition` | Transition for the content container | none
+
+**NOTE:** If you use <app-drawer> with <app-drawer-layout> and specify a value for
+`--app-drawer-width`, that value must be accessible by both elements. This can be done by
+defining the value on the `:host` that contains <app-drawer-layout> (or `html` if outside
+a shadow root):
+
+```css
+:host {
+  --app-drawer-width: 300px;
+}
+```
 
 @group App Elements
 @element app-drawer-layout
@@ -13051,11 +13246,19 @@ Custom property                          | Description                          
         height: 100%;
         transition: var(--app-drawer-layout-content-transition, none);
       }
+
+      #contentContainer[drawer-position=left] {
+        margin-left: var(--app-drawer-width, 256px);
+      }
+
+      #contentContainer[drawer-position=right] {
+        margin-right: var(--app-drawer-width, 256px);
+      }
     </style>
 
     <slot id="drawerSlot" name="drawer"></slot>
 
-    <div id="contentContainer">
+    <div id="contentContainer" drawer-position$="[[_drawerPosition]]">
       <slot></slot>
     </div>
 
@@ -13105,6 +13308,10 @@ Custom property                          | Description                          
         openedWhenNarrow: {
           type: Boolean,
           value: false
+        },
+
+        _drawerPosition: {
+          type: String
         }
       },
 
@@ -13113,7 +13320,7 @@ Custom property                          | Description                          
       },
 
       observers: [
-        '_configChanged(narrow, isAttached)'
+        '_narrowChanged(narrow)'
       ],
 
       /**
@@ -13129,8 +13336,7 @@ Custom property                          | Description                          
         // Disable drawer transitions until after app-drawer-layout sets the initial opened state.
         var drawer = this.drawer;
         if (drawer) {
-          this._savedDrawerTransitionDuration = drawer.transitionDuration;
-          drawer.transitionDuration = 0;
+          drawer.setAttribute('no-transition', '');
         }
       },
 
@@ -13146,40 +13352,29 @@ Custom property                          | Description                          
 
       _updateLayoutStates: function() {
         var drawer = this.drawer;
-        var contentContainer = this.$.contentContainer;
-
-        if (this.narrow || !drawer || !drawer.getWidth) {
-          contentContainer.style.marginLeft = '';
-          contentContainer.style.marginRight = '';
-        } else {
-          var drawerWidth = drawer.getWidth();
-          if (drawer.position == 'right') {
-            contentContainer.style.marginLeft = '';
-            contentContainer.style.marginRight = drawerWidth + 'px';
-          } else {
-            contentContainer.style.marginLeft = drawerWidth + 'px';
-            contentContainer.style.marginRight = '';
-          }
+        if (!drawer) {
+          return;
         }
-        if (drawer && this._drawerNeedsReset) {
+
+        this._drawerPosition = this.narrow ? null : drawer.position;
+        if (this._drawerNeedsReset) {
           if (this.narrow) {
             drawer.opened = this.openedWhenNarrow;
             drawer.persistent = false;
           } else {
             drawer.opened = drawer.persistent = true;
           }
-          if (this._savedDrawerTransitionDuration) {
+          if (drawer.hasAttribute('no-transition')) {
             // Enable drawer transitions after app-drawer-layout sets the initial opened state.
             Polymer.RenderStatus.afterNextRender(this, function() {
-              drawer.transitionDuration = this._savedDrawerTransitionDuration;
-              this._savedDrawerTransitionDuration = 0;
+              drawer.removeAttribute('no-transition');
             });
           }
           this._drawerNeedsReset = false;
         }
       },
 
-      _configChanged: function() {
+      _narrowChanged: function() {
         this._drawerNeedsReset = true;
         this.resetLayout();
       },
@@ -13268,6 +13463,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        *```
        *
        * @type {HTMLElement}
+       * @default document
        */
       scrollTarget: {
         type: HTMLElement,
@@ -15376,12 +15572,11 @@ milliseconds.
     var urlDoc, urlBase, anchor;
 
     /**
-     * @type {string} path
-     * @type {string=} base
-     * @return {URL|HTMLAnchorElement}
+     * @param {string} path
+     * @param {string=} base
+     * @return {!URL|!HTMLAnchorElement}
      */
     function resolveURL(path, base) {
-      var url;
       if (workingURL === undefined) {
         workingURL = false;
         try {
@@ -15392,19 +15587,17 @@ milliseconds.
         } catch (e) {}
       }
       if (workingURL) {
-        url = new URL(path, base);
-      } else {
-        if (!urlDoc) {
-          urlDoc = document.implementation.createHTMLDocument('url');
-          urlBase = urlDoc.createElement('base');
-          urlDoc.head.appendChild(urlBase);
-          anchor = urlDoc.createElement('a');
-        }
-        urlBase.href = base;
-        anchor.href = path.replace(/ /g, '%20');
-        url = anchor;
+        return new URL(path, base);
       }
-      return url;
+      if (!urlDoc) {
+        urlDoc = document.implementation.createHTMLDocument('url');
+        urlBase = urlDoc.createElement('base');
+        urlDoc.head.appendChild(urlBase);
+        anchor = /** @type {HTMLAnchorElement}*/(urlDoc.createElement('a'));
+      }
+      urlBase.href = base;
+      anchor.href = path.replace(/ /g, '%20');
+      return anchor;
     }
 
     Polymer({
