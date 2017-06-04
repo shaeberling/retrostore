@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.retrostore;
+package org.retrostore.resources;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
@@ -25,23 +25,45 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
  * Functionality around files, e.g. loading them as resources.
  */
-public class FileUtil {
-  private static final Logger LOG = Logger.getLogger("FileUtil");
+public class DefaultResourceLoader implements ResourceLoader {
+  private static final Logger LOG = Logger.getLogger("DefaultResourceLoader");
 
+  @Override
   public Optional<String> load(String filename) {
     // TODO: Cache!
+    // TODO: Debug mode for local reloading
     try {
-      InputStream fileStream = new FileInputStream(new File(filename));
+      File file = new File(filename);
+      LOG.info("Loading file: " + file.getAbsolutePath());
+      InputStream fileStream = new FileInputStream(file);
       String content = CharStreams.toString(new InputStreamReader(fileStream, Charsets.UTF_8));
       return Optional.of(content);
     } catch (IOException e) {
       LOG.log(Level.SEVERE, "Cannot load file.", e);
+    }
+    return Optional.absent();
+  }
+
+  @Override
+  public Optional<String> loadUrl(String urlStr) {
+    try {
+      URL url = new URL(urlStr);
+      InputStream is = url.openStream();
+      String content = CharStreams.toString(new InputStreamReader(is, Charsets.UTF_8));
+      is.close();
+      return Optional.of(content);
+    } catch (MalformedURLException e) {
+      LOG.log(Level.SEVERE, "Invalid URL", e);
+    } catch (IOException e) {
+      LOG.log(Level.SEVERE, "Cannot read URL", e);
     }
     return Optional.absent();
   }

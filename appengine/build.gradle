@@ -35,7 +35,8 @@ appengine {
     noCookies = true
     oauth2 = true
   }
-  jvmFlags = ["-Ddatastore.backing_store=$rootDir/local_db.bin"]
+  jvmFlags = ["-Ddatastore.backing_store=$rootDir/local_db.bin",
+              "-Dretrostore.debug.polymer=http://127.0.0.1:8081"]
 }
 
 sourceCompatibility = JavaVersion.VERSION_1_7

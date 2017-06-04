@@ -17,6 +17,7 @@
 package org.retrostore;
 
 import com.google.appengine.api.users.UserServiceFactory;
+import com.google.common.base.Strings;
 import org.retrostore.data.ItemsViewUtil;
 import org.retrostore.data.user.UserManagement;
 import org.retrostore.data.user.UserService;
@@ -28,6 +29,9 @@ import org.retrostore.request.PolymerRequest;
 import org.retrostore.request.Request;
 import org.retrostore.request.RequestDataImpl;
 import org.retrostore.request.Responder;
+import org.retrostore.resources.DefaultResourceLoader;
+import org.retrostore.resources.PolymerDebugLoader;
+import org.retrostore.resources.ResourceLoader;
 import org.retrostore.rpc.internal.RpcCallRequest;
 
 import javax.servlet.ServletException;
@@ -56,7 +60,7 @@ public class MainServlet extends RetroStoreServlet {
       new UserServiceImpl(sUserManagement, sUserService);
   private static UserViewUtil sUserViewUtil = new UserViewUtil(sUserManagement);
   private static ItemsViewUtil sItemsViewUtil = new ItemsViewUtil();
-  private static FileUtil sFileUtil = new FileUtil();
+  private static DefaultResourceLoader sDefaultResourceLoader = new DefaultResourceLoader();
 
   private static List<Request> sRequestServers;
 
@@ -65,8 +69,19 @@ public class MainServlet extends RetroStoreServlet {
     sRequestServers.add(new LoginRequest());
     sRequestServers.add(new EnsureAdminExistsRequest(sUserManagement));
     sRequestServers.add(new RpcCallRequest(sUserManagement));
-    sRequestServers.add(new PolymerRequest(sFileUtil));
+    sRequestServers.add(new PolymerRequest(getResourceLoader()));
     // Note: Add more request servers here. Keep in mind that this is in priority-order.
+  }
+
+  private static ResourceLoader getResourceLoader() {
+    String polymerDebugServer = System.getProperty("retrostore.debug.polymer");
+    if (Strings.isNullOrEmpty(polymerDebugServer)) {
+      return sDefaultResourceLoader;
+    } else {
+      LOG.info(
+          String.format("Initializing Polymer debug loader with URL: '%s'", polymerDebugServer));
+      return new PolymerDebugLoader(polymerDebugServer, sDefaultResourceLoader);
+    }
   }
 
   @Override

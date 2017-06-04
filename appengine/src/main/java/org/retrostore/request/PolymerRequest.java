@@ -18,8 +18,8 @@ package org.retrostore.request;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
-import org.retrostore.FileUtil;
 import org.retrostore.data.user.UserService;
+import org.retrostore.resources.ResourceLoader;
 
 import java.util.Set;
 import java.util.logging.Logger;
@@ -34,10 +34,10 @@ public class PolymerRequest implements Request {
   private static final Set<String> FORWARD = Sets.newHashSet("/bower_components",
       "/images", "/src", "/service-worker.js", "/manifest.json", "/index.html");
 
-  private final FileUtil mFileUtil;
+  private final ResourceLoader mResourceLoader;
 
-  public PolymerRequest(FileUtil fileUtil) {
-    mFileUtil = fileUtil;
+  public PolymerRequest(ResourceLoader resourceLoader) {
+    mResourceLoader = resourceLoader;
   }
 
   @Override
@@ -55,7 +55,7 @@ public class PolymerRequest implements Request {
 
     for (String path : FORWARD) {
       if (url.startsWith(path)) {
-        Optional<String> content = mFileUtil.load(POLYMER_ROOT + url);
+        Optional<String> content = mResourceLoader.load(POLYMER_ROOT + url);
         if (content.isPresent()) {
           responder.respond(content.get(), fromFilename(url));
         }
