@@ -31,14 +31,14 @@ import java.util.logging.Logger;
  */
 public class LoginRequest implements Request {
   private static final Logger LOG = Logger.getLogger("PolymerRequest");
-  private static List<String> sLoginPrefixes = getLoginPrefixes();
+  private static List<String> sLoginPrefixWhiteList = getLoginPrefixWhiteList();
 
-  private static List<String> getLoginPrefixes() {
-    return ImmutableList.of("/index.html", "/admin");
+  private static List<String> getLoginPrefixWhiteList() {
+    return ImmutableList.of("/rpc");
   }
 
   private boolean matchesPrefix(String url) {
-    for (String prefix : sLoginPrefixes) {
+    for (String prefix : sLoginPrefixWhiteList) {
       if (url.startsWith(prefix)) {
         return true;
       }
@@ -49,10 +49,16 @@ public class LoginRequest implements Request {
 
   @Override
   public boolean serveUrl(RequestData requestData, Responder responder, UserService userService) {
+    String url = requestData.getUrl();
+    if (!url.startsWith("/")) {
+      LOG.warning(String.format("Not a valid URL: '%s'", url));
+      return false;
+    }
+
     // TODO: At the moment, there is not non-admin user-visible page. Once that exists and we
     // have moved the admin portion to /admin, this filter can go away since we do not require
     // normal users to be logged in.
-    if (!requestData.getUrl().equals("/") && !matchesPrefix(requestData.getUrl())) {
+    if (matchesPrefix(requestData.getUrl())) {
       return false;
     }
 
