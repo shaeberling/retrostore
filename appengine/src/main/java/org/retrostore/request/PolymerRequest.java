@@ -47,7 +47,9 @@ public class PolymerRequest implements Request {
     String url = requestData.getUrl();
     LOG.info("URL: " + url);
 
-    if (url.equals("/") || url.equals("") || url.startsWith("/view")) {
+    // If a request is not for a sub-directory, we map it to index.html where it will be handled
+    // by polymer on the client side.
+    if (url.equals("/") || url.equals("") || !url.substring(1).contains("/")) {
       url = "/index.html";
     }
 
