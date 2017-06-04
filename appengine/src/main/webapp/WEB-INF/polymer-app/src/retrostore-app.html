@@ -11840,8 +11840,7 @@ A complete [guide](https://elements.polymer-project.org/guides/flex-layout) to `
 
     }
   </style>
-</custom-style>
-<!--
+</custom-style><!--
 app-drawer is a navigation drawer that can slide in from the left or right.
 
 Example:
@@ -20444,6 +20443,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         color: #212121;
         font-size: 22px;
       }
+
+      paper-button.action {
+        background-color: var(--paper-indigo-500);
+        color: white;
+        --paper-button-raised-keyboard-focus: {
+          background-color: var(--paper-pink-a200) !important;
+          color: white !important;
+        };
+      }
+      paper-button.action-edit {
+        background-color: var(--paper-green-500);
+        color: white;
+      }
+      paper-button.action-delete {
+        background-color: var(--paper-red-500);
+        color: white;
+      }
     </style>
   </template>
 </dom-module>
@@ -20554,7 +20570,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       _onSiteContextLoaded(context) {
         this.$.user_label.username = context.firstName;
-        this.$.user_label.sayHello();
       }
 
       _routePageChanged(page) {

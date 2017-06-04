@@ -40,6 +40,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         color: #212121;
         font-size: 22px;
       }
+
+      paper-button.action {
+        background-color: var(--paper-indigo-500);
+        color: white;
+        --paper-button-raised-keyboard-focus: {
+          background-color: var(--paper-pink-a200) !important;
+          color: white !important;
+        };
+      }
+      paper-button.action-edit {
+        background-color: var(--paper-green-500);
+        color: white;
+      }
+      paper-button.action-delete {
+        background-color: var(--paper-red-500);
+        color: white;
+      }
     </style>
   </template>
 </dom-module>

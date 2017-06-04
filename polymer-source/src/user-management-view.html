@@ -9,6 +9,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="shared-styles.html">
 
 <dom-module id="user-management-view">
@@ -19,19 +21,70 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         padding: 10px;
       }
+
+      .user-table {
+        margin-top: 20px;
+      }
+      .user-table th,
+      .user-table td  {
+        padding: 5px;
+        text-align: left;
+        background-color: #EEE;
+      }
     </style>
 
+    <h1>User Management</h1>
     <div class="card">
-      <div class="circle">2</div>
-      <h1>User Management</h1>
-      <p>Ea duis bonorum nec, falli paulo aliquid ei eum.</p>
-      <p>Id nam odio natum malorum, tibique copiosae expetenda mel ea.Detracto suavitate repudiandae no eum. Id adhuc minim soluta nam.Id nam odio natum malorum, tibique copiosae expetenda mel ea.</p>
+      <div class=action-bar">
+        <paper-button on-click="onAddUser" raised class="action">Add user</paper-button>
+      </div>
+      <table class=user-table>
+      <tr>
+        <th>E-Mail</th>
+        <th>First name</th>
+        <th>Last name</th>
+        <th>Account Type</th>
+        <th>Edit</th>
+        <th>Delete</th>
+      </tr>
+      <template is="dom-repeat" items="{{ajaxResponse}}">
+        <tr>
+          <td>{{item.email}}</td>
+          <td>{{item.firstName}}</td>
+          <td>{{item.lastName}}</td>
+          <td>{{item.type}}</td>
+          <td><paper-button on-tap="onEditUser" class="action-edit">Edit</paper-button></td>
+          <td><paper-button on-tap="onDeleteUser" class="action-delete">Delete</paper-button></td>
+        </tr>
+      </template>
+      </table>
     </div>
+    <iron-ajax
+        auto
+        url="/rpc?m=userlist"
+        handle-as="json"
+        debounce-duration="300"
+        last-response="{{ajaxResponse}}"></iron-ajax>
   </template>
 
   <script>
     class UserManagementView extends Polymer.Element {
       static get is() { return 'user-management-view'; }
+
+      ready() {
+        super.ready();
+        // TODO: Read user list.
+      }
+
+      onAddUser() {
+        console.log("Adding new user....");
+      }
+      onEditUser(e) {
+        console.log("Edit user: " + e.model.get('item.email'));
+      }
+      onDeleteUser(e) {
+        console.log("Delete user: " + e.model.get('item.email'));
+      }
     }
 
     window.customElements.define(UserManagementView.is, UserManagementView);
