@@ -7972,7 +7972,7 @@ of a listbox item will also focus it.
       }
       onDeleteUser(e) {
         var emailStr = e.model.get('item.email');
-        if (confirm("Are you sure you want to delete " + emailStr + "?")) {
+        if (confirm(`Are you sure you want to delete ${emailStr}?`)) {
           var data = { email: emailStr };
           this.$.xhrDeleteUser.body = JSON.stringify(data);
           this.$.xhrDeleteUser.generateRequest();
