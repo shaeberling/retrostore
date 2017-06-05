@@ -49,13 +49,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       #addEditUserCard, #listUsersCard {
         display: none;
       }
-      #server-response[xhrResponse.success$=true] {
+      #server-response[success$="true"] {
         background: #AFA;
       }
-      #server-response[xhrResponse.success$=false] {
+      #server-response[success$="false"] {
         background: #FAA;
       }
+      #server-response[success$="none"] {
+        display: none;
+      }
       #server-response {
+        margin-top: 20px;
+        padding: 1em;
         display: width: 100%;
       }
     </style>
@@ -78,7 +83,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <div class="action-buttons">
         <paper-button on-tap="onSaveUser" class="action-edit">Save changes</paper-button>
         <paper-button on-tap="onCancelAddEdit" class="action-cancel">Cancel</paper-button>
-        <div id="server-response">{{xhrResponse.message}}</div>
+        <div id="server-response" success$="{{addEditSuccess}}">{{addEditXhrResponse.message}}</div>
       </div>.
     </div>
 
@@ -115,13 +120,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         handle-as="json"
         debounce-duration="300"
         last-response="{{ajaxResponse}}"></iron-ajax>
-    <iron-ajax id="xhr"
+    <iron-ajax id="xhrAddEditUser"
                url="/rpc?m=addEditUser"
                method="POST"
                handle-as="json"
-               on-response="handleXhrResponse"
+               on-response="onAddEditResponse"
                content-type="application/json"
-               last-response="{{xhrResponse}}"></iron-ajax>
+               last-response="{{addEditXhrResponse}}"></iron-ajax>
+    <iron-ajax id="xhrDeleteUser"
+               url="/rpc?m=deleteUser"
+               method="POST"
+               handle-as="json"
+               on-response="onDeleteResponse"
+               content-type="application/json"
+               last-response="{{deleteXhrResponse}}"></iron-ajax>
   </template>
 
   <script>
@@ -139,12 +151,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.showAddEdit = "true";
       }
       onEditUser(e) {
-        console.log("Edit user: " + e.model.get('item.email'));
+        this.form_email = e.model.get('item.email');
+        this.form_firstName = e.model.get('item.firstName');
+        this.form_lastName = e.model.get('item.lastName');
+        this.form_type = e.model.get('item.type');
+        this.addEditSuccess = "none";
+
         this.showAddEdit = "true";
       }
       onDeleteUser(e) {
-        console.log("Delete user: " + e.model.get('item.email'));
-        // TODO show warning dialog first.
+        var emailStr = e.model.get('item.email');
+        if (confirm("Are you sure you want to delete " + emailStr + "?")) {
+          var data = { email: emailStr };
+          this.$.xhrDeleteUser.body = JSON.stringify(data);
+          this.$.xhrDeleteUser.generateRequest();
+        } else {
+          // Do nothing.
+        }
       }
       onSaveUser() {
         var data = {
@@ -153,17 +176,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           lastName: this.form_lastName,
           type: this.form_type
         };
-
-        this.$.xhr.body = JSON.stringify(data);
-        this.$.xhr.generateRequest();
+;
+        this.$.xhrAddEditUser.body = JSON.stringify(data);
+        this.$.xhrAddEditUser.generateRequest();
       }
       onCancelAddEdit() {
         this.showAddEdit = "false";
       }
-      handleXhrResponse() {
-        if (this.xhrResponse.success) {
+      onAddEditResponse() {
+        this.addEditSuccess = "" + this.addEditXhrResponse.success;
+        if (this.addEditXhrResponse.success) {
           this.showAddEdit = "false";
           this.$.xhrUserList.generateRequest();
+        }
+      }
+      onDeleteResponse() {
+        if (!this.deleteXhrResponse.success) {
+          alert("Delete failed: " + this.deleteXhrResponse.message);
+        } else {
+          this.$.xhrUserList.generateRequest(); 
         }
       }
       clearForm() {
@@ -171,6 +202,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.form_firstName = "";
         this.form_lastName = "";
         this.form_type = "USER";
+        this.addEditSuccess = "none";
       }
     }
 

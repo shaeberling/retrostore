@@ -33,10 +33,6 @@ import java.util.logging.Logger;
  * Adds a new or edits an existing user.
  */
 public class AddEditUserRpcCall implements RpcCall {
-  public AddEditUserRpcCall(UserManagement userManagement) {
-    mUserManagement = userManagement;
-  }
-
   private static final class Data {
     public String email;
     public String firstName;
@@ -46,6 +42,10 @@ public class AddEditUserRpcCall implements RpcCall {
 
   private static final Logger LOG = Logger.getLogger("AddEditUserRpcCall");
   private final UserManagement mUserManagement;
+
+  public AddEditUserRpcCall(UserManagement userManagement) {
+    mUserManagement = userManagement;
+  }
 
   @Override
   public String getName() {

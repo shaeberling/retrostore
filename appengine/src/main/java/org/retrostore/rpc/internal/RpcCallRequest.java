@@ -25,6 +25,7 @@ import org.retrostore.request.Responder;
 import org.retrostore.data.user.UserService;
 import org.retrostore.rpc.AddEditUserRpcCall;
 import org.retrostore.rpc.AdminUserListRpcCall;
+import org.retrostore.rpc.DeleteUserRpcCall;
 import org.retrostore.rpc.GetSiteContextRpcCall;
 
 import java.util.HashMap;
@@ -49,7 +50,8 @@ public class RpcCallRequest implements Request {
     List<RpcCall> calls = ImmutableList.of(
         new AdminUserListRpcCall(userManagement),
         new GetSiteContextRpcCall(userManagement),
-        new AddEditUserRpcCall(userManagement));
+        new AddEditUserRpcCall(userManagement),
+        new DeleteUserRpcCall(userManagement));
 
     Map<String, RpcCall> callsMapped = new HashMap<>();
     for (RpcCall call : calls) {
