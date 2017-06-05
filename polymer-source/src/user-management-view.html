@@ -131,12 +131,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       ready() {
         super.ready();
         this.showAddEdit = "false";
-        this.form_type = "USER";
+        this.clearForm();
       }
 
       onAddUser() {
+        this.clearForm();
         this.showAddEdit = "true";
-        
       }
       onEditUser(e) {
         console.log("Edit user: " + e.model.get('item.email'));
@@ -165,6 +165,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.showAddEdit = "false";
           this.$.xhrUserList.generateRequest();
         }
+      }
+      clearForm() {
+        this.form_email = "";
+        this.form_firstName = "";
+        this.form_lastName = "";
+        this.form_type = "USER";
       }
     }
 
