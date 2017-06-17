@@ -45,16 +45,16 @@ public class PolymerDebugLoader implements ResourceLoader {
       LOG.warning(String.format("Not a polymer file, falling back for '%s'.", filename));
       return mFallbackResourceLoader.load(filename);
     }
-    filename = filename.substring(POLYMER_ROOT.length());
-    String url = mPolymerServer + "/" + filename;
+    String url = mPolymerServer + filename.substring(POLYMER_ROOT.length());
 
     Optional<String> resource = loadUrl(url);
     if (!resource.isPresent()) {
       LOG.warning(
           String.format("Polymer debug resource cannot be loaded: '%s'. Falling back.", url));
       resource = mFallbackResourceLoader.load(filename);
+    } else {
+      LOG.info(String.format("Loaded from polymer server: '%s'", url));
     }
-    LOG.info(String.format("Loaded from polymer server: '%s'", url));
     return resource;
   }
 
