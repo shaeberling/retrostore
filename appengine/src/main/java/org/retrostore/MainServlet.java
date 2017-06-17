@@ -17,9 +17,7 @@
 package org.retrostore;
 
 import com.google.appengine.api.users.UserServiceFactory;
-import com.google.common.base.Charsets;
 import com.google.common.base.Strings;
-import com.google.common.io.CharStreams;
 import org.retrostore.data.user.UserManagement;
 import org.retrostore.data.user.UserService;
 import org.retrostore.data.user.UserServiceImpl;
@@ -38,7 +36,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
