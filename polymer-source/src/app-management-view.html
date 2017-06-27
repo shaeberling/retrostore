@@ -106,9 +106,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <paper-dropdown-menu name="origAuthor" label="Original Author" required>
           <paper-listbox slot="dropdown-content" selected="{{form_origAuthorId}}" attr-for-selected="value">
             <paper-item value="-1">Other (Enter below)</paper-item>
-            <paper-item value="1">Foo</paper-item>
-            <paper-item value="2">Bar</paper-item>
-            <paper-item value="3">Baz</paper-item>
+            <template is="dom-repeat" items="{{formData.appAuthors}}">
+              <paper-item value="{{item.value}}">{{item.name}}</paper-item>
+            </template>
           </paper-listbox>
         </paper-dropdown-menu><br>
         <paper-input id="newAuthor" name="newAuthor" label="New author" value="{{form_newAuthor}}" orig-author-id$="{{form_origAuthorId}}" required></paper-input>
@@ -348,11 +348,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.form_appDescription = "";
         this.form_origAuthorId = "-1";
         this.form_newAuthor = "";
-        this.form_category = "0";
-        this.form_model = "0";
-        this.form_kbLayoutHor = "0";
-        this.form_kbLayoutVer = "0";
-        this.form_charColor = "0";
+
+        if (!!this.formData) {
+          this.form_category = this.formData.appListingCategories[0].value;
+          this.form_model = this.formData.trsModels[0].value;
+          this.form_kbLayoutHor = this.formData.keyboardLayouts[0].value;
+          this.form_kbLayoutVer = this.formData.keyboardLayouts[0].value;
+          this.form_charColor = this.formData.characterColors[0].value;
+        }
         this.form_soundMuted = false;
       }
     }
