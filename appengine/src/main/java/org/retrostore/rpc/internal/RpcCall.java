@@ -16,14 +16,25 @@
 
 package org.retrostore.rpc.internal;
 
-import org.retrostore.request.Responder;
 import org.retrostore.data.user.UserAccountType;
+import org.retrostore.request.Responder;
 
 /**
  * Interface for all RPC calls.
  */
 public interface RpcCall {
+  /**
+   * The name of the RPC method.
+   */
   String getName();
+
+  /**
+   * Whether the current user is permitted to make this call.
+   */
   boolean isPermitted(UserAccountType type);
+
+  /**
+   * Performs the RPC call.
+   */
   void call(RpcParameters params, Responder responder);
 }
