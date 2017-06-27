@@ -25,8 +25,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         padding: 10px;
 
         --paper-input-container-input: {
-          font-size: 24px;
+          font-size: 1em;
         };
+      }
+
+      h1 {
+        margin: 16px 0 0 24px;
+        padding: 0 16px;
+      }
+      h2 {
+        margin-top: 0;
       }
 
       .user-table {
@@ -65,7 +73,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
     </style>
 
-    <h1>User Management</h1>
+    <h1>User Management!!!</h1>
 
     <div id="addEditUserCard" show-add-edit$="{{showAddEdit}}" class="card">
       <h2>Add/Edit user</h2>
@@ -88,10 +96,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </div>
 
     <div id="listUsersCard" show-add-edit$="{{showAddEdit}}" class="card">
-      <h2>User list</h2>
-      <div class=action-bar">
+      <div class=action-bar" style="float: right">
         <paper-button on-click="onAddUser" raised class="action">Add user</paper-button>
       </div>
+      <h2>User list</h2>
       <table class=user-table>
       <tr>
         <th>E-Mail</th>
@@ -176,7 +184,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           lastName: this.form_lastName,
           type: this.form_type
         };
-;
+
         this.$.xhrAddEditUser.body = JSON.stringify(data);
         this.$.xhrAddEditUser.generateRequest();
       }

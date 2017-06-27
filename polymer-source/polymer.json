@@ -4,7 +4,7 @@
   "fragments": [
     "src/logged-in-user-label.html",
     "src/my-view1.html",
-    "src/my-view2.html",
+    "src/app-management-view.html",
     "src/user-management-view.html",
     "src/my-view404.html"
   ],
