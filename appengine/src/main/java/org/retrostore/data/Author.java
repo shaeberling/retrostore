@@ -33,8 +33,7 @@ public class Author {
   @Id
   public Long id;
 
-  public String firstName;
-  public String lastName;
+  public String name;
   public String email;
   public String websiteUrl;
 }

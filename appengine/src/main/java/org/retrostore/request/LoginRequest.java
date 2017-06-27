@@ -46,7 +46,6 @@ public class LoginRequest implements Request {
     return false;
   }
 
-
   @Override
   public boolean serveUrl(RequestData requestData, Responder responder, UserService userService) {
     String url = requestData.getUrl();

@@ -22,6 +22,7 @@ import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
 import com.googlecode.objectify.annotation.Load;
 
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -135,12 +136,9 @@ public class AppStoreItem {
   public static class Listing {
     public String name;
     public String versionString;
-    public int version;
+    public String description;
     public Set<ListingCategory> categories = new HashSet<>();
-    public String licenseName;
-    public String licenseUrl;
-    public int uploadTime;
-    public int publishTime;
+    public int firstPublishTime;
     public int lastUpdateTime;
     public int authorId;
     public String publisherEmail;
