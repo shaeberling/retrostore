@@ -81,7 +81,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         display: none;
       }
       #server-response {
-        margin-top: 20px;
+        margin: 20px 0;
         padding: 1em;
         display: width: 100%;
       }
@@ -130,15 +130,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             </template>
           </paper-listbox>
         </paper-dropdown-menu><br>
-        <paper-dropdown-menu name="kbLayoutHor" label="Horizontal keyboard layout" required>
-          <paper-listbox slot="dropdown-content" selected="{{form_kbLayoutHor}}" attr-for-selected="value">
+        <paper-dropdown-menu name="kbLayoutLand" label="Landscape keyboard layout" required>
+          <paper-listbox slot="dropdown-content" selected="{{form_kbLayoutLand}}" attr-for-selected="value">
             <template is="dom-repeat" items="{{formData.keyboardLayouts}}">
               <paper-item value="{{item.value}}">{{item.name}}</paper-item>
             </template>
           </paper-listbox>
         </paper-dropdown-menu><br>
-        <paper-dropdown-menu name="kbLayoutVer" label="Vertical keyboard layout" required>
-          <paper-listbox slot="dropdown-content" selected="{{form_kbLayoutVer}}" attr-for-selected="value">
+        <paper-dropdown-menu name="kbLayoutPort" label="Portrait keyboard layout" required>
+          <paper-listbox slot="dropdown-content" selected="{{form_kbLayoutPort}}" attr-for-selected="value">
             <template is="dom-repeat" items="{{formData.keyboardLayouts}}">
               <paper-item value="{{item.value}}">{{item.name}}</paper-item>
             </template>
@@ -155,9 +155,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </div>
 
       <div class="action-buttons">
-        <paper-button on-tap="onSaveUser" class="action-edit">Save changes</paper-button>
-        <paper-button on-tap="onCancelAddEdit" class="action-cancel">Cancel</paper-button>
         <div id="server-response" success$="{{addEditSuccess}}">{{addEditXhrResponse.message}}</div>
+        <paper-button on-tap="onSaveApp" class="action-edit">Save changes</paper-button>
+        <paper-button on-tap="onCancelAddEdit" class="action-cancel">Cancel</paper-button>
       </div>
     </div>
 
@@ -217,7 +217,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <paper-button on-click="onAddApp" raised class="action">Add app</paper-button>
       </div>
       <h2>App list</h2>
-      <table class=user-table>
+      <table class=app-table>
       <tr>
         <th>Name</th>
         <th>Uploader</th>
@@ -225,17 +225,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <th>First uploaded</th>
         <th>Last updated</th>
         <th>Edit</th>
-        <th>Publish</th>
+        <!--<th>Publish</th>-->
         <th>Delete</th>
       </tr>
       <template is="dom-repeat" items="{{ajaxResponse}}">
         <tr>
-          <td>{{item.email}}</td>
-          <td>{{item.firstName}}</td>
-          <td>{{item.lastName}}</td>
-          <td>{{item.type}}</td>
+          <td>{{item.listing.name}}</td>
+          <td>{{item.listing.authorId}}</td>
+          <td>{{item.listing.versionString}}</td>
+          <td>{{item.listing.firstPublishTime}}</td>
+          <td>{{item.listing.lastUpdateTime}}</td>
           <td><paper-button on-tap="onEditApp" class="action-edit">Edit</paper-button></td>
-          <td><paper-button on-tap="onEditApp" class="action-edit">Publish/Unpublish</paper-button></td>
+          <!--<td><paper-button on-tap="onEditApp" class="action-edit">Publish/Unpublish</paper-button></td>-->
           <td><paper-button on-tap="onDeleteApp" class="action-delete">Delete</paper-button></td>
         </tr>
       </template>
@@ -279,7 +280,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.showMode = "list";
         this.clearForm();
 
-        // Debug only
+        // TODO: Dummy data only
         this.diskImages = [
             {id: 1, sizeInBytes: 4243},
             {id: 2, sizeInBytes: 1234},
@@ -293,35 +294,50 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.showMode = "addEdit";
       }
       onEditApp(e) {
-        this.form_email = e.model.get('item.email');
-        this.form_firstName = e.model.get('item.firstName');
-        this.form_lastName = e.model.get('item.lastName');
-        this.form_type = e.model.get('item.type');
-        this.addEditSuccess = "none";
+        this.form_appId = e.model.get('item.id');
+        this.form_appName = e.model.get('item.listing.name');
+        this.form_appVersion = e.model.get('item.listing.versionString');
+        this.form_description = e.model.get('item.listing.description');
+        this.form_origAuthorId = -1, // TODO
+        this.form_newAuthor = "";
+        this.form_category = e.model.get('item.listing.categories')[0];
+        this.form_model = e.model.get('item.configuration.model');
+        this.form_kbLayoutLand = e.model.get('item.configuration.kbLayoutLandscape');
+        this.form_kbLayoutPort = e.model.get('item.configuration.kbLayoutPortrait');
+        this.form_charColor = e.model.get('item.configuration.charColor');
+        this.form_soundMuted = e.model.get('item.configuration.soundMuted');
 
         this.showMode = "addEdit";
       }
       onDeleteApp(e) {
-        var emailStr = e.model.get('item.email');
-        if (confirm(`Are you sure you want to delete ${emailStr}?`)) {
-          var data = { email: emailStr };
-          this.$.xhrDeleteUser.body = JSON.stringify(data);
-          this.$.xhrDeleteUser.generateRequest();
+        var idStr = e.model.get('item.id');
+        var name = e.model.get('item.listing.name');
+        if (confirm(`Are you sure you want to delete ${name} (${idStr})?`)) {
+          var data = { id: idStr };
+          this.$.xhrDeleteApp.body = JSON.stringify(data);
+          this.$.xhrDeleteApp.generateRequest();
         } else {
           // Do nothing.
         }
       }
       onSaveApp() {
-        // TODO
         var data = {
-          email: this.form_email,
-          firstName: this.form_firstName,
-          lastName: this.form_lastName,
-          type: this.form_type
+          appId: this.form_appId,
+          appName: this.form_appName,
+          appVersion: this.form_appVersion,
+          description: this.form_description,
+          origAuthorId: this.form_origAuthorId,
+          newAuthor: this.form_newAuthor,
+          category: this.form_category,
+          model: this.form_model,
+          kbLayoutLand: this.form_kbLayoutLand,
+          kbLayoutPort: this.form_kbLayoutPort,
+          charColor: this.form_charColor,
+          soundMuted: this.form_soundMuted
         };
-;
-        this.$.xhrAddEditUser.body = JSON.stringify(data);
-        this.$.xhrAddEditUser.generateRequest();
+
+        this.$.xhrAddEditApp.body = JSON.stringify(data);
+        this.$.xhrAddEditApp.generateRequest();
       }
       onCancelAddEdit() {
         this.showMode = "list";
@@ -330,14 +346,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.addEditSuccess = "" + this.addEditXhrResponse.success;
         if (this.addEditXhrResponse.success) {
           this.showMode = "list";
-          this.$.xhrUserList.generateRequest();
+          this.$.xhrAppList.generateRequest();
         }
       }
       onDeleteResponse() {
         if (!this.deleteXhrResponse.success) {
           alert("Delete failed: " + this.deleteXhrResponse.message);
         } else {
-          this.$.xhrUserList.generateRequest(); 
+          this.$.xhrAppList.generateRequest(); 
         }
       }
       clearForm() {
@@ -345,15 +361,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.form_appId = "";
         this.form_appName = "";
         this.form_appVersion = "";
-        this.form_appDescription = "";
+        this.form_description = "";
         this.form_origAuthorId = "-1";
         this.form_newAuthor = "";
 
         if (!!this.formData) {
           this.form_category = this.formData.appListingCategories[0].value;
           this.form_model = this.formData.trsModels[0].value;
-          this.form_kbLayoutHor = this.formData.keyboardLayouts[0].value;
-          this.form_kbLayoutVer = this.formData.keyboardLayouts[0].value;
+          this.form_kbLayoutLand = this.formData.keyboardLayouts[0].value;
+          this.form_kbLayoutPort = this.formData.keyboardLayouts[0].value;
           this.form_charColor = this.formData.characterColors[0].value;
         }
         this.form_soundMuted = false;

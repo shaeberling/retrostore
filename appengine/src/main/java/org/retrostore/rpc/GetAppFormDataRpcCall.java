@@ -16,7 +16,7 @@
 
 package org.retrostore.rpc;
 
-import org.retrostore.data.AppStoreItem;
+import org.retrostore.data.app.AppStoreItem;
 import org.retrostore.data.user.UserAccountType;
 import org.retrostore.request.Responder;
 import org.retrostore.rpc.internal.RpcCall;

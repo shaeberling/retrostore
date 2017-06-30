@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.retrostore.data;
+package org.retrostore.data.app;
 
 import com.googlecode.objectify.annotation.Cache;
 import com.googlecode.objectify.annotation.Entity;

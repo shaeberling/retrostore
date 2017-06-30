@@ -15,7 +15,7 @@
  */
 
 
-package org.retrostore.data;
+package org.retrostore.data.app;
 
 import com.googlecode.objectify.annotation.Cache;
 import com.googlecode.objectify.annotation.Entity;
@@ -34,6 +34,4 @@ public class Author {
   public Long id;
 
   public String name;
-  public String email;
-  public String websiteUrl;
 }

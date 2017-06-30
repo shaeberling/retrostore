@@ -18,13 +18,17 @@ package org.retrostore.rpc.internal;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.user.UserManagement;
 import org.retrostore.request.RequestData;
 import org.retrostore.request.Request;
 import org.retrostore.request.Responder;
 import org.retrostore.data.user.UserService;
+import org.retrostore.rpc.AddEditAppRpcCall;
 import org.retrostore.rpc.AddEditUserRpcCall;
 import org.retrostore.rpc.AdminUserListRpcCall;
+import org.retrostore.rpc.AppListRpcCall;
+import org.retrostore.rpc.DeleteAppRpcCall;
 import org.retrostore.rpc.DeleteUserRpcCall;
 import org.retrostore.rpc.GetAppFormDataRpcCall;
 import org.retrostore.rpc.GetSiteContextRpcCall;
@@ -46,14 +50,17 @@ public class RpcCallRequest implements Request {
   private final Map<String, RpcCall> mRpcCalls;
 
 
-  public RpcCallRequest(UserManagement userManagement) {
+  public RpcCallRequest(UserManagement userManagement, AppManagement appManagement) {
     // Note: Add new RPC calls here.
     List<RpcCall> calls = ImmutableList.of(
         new AdminUserListRpcCall(userManagement),
         new GetSiteContextRpcCall(userManagement),
         new AddEditUserRpcCall(userManagement),
+        new AddEditAppRpcCall(appManagement),
         new GetAppFormDataRpcCall(),
-        new DeleteUserRpcCall(userManagement));
+        new DeleteUserRpcCall(userManagement),
+        new AppListRpcCall(appManagement),
+        new DeleteAppRpcCall(appManagement));
 
     Map<String, RpcCall> callsMapped = new HashMap<>();
     for (RpcCall call : calls) {

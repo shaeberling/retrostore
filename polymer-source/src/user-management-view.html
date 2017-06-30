@@ -67,13 +67,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         display: none;
       }
       #server-response {
-        margin-top: 20px;
+        margin-top: 20px 0;
         padding: 1em;
         display: width: 100%;
       }
     </style>
 
-    <h1>User Management!!!</h1>
+    <h1>User Management</h1>
 
     <div id="addEditUserCard" show-add-edit$="{{showAddEdit}}" class="card">
       <h2>Add/Edit user</h2>
@@ -89,9 +89,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </paper-dropdown-menu>
 
       <div class="action-buttons">
+        <div id="server-response" success$="{{addEditSuccess}}">{{addEditXhrResponse.message}}</div>
         <paper-button on-tap="onSaveUser" class="action-edit">Save changes</paper-button>
         <paper-button on-tap="onCancelAddEdit" class="action-cancel">Cancel</paper-button>
-        <div id="server-response" success$="{{addEditSuccess}}">{{addEditXhrResponse.message}}</div>
       </div>.
     </div>
 

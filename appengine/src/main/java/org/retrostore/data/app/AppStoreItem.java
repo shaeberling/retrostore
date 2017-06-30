@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package org.retrostore.data;
+package org.retrostore.data.app;
 
+import com.googlecode.objectify.Key;
 import com.googlecode.objectify.Ref;
 import com.googlecode.objectify.annotation.Cache;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
 import com.googlecode.objectify.annotation.Load;
 
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -112,7 +112,7 @@ public class AppStoreItem {
   }
 
   /**
-   * Configuration data.
+   * Configuration data (for TRS80 specifically).
    */
   public static class Configuration {
     public Model model;
@@ -124,10 +124,10 @@ public class AppStoreItem {
     public MediaImage disk4;
     public MediaImage casette;
 
-    boolean soundMuted;
-    public KeyboardLayout layoutLandscape;
-    public KeyboardLayout layoutPortrait;
-    public CharacterColor characterColor;
+    public boolean soundMuted;
+    public KeyboardLayout kbLayoutLandscape;
+    public KeyboardLayout kbLayoutPortrait;
+    public CharacterColor charColor;
   }
 
   /**
@@ -144,13 +144,20 @@ public class AppStoreItem {
     public String publisherEmail;
   }
 
-  AppStoreItem() {
+  /**
+   * Create a key for ann AppStoreItem based on its unique ID.
+   */
+  public static Key<AppStoreItem> key(long id) {
+    return Key.create(AppStoreItem.class, id);
+  }
+
+  public AppStoreItem() {
   }
 
   @Id
   public Long id;
-  public Configuration configuration;
-  public Listing listing;
+  public Configuration configuration = new Configuration();
+  public Listing listing = new Listing();
   @Load
   Ref<ScreenshotSet> screenshots;
 
