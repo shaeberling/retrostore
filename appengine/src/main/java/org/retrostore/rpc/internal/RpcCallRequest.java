@@ -56,8 +56,8 @@ public class RpcCallRequest implements Request {
         new AdminUserListRpcCall(userManagement),
         new GetSiteContextRpcCall(userManagement),
         new AddEditUserRpcCall(userManagement),
-        new AddEditAppRpcCall(appManagement),
-        new GetAppFormDataRpcCall(),
+        new AddEditAppRpcCall(appManagement, userManagement),
+        new GetAppFormDataRpcCall(appManagement),
         new DeleteUserRpcCall(userManagement),
         new AppListRpcCall(appManagement),
         new DeleteAppRpcCall(appManagement));

@@ -27,6 +27,7 @@ import org.retrostore.data.app.AppStoreItem.KeyboardLayout;
 import org.retrostore.data.app.AppStoreItem.ListingCategory;
 import org.retrostore.data.app.AppStoreItem.Model;
 import org.retrostore.data.user.UserAccountType;
+import org.retrostore.data.user.UserManagement;
 import org.retrostore.request.Responder;
 import org.retrostore.rpc.internal.RpcCall;
 import org.retrostore.rpc.internal.RpcParameters;
@@ -56,9 +57,11 @@ public class AddEditAppRpcCall implements RpcCall {
 
   private static final Logger LOG = Logger.getLogger("AddEditAppRpcCall");
   private final AppManagement mAppManagement;
+  private final UserManagement mUserManagement;
 
-  public AddEditAppRpcCall(AppManagement appManagement) {
+  public AddEditAppRpcCall(AppManagement appManagement, UserManagement userManagement) {
     mAppManagement = appManagement;
+    mUserManagement = userManagement;
   }
 
   @Override
@@ -93,7 +96,7 @@ public class AddEditAppRpcCall implements RpcCall {
         return;
       }
 
-      if ("-1".equals(data.origAuthorId) && Strings.isNullOrEmpty(data.newAuthor)) {
+      if ("-1".equals(data.origAuthorId) && Strings.isNullOrEmpty(data.newAuthor.trim())) {
         RpcResponse.respond(false, "No author selected or entered", responder);
         return;
       }
@@ -146,8 +149,42 @@ public class AddEditAppRpcCall implements RpcCall {
       appStoreItem.configuration.charColor = charColor.get();
       appStoreItem.configuration.soundMuted = data.soundMuted;
 
-      mAppManagement.addOrChangeApp(appStoreItem);
+      // Ensure the times are set correctly.
+      final long now = System.currentTimeMillis();
+      if (appStoreItem.listing.firstPublishTime <= 0) {
+        appStoreItem.listing.firstPublishTime = now;
+      }
+      appStoreItem.listing.lastUpdateTime = now;
 
+      // Set the publisher.
+      if (Strings.isNullOrEmpty(appStoreItem.listing.publisherEmail)) {
+        Optional<String> loggedInEmail = mUserManagement.getLoggedInEmail();
+        if (!loggedInEmail.isPresent()) {
+          LOG.severe("Non-logged in user tries to save App item.");
+          RpcResponse.respond(false, "Not logged in", responder);
+        } else {
+          appStoreItem.listing.publisherEmail = loggedInEmail.get();
+        }
+      }
+
+      // If the author ID was not set, a new author needs to be created.
+      if ("-1".equals(data.origAuthorId)) {
+        String authorName = data.newAuthor.trim();
+        long authorId = mAppManagement.ensureAuthorExists(authorName);
+        appStoreItem.listing.authorId = authorId;
+      } else {
+        try {
+          long authorId = Long.parseLong(data.origAuthorId);
+          appStoreItem.listing.authorId = authorId;
+        } catch (IllegalArgumentException ex) {
+          String errorMessage = String.format("Bad original author ID '%s'", data.origAuthorId);
+          LOG.severe(errorMessage);
+          RpcResponse.respond(false, errorMessage, responder);
+          return;
+        }
+      }
+
+      mAppManagement.addOrChangeApp(appStoreItem);
       RpcResponse.respond(true, "App data changed/added", responder);
     } catch (JsonSyntaxException e) {
       RpcResponse.respond(false, "Invalid JSON data", responder);

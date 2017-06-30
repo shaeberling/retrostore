@@ -68,8 +68,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       #addEditAppCard[show$="addEdit"],
       #listAppsCard[show$="list"], 
-      #addEditDiskImagesCard[show$="diskImages"],
-      #addEditScreenshotsCard[show$="screenshots"] {
+      #addEditDiskImagesCard[show$="assets"],
+      #addEditScreenshotsCard[show$="assets"] {
         display: block;
       }
       #addEditAppCard, #listAppsCard, #addEditDiskImagesCard, #addEditScreenshotsCard {
@@ -110,7 +110,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <paper-dropdown-menu name="origAuthor" label="Original Author" required>
           <paper-listbox slot="dropdown-content" selected="{{form_origAuthorId}}" attr-for-selected="value">
             <paper-item value="-1">Other (Enter below)</paper-item>
-            <template is="dom-repeat" items="{{formData.appAuthors}}">
+            <template is="dom-repeat" items="{{formData.existingAppAuthors}}">
               <paper-item value="{{item.value}}">{{item.name}}</paper-item>
             </template>
           </paper-listbox>
@@ -224,22 +224,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <table class=app-table>
       <tr>
         <th>Name</th>
-        <th>Uploader</th>
+        <th>Publisher</th>
         <th>Version</th>
         <th>First uploaded</th>
         <th>Last updated</th>
         <th>Edit</th>
+        <th>Assets</th>
         <!--<th>Publish</th>-->
         <th>Delete</th>
       </tr>
       <template is="dom-repeat" items="{{ajaxResponse}}">
         <tr>
           <td>{{item.listing.name}}</td>
-          <td>{{item.listing.authorId}}</td>
+          <td>{{item.listing.publisherEmail}}</td>
           <td>{{item.listing.versionString}}</td>
           <td><retro-time millis="{{item.listing.firstPublishTime}}"></retro-time></td>
           <td><retro-time millis="{{item.listing.lastUpdateTime}}"></retro-time></td>
           <td><paper-button on-tap="onEditApp" class="action-edit">Edit</paper-button></td>
+          <td><paper-button on-tap="onAssetsApp" class="action-edit">Assets</paper-button></td>
           <!--<td><paper-button on-tap="onEditApp" class="action-edit">Publish/Unpublish</paper-button></td>-->
           <td><paper-button on-tap="onDeleteApp" class="action-delete">Delete</paper-button></td>
         </tr>
@@ -248,6 +250,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </div>
     <iron-ajax
         auto
+        id="xhrFormData"
         url="/rpc?m=getAppFormData"
         handle-as="json"
         debounce-duration="300"
@@ -297,12 +300,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.clearForm();
         this.showMode = "addEdit";
       }
+      onAssetsApp() {
+        this.clearForm();
+        this.showMode = "assets";
+      }
       onEditApp(e) {
+        this.clearForm();
         this.form_appId = e.model.get('item.id');
         this.form_appName = e.model.get('item.listing.name');
         this.form_appVersion = e.model.get('item.listing.versionString');
         this.form_description = e.model.get('item.listing.description');
-        this.form_origAuthorId = -1, // TODO
+        this.form_origAuthorId = e.model.get('item.listing.authorId');
         this.form_newAuthor = "";
         this.form_category = e.model.get('item.listing.categories')[0];
         this.form_model = e.model.get('item.configuration.model');
@@ -351,6 +359,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         if (this.addEditXhrResponse.success) {
           this.showMode = "list";
           this.$.xhrAppList.generateRequest();
+
+          // We might get new author data, if the user added one.
+          this.$.xhrFormData.generateRequest();
         }
       }
       onDeleteResponse() {

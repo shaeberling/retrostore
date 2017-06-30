@@ -16,7 +16,10 @@
 
 package org.retrostore.rpc;
 
+import com.google.common.collect.ImmutableList;
+import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.app.AppStoreItem;
+import org.retrostore.data.app.Author;
 import org.retrostore.data.user.UserAccountType;
 import org.retrostore.request.Responder;
 import org.retrostore.rpc.internal.RpcCall;
@@ -30,6 +33,11 @@ import java.util.List;
  * Receives data to be used to fill in the app management forms.
  */
 public class GetAppFormDataRpcCall implements RpcCall {
+  private final AppManagement mAppManagement;
+
+  public GetAppFormDataRpcCall(AppManagement appManagement) {
+    mAppManagement = appManagement;
+  }
 
   private static class AppFormData {
     List<DropdownValueForClient> existingAppAuthors = new ArrayList<>();
@@ -53,7 +61,7 @@ public class GetAppFormDataRpcCall implements RpcCall {
   public void call(RpcParameters params, Responder responder) {
     AppFormData appFormData = new AppFormData();
 
-    // TODO: Add app authors.
+    appFormData.existingAppAuthors = forAuthors(mAppManagement.listAuthors());
     appFormData.appListingCategories =
         DropdownValueForClient.from(AppStoreItem.ListingCategory.values());
     appFormData.trsModels = DropdownValueForClient.from(AppStoreItem.Model.values());
@@ -61,5 +69,13 @@ public class GetAppFormDataRpcCall implements RpcCall {
     appFormData.characterColors = DropdownValueForClient.from(AppStoreItem.CharacterColor.values());
 
     responder.respondObject(appFormData);
+  }
+
+  private static List<DropdownValueForClient> forAuthors(List<Author> authors) {
+    ImmutableList.Builder<DropdownValueForClient> builder = ImmutableList.builder();
+    for (Author author : authors) {
+      builder.add(new DropdownValueForClient(String.valueOf(author.id), author.name));
+    }
+    return builder.build();
   }
 }

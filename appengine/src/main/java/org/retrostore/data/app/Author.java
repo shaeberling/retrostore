@@ -20,6 +20,7 @@ package org.retrostore.data.app;
 import com.googlecode.objectify.annotation.Cache;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
+import com.googlecode.objectify.annotation.Index;
 
 /**
  * Every TPK has an original author for the application or game it contains.
@@ -33,5 +34,10 @@ public class Author {
   @Id
   public Long id;
 
+  @Index
   public String name;
+
+  public Author(String name) {
+    this.name = name;
+  }
 }

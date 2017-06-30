@@ -140,7 +140,7 @@ public class AppStoreItem {
     public Set<ListingCategory> categories = new HashSet<>();
     public long firstPublishTime;
     public long lastUpdateTime;
-    public int authorId;
+    public long authorId;
     public String publisherEmail;
   }
 

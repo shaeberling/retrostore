@@ -105,10 +105,7 @@ public class AddEditUserRpcCall implements RpcCall {
       user.type = userAccountType;
       mUserManagement.addOrChangeUser(user);
 
-      // Validating the data.
       RpcResponse.respond(true, "User changed/added", responder);
-
-
     } catch (JsonSyntaxException e) {
       RpcResponse.respond(false, "Invalid JSON data", responder);
     }

@@ -28,7 +28,7 @@ public class DropdownValueForClient {
   public final String value;
   public final String name;
 
-  private DropdownValueForClient(String value, String name) {
+  public DropdownValueForClient(String value, String name) {
     this.value = value;
     this.name = name;
   }

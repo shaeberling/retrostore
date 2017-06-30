@@ -17,8 +17,14 @@
 package org.retrostore.data.app;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+import com.googlecode.objectify.Key;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.logging.Logger;
 
 import static com.googlecode.objectify.ObjectifyService.ofy;
 
@@ -26,16 +32,12 @@ import static com.googlecode.objectify.ObjectifyService.ofy;
  * Functionality to manage apps.
  */
 public class AppManagement {
+  private static final Logger LOG = Logger.getLogger("AppManagement");
 
   /**
    * Adds a new app, or if it already exists, changes the existing one with the given ID.
    */
   public void addOrChangeApp(AppStoreItem app) {
-    final long now = System.currentTimeMillis();
-    if (app.listing.firstPublishTime <= 0) {
-      app.listing.firstPublishTime = now;
-    }
-    app.listing.lastUpdateTime = now;
     ofy().save().entity(app).now();
   }
 
@@ -64,5 +66,42 @@ public class AppManagement {
     ofy().delete().key(AppStoreItem.key(id)).now();
 
     // FIXME: Delete screenshots + disk images.
+  }
+
+
+  /**
+   * Stores an author with the given name, if it does not exist.
+   *
+   * @param name the name of the author
+   * @return The key of the newly added or existing author with the given name.
+   */
+  public long ensureAuthorExists(String name) {
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(name));
+
+    List<Author> existingAuthors = ofy().load().type(Author.class).filter("name ==", name).list();
+    if (existingAuthors.size() > 0) {
+      LOG.info(String.format("Author '%s' already exists.", name));
+      if (existingAuthors.size() > 1) {
+        LOG.severe(String.format("We have multiple author entries for '%s'", name));
+      }
+      return existingAuthors.get(0).id;
+    }
+    Key<Author> newAuthorKey = ofy().save().entity(new Author(name)).now();
+    return newAuthorKey.getId();
+  }
+
+  /**
+   * Returns a list of all app authors.
+   */
+  public List<Author> listAuthors() {
+    List<Author> authors = ofy().load().type(Author.class).list();
+    Collections.sort(authors, new Comparator<Author>() {
+      @Override
+      public int compare(Author o1, Author o2) {
+        // Sort authors by name.
+        return o1.name.compareTo(o2.name);
+      }
+    });
+    return authors;
   }
 }

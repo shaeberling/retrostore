@@ -159,6 +159,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.showAddEdit = "true";
       }
       onEditUser(e) {
+        this.clearForm();
         this.form_email = e.model.get('item.email');
         this.form_firstName = e.model.get('item.firstName');
         this.form_lastName = e.model.get('item.lastName');
