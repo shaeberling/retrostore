@@ -1,0 +1,37 @@
+
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<script src="../bower_components/moment/moment.js"></script>
+
+<dom-module id="retro-time">
+  <template>
+    <style>
+      :host {
+        display: block;
+        padding: 10px;
+      }
+    </style>
+
+    <div>{{time_string}}</div>
+  </template>
+
+  <script>
+    class RetroTime extends Polymer.Element {
+      static get is() { return 'retro-time'; }
+
+      static get properties() {
+        return {
+          millis: {
+            type: String,
+            observer: '_millisChanged',
+          }
+        };
+      }
+
+      _millisChanged(newValue, oldValue) {
+        this.time_string = moment(newValue).format("MMM Do YYYY  H:mm");
+      }
+    }
+
+    window.customElements.define(RetroTime.is, RetroTime);
+  </script>
+</dom-module>

@@ -25,7 +25,8 @@
     "paper-listbox": "PolymerElements/paper-listbox#^2.0.0",
     "vaadin-upload": "vaadin/vaadin-upload#^2.0.0",
     "paper-checkbox": "PolymerElements/paper-checkbox#^2.0.0",
-    "paper-dialog": "PolymerElements/paper-dialog#^2.0.0"
+    "paper-dialog": "PolymerElements/paper-dialog#^2.0.0",
+    "moment": "^2.18.1"
   },
   "resolutions": {
     "polymer": "^2.0.1"

@@ -2,11 +2,12 @@
   "entrypoint": "index.html",
   "shell": "src/retrostore-app.html",
   "fragments": [
+    "src/app-management-view.html",
     "src/logged-in-user-label.html",
     "src/my-view1.html",
-    "src/app-management-view.html",
-    "src/user-management-view.html",
-    "src/my-view404.html"
+    "src/my-view404.html",
+    "src/retro-time.html",
+    "src/user-management-view.html"
   ],
   "sources": [
     "src/**/*",

@@ -138,8 +138,8 @@ public class AppStoreItem {
     public String versionString;
     public String description;
     public Set<ListingCategory> categories = new HashSet<>();
-    public int firstPublishTime;
-    public int lastUpdateTime;
+    public long firstPublishTime;
+    public long lastUpdateTime;
     public int authorId;
     public String publisherEmail;
   }

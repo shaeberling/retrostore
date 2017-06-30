@@ -2582,7 +2582,7 @@ Custom property                                  | Description                  
    */
 
 </script>
-</div><dom-module id="app-management-view">
+<link rel="import" href="retro-time.html"></div><dom-module id="app-management-view">
   <template>
     <style include="shared-styles">
       :host {
@@ -2600,6 +2600,9 @@ Custom property                                  | Description                  
       }
       h2 {
         margin-top: 0;
+      }
+      retro-time {
+        font-size: 0.8em;
       }
 
       .app-table {
@@ -2794,8 +2797,8 @@ Custom property                                  | Description                  
           <td>{{item.listing.name}}</td>
           <td>{{item.listing.authorId}}</td>
           <td>{{item.listing.versionString}}</td>
-          <td>{{item.listing.firstPublishTime}}</td>
-          <td>{{item.listing.lastUpdateTime}}</td>
+          <td><retro-time millis="{{item.listing.firstPublishTime}}"></retro-time></td>
+          <td><retro-time millis="{{item.listing.lastUpdateTime}}"></retro-time></td>
           <td><paper-button on-tap="onEditApp" class="action-edit">Edit</paper-button></td>
           <!--<td><paper-button on-tap="onEditApp" class="action-edit">Publish/Unpublish</paper-button></td>-->
           <td><paper-button on-tap="onDeleteApp" class="action-delete">Delete</paper-button></td>
