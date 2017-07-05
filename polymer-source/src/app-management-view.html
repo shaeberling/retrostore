@@ -389,12 +389,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.$.xhrAddEditApp.generateRequest();
       }
       onCancelAddEdit() {
-        onBackToAppList();
+        this.onBackToAppList();
       }
       onAddEditResponse() {
         this.addEditSuccess = "" + this.addEditXhrResponse.success;
         if (this.addEditXhrResponse.success) {
-          onBackToAppList();
+          this.onBackToAppList();
 
           // We might get new author data, if the user added one.
           this.$.xhrFormData.generateRequest();
