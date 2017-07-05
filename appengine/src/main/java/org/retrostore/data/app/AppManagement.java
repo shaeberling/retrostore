@@ -38,6 +38,7 @@ public class AppManagement {
    * Adds a new app, or if it already exists, changes the existing one with the given ID.
    */
   public void addOrChangeApp(AppStoreItem app) {
+    app.listing.lastUpdateTime = System.currentTimeMillis();
     ofy().save().entity(app).now();
   }
 
