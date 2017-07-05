@@ -38,7 +38,7 @@ import java.util.logging.Logger;
 /**
  * Add or edit an app entry.
  */
-public class AddEditAppRpcCall implements RpcCall {
+public class AddEditAppRpcCall implements RpcCall<RpcParameters> {
 
   private static final class Data {
     public String appId;

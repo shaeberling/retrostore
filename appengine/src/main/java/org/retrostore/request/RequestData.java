@@ -28,4 +28,7 @@ public interface RequestData {
 
   /** If one was sent, this will contains the body content. */
   String getBody();
+
+  /** Get the body of the request as bytes. */
+  byte[] getRawBody();
 }

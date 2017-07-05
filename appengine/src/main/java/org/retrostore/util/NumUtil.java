@@ -14,27 +14,29 @@
  * limitations under the License.
  */
 
-package org.retrostore.rpc.internal;
+package org.retrostore.util;
 
-import org.retrostore.data.user.UserAccountType;
-import org.retrostore.request.Responder;
+import com.google.common.base.Optional;
+import com.google.common.base.Strings;
 
 /**
- * Interface for all RPC calls.
+ * Utility funcitons for handling numbers.
  */
-public interface RpcCall<T> {
+public class NumUtil {
   /**
-   * The name of the RPC method.
+   * Parses a long value from a string.
+   *
+   * @param longStr the long value as a string.
+   * @return The long value, or absent if the string could not be parsed.
    */
-  String getName();
-
-  /**
-   * Whether the current user is permitted to make this call.
-   */
-  boolean isPermitted(UserAccountType type);
-
-  /**
-   * Performs the RPC call.
-   */
-  void call(T params, Responder responder);
+  public static Optional<Long> parseLong(String longStr) {
+    if (Strings.isNullOrEmpty(longStr)) {
+      return Optional.absent();
+    }
+    try {
+      return Optional.of(Long.parseLong(longStr));
+    } catch (NumberFormatException ex) {
+      return Optional.absent();
+    }
+  }
 }

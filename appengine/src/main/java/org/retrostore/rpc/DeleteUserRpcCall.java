@@ -29,7 +29,7 @@ import org.retrostore.rpc.internal.RpcResponse;
 /**
  * Deletes the user with the given email address.
  */
-public class DeleteUserRpcCall implements RpcCall {
+public class DeleteUserRpcCall implements RpcCall<RpcParameters> {
   private static final class Data {
     public String email;
   }

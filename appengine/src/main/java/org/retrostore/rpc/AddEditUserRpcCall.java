@@ -32,7 +32,7 @@ import java.util.logging.Logger;
 /**
  * Adds a new or edits an existing user.
  */
-public class AddEditUserRpcCall implements RpcCall {
+public class AddEditUserRpcCall implements RpcCall<RpcParameters> {
   private static final class Data {
     public String email;
     public String firstName;

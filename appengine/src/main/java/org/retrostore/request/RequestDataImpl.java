@@ -17,12 +17,14 @@
 package org.retrostore.request;
 
 import com.google.common.base.Charsets;
+import com.google.common.io.ByteStreams;
 import com.google.common.io.CharStreams;
 
 import javax.servlet.http.HttpServletRequest;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.logging.Logger;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -30,6 +32,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Default RequestData implementation based on an HttpServletRequest.
  */
 public class RequestDataImpl implements RequestData {
+  private static final Logger LOG = Logger.getLogger("RequestDataImpl");
   private final HttpServletRequest mRequest;
 
   public RequestDataImpl(HttpServletRequest request) {
@@ -51,8 +54,19 @@ public class RequestDataImpl implements RequestData {
     try {
       return CharStreams.toString(
           new InputStreamReader(mRequest.getInputStream(), Charsets.UTF_8));
-    } catch (IOException e) {
+    } catch (IOException ex) {
+      LOG.warning(String.format("Could not read request body: '%s'.", ex.getMessage()));
       return "";
+    }
+  }
+
+  @Override
+  public byte[] getRawBody() {
+    try {
+      return ByteStreams.toByteArray(mRequest.getInputStream());
+    } catch (IOException ex) {
+      LOG.warning(String.format("Could not read request body: '%s'.", ex.getMessage()));
+      return new byte[0];
     }
   }
 }

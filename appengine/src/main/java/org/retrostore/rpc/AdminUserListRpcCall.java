@@ -27,7 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * Return a list of RetroStore users.
  */
-public class AdminUserListRpcCall implements RpcCall {
+public class AdminUserListRpcCall implements RpcCall<RpcParameters> {
   private final UserManagement mUserManagement;
 
   public AdminUserListRpcCall(UserManagement userManagement) {

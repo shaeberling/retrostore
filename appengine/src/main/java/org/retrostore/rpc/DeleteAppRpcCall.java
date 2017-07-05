@@ -29,7 +29,7 @@ import org.retrostore.rpc.internal.RpcResponse;
 /**
  * Deletes the app with the given ID.
  */
-public class DeleteAppRpcCall implements RpcCall {
+public class DeleteAppRpcCall implements RpcCall<RpcParameters> {
   private static final class Data {
     public String id;
   }

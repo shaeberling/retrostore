@@ -34,6 +34,22 @@ import static com.google.common.base.Preconditions.checkNotNull;
 @Entity
 @Cache
 public class AppStoreItem {
+  /** Types of platform the app store item is intended for. */
+  public enum Platform {
+    TRS80("TRS-80");
+
+    private final String readableName;
+
+    Platform(String readableName) {
+      this.readableName = checkNotNull(readableName);
+    }
+
+    @Override
+    public String toString() {
+      return readableName;
+    }
+  }
+
   public enum Model {
     MODEL_I("Model I"),
     MODEL_III("Model III"),
@@ -89,8 +105,11 @@ public class AppStoreItem {
 
   // E.g. Casette or disk image.
   public static class MediaImage {
-    public String type;
-    // Will become a GAE blob structure.
+    /** The timestamp of when this image was uploaded. */
+    public long uploadTime;
+    /** An optional note for this image to describe it. */
+    public String description;
+    /** Will become a GAE blob structure. */
     public byte[] data;
   }
 
@@ -112,17 +131,14 @@ public class AppStoreItem {
   }
 
   /**
-   * Configuration data (for TRS80 specifically).
+   * Configuration data (for TRS-80 specifically).
    */
   public static class Configuration {
     public Model model;
 
-    // Disk 1-4 + casette (type/extension + data)
-    public MediaImage disk1;
-    public MediaImage disk2;
-    public MediaImage disk3;
-    public MediaImage disk4;
-    public MediaImage casette;
+    // Disk 1-4 + cassette (type/extension + data)
+    public MediaImage[] disk = new MediaImage[4];
+    public MediaImage cassette;
 
     public boolean soundMuted;
     public KeyboardLayout kbLayoutLandscape;

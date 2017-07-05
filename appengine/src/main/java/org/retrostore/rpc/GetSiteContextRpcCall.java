@@ -29,7 +29,7 @@ import java.util.List;
 /**
  * Responds with a context object that is requested from the site when loaded.
  */
-public class GetSiteContextRpcCall implements RpcCall {
+public class GetSiteContextRpcCall implements RpcCall<RpcParameters> {
   private final UserManagement mUserManagement;
 
   public GetSiteContextRpcCall(UserManagement userManagement) {

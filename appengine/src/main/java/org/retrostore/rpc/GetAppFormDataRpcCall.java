@@ -32,7 +32,7 @@ import java.util.List;
 /**
  * Receives data to be used to fill in the app management forms.
  */
-public class GetAppFormDataRpcCall implements RpcCall {
+public class GetAppFormDataRpcCall implements RpcCall<RpcParameters> {
   private final AppManagement mAppManagement;
 
   public GetAppFormDataRpcCall(AppManagement appManagement) {

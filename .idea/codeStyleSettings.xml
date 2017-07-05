@@ -7,6 +7,7 @@
         <option name="STATIC_FIELD_NAME_PREFIX" value="s" />
         <option name="CLASS_COUNT_TO_USE_IMPORT_ON_DEMAND" value="999" />
         <option name="NAMES_COUNT_TO_USE_IMPORT_ON_DEMAND" value="999" />
+        <option name="JD_DO_NOT_WRAP_ONE_LINE_COMMENTS" value="true" />
         <option name="WRAP_COMMENTS" value="true" />
         <codeStyleSettings language="JAVA">
           <option name="RIGHT_MARGIN" value="100" />

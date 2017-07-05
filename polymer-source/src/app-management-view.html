@@ -93,6 +93,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       #addEditAppConfigCard {
         background-color: #F4F4F4;
       }
+      .disk-image-table td {
+        padding: 10px;
+      }
 
     </style>
 
@@ -176,7 +179,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </tr>
       <template is="dom-repeat" items="{{diskImages}}">
         <tr>
-          <td>{{item.id}}</td>
+          <td>{{item.label}}</td>
           <td>{{item.sizeInBytes}}</td>
           <td><paper-button on-tap="onUploadDiskImage" class="action-edit">Upload</paper-button></td>
           <td><paper-button on-tap="onDeleteDiskImage" class="action-delete">Delete</paper-button></td>
@@ -205,14 +208,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </table>
     </div>
 
-    <paper-dialog id="modal" modal>
+    <paper-dialog id="uploadDialog" on-iron-overlay-opened="_patchOverlay" modal>
       <p>{{model_dialog_text}}</p>
-      <vaadin-upload target="/post/uploadDiskImage/1" method="POST" maxFileSize="10000000">
+      <vaadin-upload target="/post/uploadDiskImage/{{assets_appId}}/{{upload_item.id}}" max-files="1"
+                     method="POST" maxFileSize="10000000">
         <iron-icon slot="drop-label-icon" icon="cloud-upload"></iron-icon>
-        <span slot="drop-label">Upload disk image #1</span>
+        <span slot="drop-label">{{upload_item.label}}</span>
       </vaadin-upload>
       <div class="buttons">
-        <paper-button dialog-confirm autofocus>Tap me to close</paper-button>
+        <paper-button dialog-confirm autofocus>Cancel</paper-button>
       </div>
     </paper-dialog>
 
@@ -289,10 +293,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         // TODO: Dummy data only
         this.diskImages = [
-            {id: 1, sizeInBytes: 4243},
-            {id: 2, sizeInBytes: 1234},
-            {id: 3, sizeInBytes: 9876},
-            {id: 4, sizeInBytes: 4111},
+            {id: 1, sizeInBytes: 4243, label: "Disk image #1"},
+            {id: 2, sizeInBytes: 1234, label: "Disk image #2"},
+            {id: 3, sizeInBytes: 9876, label: "Disk image #3"},
+            {id: 4, sizeInBytes: 4111, label: "Disk image #4"},
+            {id: 5, sizeInBytes: 8888, label: "Casette image"},
         ];
       }
 
@@ -300,8 +305,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.clearForm();
         this.showMode = "addEdit";
       }
-      onAssetsApp() {
+      onAssetsApp(e) {
         this.clearForm();
+        this.assets_appId = e.model.get("item.id");
         this.showMode = "assets";
       }
       onEditApp(e) {
@@ -371,6 +377,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.$.xhrAppList.generateRequest(); 
         }
       }
+      onUploadDiskImage(e) {
+        this.upload_item = e.model.get("item");
+        this.$.uploadDialog.open();
+      }
       clearForm() {
         this.addEditSuccess = "none";
         this.form_appId = "";
@@ -388,6 +398,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.form_charColor = this.formData.characterColors[0].value;
         }
         this.form_soundMuted = false;
+      }
+      _patchOverlay(e) {
+        // See bug: https://github.com/PolymerElements/paper-dialog/issues/7
+        if (e.target.withBackdrop) {
+          e.target.parentNode.insertBefore(e.target.backdropElement, e.target);
+        }
       }
     }
     window.customElements.define(AppManagementView.is, AppManagementView);

@@ -25,7 +25,7 @@ import org.retrostore.rpc.internal.RpcParameters;
 /**
  * Returns a list of apps from the datastore.
  */
-public class AppListRpcCall implements RpcCall {
+public class AppListRpcCall implements RpcCall<RpcParameters> {
   private final AppManagement mAppManagement;
 
   public AppListRpcCall(AppManagement appManagement) {

@@ -16,22 +16,15 @@
 
 package org.retrostore.rpc.internal;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.retrostore.data.app.AppManagement;
-import org.retrostore.data.user.UserManagement;
 import org.retrostore.data.user.UserService;
 import org.retrostore.request.Request;
 import org.retrostore.request.RequestData;
 import org.retrostore.request.Responder;
-import org.retrostore.rpc.AddEditAppRpcCall;
-import org.retrostore.rpc.AddEditUserRpcCall;
-import org.retrostore.rpc.AdminUserListRpcCall;
-import org.retrostore.rpc.AppListRpcCall;
-import org.retrostore.rpc.DeleteAppRpcCall;
-import org.retrostore.rpc.DeleteUserRpcCall;
-import org.retrostore.rpc.GetAppFormDataRpcCall;
-import org.retrostore.rpc.GetSiteContextRpcCall;
+import org.retrostore.rpc.UploadDiskImageRpcCall;
 
 import java.util.HashMap;
 import java.util.List;
@@ -39,29 +32,17 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 /**
- * Serves RPC calls
+ * Serves uploads requests through POST.
  */
-public class RpcCallRequest implements Request {
-  private static final Logger LOG = Logger.getLogger("RpcCallRequest");
-
-  private static final String RPC_PREFIX = "/rpc";
-  private static final String RPC_METHOD_PARAM = "m";
+public class PostUploadRequest implements Request {
+  private static final Logger LOG = Logger.getLogger("PostUploadRequest");
+  private static final String RPC_PREFIX = "/post";
 
   private final Map<String, RpcCall> mRpcCalls;
 
-
-  public RpcCallRequest(UserManagement userManagement, AppManagement appManagement) {
-    // Note: Add new RPC calls here.
-    List<RpcCall<RpcParameters>> calls = ImmutableList.of(
-        new AdminUserListRpcCall(userManagement),
-        new GetSiteContextRpcCall(userManagement),
-        new AddEditUserRpcCall(userManagement),
-        new AddEditAppRpcCall(appManagement, userManagement),
-        new GetAppFormDataRpcCall(appManagement),
-        new DeleteUserRpcCall(userManagement),
-        new AppListRpcCall(appManagement),
-        new DeleteAppRpcCall(appManagement));
-
+  public PostUploadRequest(AppManagement appManagement) {
+    List<RpcCall<RequestData>> calls =
+        ImmutableList.of((RpcCall<RequestData>) new UploadDiskImageRpcCall(appManagement));
     Map<String, RpcCall> callsMapped = new HashMap<>();
     for (RpcCall call : calls) {
       if (callsMapped.containsKey(call.getName())) {
@@ -73,25 +54,29 @@ public class RpcCallRequest implements Request {
   }
 
   @Override
-  public boolean serveUrl(RequestData requestData, Responder responder,
-                          UserService accountTypeProvider) {
+  public boolean serveUrl(RequestData requestData, Responder responder, UserService userService) {
     String url = requestData.getUrl();
     if (!url.startsWith(RPC_PREFIX)) {
       return false;
     }
 
-    String method = requestData.getParameter(RPC_METHOD_PARAM);
-    if (method == null) {
+    String[] urlParts = url.substring(1).split("/");
+    if (urlParts.length < 2) {
+      LOG.info(String.format("POST url does not match: '%s'.", url));
+    }
+    String method = urlParts[1];
+    LOG.info(String.format("Method is '%s'.", method));
+
+    if (Strings.isNullOrEmpty(method)) {
       responder.respondBadRequest("No method name specified.");
     } else if (!mRpcCalls.containsKey(method)) {
       responder.respondBadRequest(String.format("RPC method '%s' not found.", method));
     } else {
       RpcCall rpcCall = mRpcCalls.get(method);
-      if (!rpcCall.isPermitted(accountTypeProvider.getForCurrentUser())) {
+      if (!rpcCall.isPermitted(userService.getForCurrentUser())) {
         responder.respondBadRequest("Current user not permitted.");
       } else {
-        RpcParametersImpl params = new RpcParametersImpl(requestData);
-        rpcCall.call(params, responder);
+        rpcCall.call(requestData, responder);
       }
     }
     return true;

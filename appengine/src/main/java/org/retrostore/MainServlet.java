@@ -31,6 +31,7 @@ import org.retrostore.request.Responder;
 import org.retrostore.resources.DefaultResourceLoader;
 import org.retrostore.resources.PolymerDebugLoader;
 import org.retrostore.resources.ResourceLoader;
+import org.retrostore.rpc.internal.PostUploadRequest;
 import org.retrostore.rpc.internal.RpcCallRequest;
 
 import javax.servlet.ServletException;
@@ -63,6 +64,7 @@ public class MainServlet extends RetroStoreServlet {
     sRequestServers.add(new EnsureAdminExistsRequest(sUserManagement));
     sRequestServers.add(new RpcCallRequest(sUserManagement, sAppManagement));
     sRequestServers.add(new PolymerRequest(getResourceLoader()));
+    sRequestServers.add(new PostUploadRequest(sAppManagement));
     // Note: Add more request servers here. Keep in mind that this is in priority-order.
   }
 
