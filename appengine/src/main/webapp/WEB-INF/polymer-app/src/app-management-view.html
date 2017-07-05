@@ -2836,6 +2836,7 @@ Custom property                                  | Description                  
     <iron-ajax id="xhrAddEditApp" url="/rpc?m=addEditApp" method="POST" handle-as="json" on-response="onAddEditResponse" content-type="application/json" last-response="{{addEditXhrResponse}}"></iron-ajax>
     <iron-ajax id="xhrDeleteApp" url="/rpc?m=deleteApp" method="POST" handle-as="json" on-response="onDeleteResponse" content-type="application/json" last-response="{{deleteXhrResponse}}"></iron-ajax>
     <iron-ajax id="xhrListDiskImages" noauto="" url="/rpc?m=listDiskImages&amp;appId={{requestDiskImagesAppId}}" handle-as="json" debounce-duration="300" last-response="{{diskImages}}"></iron-ajax>
+    <iron-ajax id="xhrDeleteDiskImage" noauto="" url="/rpc?m=deleteDiskImage&amp;appId={{deleteDiskImageAppId}}&amp;diskImageNo={{deleteDiskImageNo}}" handle-as="json" on-response="onDeleteDiskImageResponse" debounce-duration="300"></iron-ajax>
   </template>
 
   <script>
@@ -2945,6 +2946,14 @@ Custom property                                  | Description                  
       onUploadDiskImage(e) {
         this.upload_item = e.model.get("item");
         this.$.uploadDialog.open();
+      }
+      onDeleteDiskImage(e) {
+        this.deleteDiskImageAppId = this.assets_appId;
+        this.deleteDiskImageNo = e.model.get("item.id");
+        this.$.xhrDeleteDiskImage.generateRequest();
+      }
+      onDeleteDiskImageResponse() {
+        this.$.xhrListDiskImages.generateRequest();        
       }
       clearForm() {
         this.addEditSuccess = "none";

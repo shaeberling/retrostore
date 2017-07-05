@@ -46,4 +46,21 @@ public class NumUtil {
     }
     return parseLong(longStr.get());
   }
+
+  /**
+   * Parses a int value from a string.
+   *
+   * @param intStr the int value as a string.
+   * @return The int value, or absent if the string could not be parsed.
+   */
+  public static Optional<Integer> parseInteger(String intStr) {
+    if (Strings.isNullOrEmpty(intStr)) {
+      return Optional.absent();
+    }
+    try {
+      return Optional.of(Integer.parseInt(intStr));
+    } catch (NumberFormatException ex) {
+      return Optional.absent();
+    }
+  }
 }

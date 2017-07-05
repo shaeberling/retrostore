@@ -25,6 +25,9 @@ public interface RpcParameters {
   /** Returns an RPC parameter as an int, if it exists. */
   Optional<Integer> getInt(String name);
 
+  /** Returns an RPC parameter as an long, if it exists. */
+  Optional<Long> getLong(String name);
+
   /** Returns an RPC parameter as a string, if it exists. */
   Optional<String> getString(String name);
 

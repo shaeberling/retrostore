@@ -18,6 +18,7 @@ package org.retrostore.rpc.internal;
 
 import com.google.common.base.Optional;
 import org.retrostore.request.RequestData;
+import org.retrostore.util.NumUtil;
 
 import java.util.logging.Logger;
 
@@ -38,12 +39,16 @@ public class RpcParametersImpl implements RpcParameters {
     if (value == null) {
       return Optional.absent();
     }
-    try {
-      return Optional.of(Integer.parseInt(value));
-    } catch (NumberFormatException ex) {
-      LOG.warning(String.format("Cannot parse '%s' to integer", value));
+    return NumUtil.parseInteger(value);
+  }
+
+  @Override
+  public Optional<Long> getLong(String name) {
+    String value = mRequestData.getParameter(name);
+    if (value == null) {
       return Optional.absent();
     }
+    return NumUtil.parseLong(value);
   }
 
   @Override

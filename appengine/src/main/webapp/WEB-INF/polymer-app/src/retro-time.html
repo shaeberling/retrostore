@@ -4487,7 +4487,11 @@ return hooks;
       }
 
       _millisChanged(newValue, oldValue) {
-        this.time_string = moment(newValue).format("MMM Do YYYY  H:mm");
+        if (newValue == 0 || newValue == "" || newValue == "0") {
+          this.time_string = "Never";
+        } else {
+          this.time_string = moment(newValue).format("MMM Do YYYY  H:mm");
+        }
       }
     }
 

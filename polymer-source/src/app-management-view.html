@@ -308,6 +308,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                handle-as="json"
                debounce-duration="300"
                last-response="{{diskImages}}"></iron-ajax>
+    <iron-ajax id="xhrDeleteDiskImage"
+               noauto
+               url="/rpc?m=deleteDiskImage&appId={{deleteDiskImageAppId}}&diskImageNo={{deleteDiskImageNo}}"
+               handle-as="json"
+               on-response="onDeleteDiskImageResponse"
+               debounce-duration="300"></iron-ajax>
   </template>
 
   <script>
@@ -417,6 +423,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       onUploadDiskImage(e) {
         this.upload_item = e.model.get("item");
         this.$.uploadDialog.open();
+      }
+      onDeleteDiskImage(e) {
+        this.deleteDiskImageAppId = this.assets_appId;
+        this.deleteDiskImageNo = e.model.get("item.id");
+        this.$.xhrDeleteDiskImage.generateRequest();
+      }
+      onDeleteDiskImageResponse() {
+        this.$.xhrListDiskImages.generateRequest();        
       }
       clearForm() {
         this.addEditSuccess = "none";
