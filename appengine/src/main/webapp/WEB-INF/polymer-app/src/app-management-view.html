@@ -2629,12 +2629,21 @@ Custom property                                  | Description                  
       #addEditAppCard[show$="addEdit"],
       #listAppsCard[show$="list"], 
       #addEditDiskImagesCard[show$="assets"],
-      #addEditScreenshotsCard[show$="assets"] {
+      #addEditScreenshotsCard[show$="assets"],
+      #addEditDiskImagesButtonPanel[show$="assets"] {
         display: block;
       }
-      #addEditAppCard, #listAppsCard, #addEditDiskImagesCard, #addEditScreenshotsCard {
+      #addEditAppCard,
+      #listAppsCard,
+      #addEditDiskImagesCard,
+      #addEditScreenshotsCard,
+      #addEditDiskImagesButtonPanel {
         display: none;
       }
+      #addEditDiskImagesButtonPanel {
+        text-align:right;
+      }
+
       #server-response[success$="true"] {
         background: #AFA;
       }
@@ -2728,6 +2737,9 @@ Custom property                                  | Description                  
       </div>
     </div>
 
+    <div id="addEditDiskImagesButtonPanel" class="card" show$="{{showMode}}">
+      <paper-button on-tap="onBackToAppList" class="action">Back to app list</paper-button>
+    </div>
     <div id="addEditDiskImagesCard" class="card" show$="{{showMode}}">
       <h3>Disk images (TRS 80)</h3>
       <table class="disk-image-table">
@@ -2842,6 +2854,10 @@ Custom property                                  | Description                  
         });
       }
 
+      onBackToAppList() {
+        this.$.xhrAppList.generateRequest();
+        this.showMode = "list";
+      }
       onAddApp() {
         this.clearForm();
         this.showMode = "addEdit";
@@ -2901,13 +2917,12 @@ Custom property                                  | Description                  
         this.$.xhrAddEditApp.generateRequest();
       }
       onCancelAddEdit() {
-        this.showMode = "list";
+        onBackToAppList();
       }
       onAddEditResponse() {
         this.addEditSuccess = "" + this.addEditXhrResponse.success;
         if (this.addEditXhrResponse.success) {
-          this.showMode = "list";
-          this.$.xhrAppList.generateRequest();
+          onBackToAppList();
 
           // We might get new author data, if the user added one.
           this.$.xhrFormData.generateRequest();
