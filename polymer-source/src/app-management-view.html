@@ -80,7 +80,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       #addEditDiskImagesButtonPanel {
         display: none;
       }
-      #addEditDiskImagesButtonPanel {
+      #addEditDiskImagesButtonPanel table {
+        width: 100%;
+      }
+      #addEditDiskImagesButtonPanel td:nth-child(2) {
         text-align:right;
       }
 
@@ -178,7 +181,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </div>
 
     <div id="addEditDiskImagesButtonPanel" class="card" show$="{{showMode}}">
-      <paper-button on-tap="onBackToAppList" class="action">Back to app list</paper-button>
+      <table><tr>
+        <td><h3>Assets for "{{assets_appName}}"</h3></td>
+        <td><paper-button on-tap="onBackToAppList" class="action">Back to app list</paper-button></td>
+      </tr></table>
     </div>
     <div id="addEditDiskImagesCard" class="card" show$="{{showMode}}">
       <h3>Disk images (TRS 80)</h3>
@@ -337,6 +343,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       onAssetsApp(e) {
         this.clearForm();
         this.assets_appId = e.model.get("item.id");
+        this.assets_appName = e.model.get("item.listing.name");
         this.showMode = "assets";
         this.requestDiskImagesAppId = this.assets_appId;
         this.$.xhrListDiskImages.generateRequest();
