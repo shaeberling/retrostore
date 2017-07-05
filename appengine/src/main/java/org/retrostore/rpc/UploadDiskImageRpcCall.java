@@ -87,26 +87,24 @@ public class UploadDiskImageRpcCall implements RpcCall<RequestData> {
       return;
     }
     int diskNo = (int) (long) diskImageOpt.get();
-    if (diskNo < 1 || diskNo > 5) {
-      responder.respondBadRequest(String.format("Illegal disk image number '%d'.", diskNo));
-      return;
-    }
-
     final long now = System.currentTimeMillis();
     AppStoreItem app = appOpt.get();
 
-    if (diskNo < 5) {
+    if (diskNo >= 0 && diskNo < 4) {
       if (app.configuration.disk[diskNo] == null) {
         app.configuration.disk[diskNo] = new AppStoreItem.MediaImage();
       }
       app.configuration.disk[diskNo].data = content;
       app.configuration.disk[diskNo].uploadTime = now;
-    } else if (diskNo == 5) {
+    } else if (diskNo == 4) {
       if (app.configuration.cassette == null) {
         app.configuration.cassette = new AppStoreItem.MediaImage();
       }
       app.configuration.cassette.data = content;
       app.configuration.cassette.uploadTime = now;
+    } else {
+      responder.respondBadRequest(String.format("Illegal disk image number '%d'.", diskNo));
+      return;
     }
     mAppManagement.addOrChangeApp(app);
   }

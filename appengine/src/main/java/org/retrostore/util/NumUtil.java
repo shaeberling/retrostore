@@ -39,4 +39,11 @@ public class NumUtil {
       return Optional.absent();
     }
   }
+
+  public static Optional<Long> parseLong(Optional<String> longStr) {
+    if (!longStr.isPresent()) {
+      return Optional.absent();
+    }
+    return parseLong(longStr.get());
+  }
 }

@@ -17,10 +17,13 @@
 package org.retrostore.rpc;
 
 import org.retrostore.data.app.AppManagement;
+import org.retrostore.data.app.AppStoreItem;
 import org.retrostore.data.user.UserAccountType;
 import org.retrostore.request.Responder;
 import org.retrostore.rpc.internal.RpcCall;
 import org.retrostore.rpc.internal.RpcParameters;
+
+import java.util.List;
 
 /**
  * Returns a list of apps from the datastore.
@@ -44,6 +47,20 @@ public class AppListRpcCall implements RpcCall<RpcParameters> {
 
   @Override
   public void call(RpcParameters params, Responder responder) {
-    responder.respondObject(mAppManagement.getAllApps());
+    List<AppStoreItem> allApps = mAppManagement.getAllApps();
+
+    // We should probably add a new class here which contains only the stuff we need. For now we
+    // simply remove what we don't want to send, i.e. the disk contents.
+    for (AppStoreItem app : allApps) {
+      if (app.configuration != null) {
+        if (app.configuration.disk != null) {
+          for (int i = 0; i < app.configuration.disk.length; ++i) {
+            app.configuration.disk[i] = null;
+          }
+        }
+        app.configuration.cassette = null;
+      }
+    }
+    responder.respondObject(allApps);
   }
 }

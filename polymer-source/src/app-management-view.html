@@ -173,6 +173,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <table class="disk-image-table">
       <tr>
         <th>Disk Image</th>
+        <th>Uploaded</th>
         <th>Size</th>
         <th>Upload</th>
         <th>Delete</th>
@@ -180,6 +181,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <template is="dom-repeat" items="{{diskImages}}">
         <tr>
           <td>{{item.label}}</td>
+          <td><retro-time millis="{{item.uploadTime}}"></retro-time></td>
           <td>{{item.sizeInBytes}}</td>
           <td><paper-button on-tap="onUploadDiskImage" class="action-edit">Upload</paper-button></td>
           <td><paper-button on-tap="onDeleteDiskImage" class="action-delete">Delete</paper-button></td>
@@ -210,13 +212,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     <paper-dialog id="uploadDialog" on-iron-overlay-opened="_patchOverlay" modal>
       <p>{{model_dialog_text}}</p>
-      <vaadin-upload target="/post/uploadDiskImage/{{assets_appId}}/{{upload_item.id}}" max-files="1"
+      <vaadin-upload id="fileUpload"
+                     target="/post/uploadDiskImage/{{assets_appId}}/{{upload_item.id}}" 
+                     max-files="1"
                      method="POST" maxFileSize="10000000">
         <iron-icon slot="drop-label-icon" icon="cloud-upload"></iron-icon>
         <span slot="drop-label">{{upload_item.label}}</span>
       </vaadin-upload>
       <div class="buttons">
-        <paper-button dialog-confirm autofocus>Cancel</paper-button>
+        <paper-button id="cancelUpload" dialog-confirm autofocus>Cancel</paper-button>
       </div>
     </paper-dialog>
 
@@ -280,6 +284,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                on-response="onDeleteResponse"
                content-type="application/json"
                last-response="{{deleteXhrResponse}}"></iron-ajax>
+    <iron-ajax id="xhrListDiskImages"
+               noauto
+               url="/rpc?m=listDiskImages&appId={{requestDiskImagesAppId}}"
+               handle-as="json"
+               debounce-duration="300"
+               last-response="{{diskImages}}"></iron-ajax>
   </template>
 
   <script>
@@ -290,15 +300,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         super.ready();
         this.showMode = "list";
         this.clearForm();
+        this.diskImages = [];
 
-        // TODO: Dummy data only
-        this.diskImages = [
-            {id: 1, sizeInBytes: 4243, label: "Disk image #1"},
-            {id: 2, sizeInBytes: 1234, label: "Disk image #2"},
-            {id: 3, sizeInBytes: 9876, label: "Disk image #3"},
-            {id: 4, sizeInBytes: 4111, label: "Disk image #4"},
-            {id: 5, sizeInBytes: 8888, label: "Casette image"},
-        ];
+        var thiz = this;
+        this.$.uploadDialog.addEventListener('upload-start', function(e) {
+          thiz.$.cancelUpload.disabled = true;
+        });
+        this.$.uploadDialog.addEventListener('upload-response', function(e) {
+          thiz.$.xhrListDiskImages.generateRequest();
+          thiz.$.cancelUpload.disabled = false;
+          thiz.$.fileUpload.files = [];
+          thiz.$.uploadDialog.close();
+        });
       }
 
       onAddApp() {
@@ -309,6 +322,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.clearForm();
         this.assets_appId = e.model.get("item.id");
         this.showMode = "assets";
+        this.requestDiskImagesAppId = this.assets_appId;
+        this.$.xhrListDiskImages.generateRequest();
       }
       onEditApp(e) {
         this.clearForm();
