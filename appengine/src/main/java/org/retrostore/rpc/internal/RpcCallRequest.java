@@ -16,6 +16,7 @@
 
 package org.retrostore.rpc.internal;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.retrostore.data.app.AppManagement;
@@ -49,7 +50,7 @@ public class RpcCallRequest implements Request {
   private static final String RPC_PREFIX = "/rpc";
   private static final String RPC_METHOD_PARAM = "m";
 
-  private final Map<String, RpcCall> mRpcCalls;
+  private final Map<String, RpcCall<RpcParameters>> mRpcCalls;
 
 
   public RpcCallRequest(UserManagement userManagement, AppManagement appManagement) {
@@ -66,8 +67,8 @@ public class RpcCallRequest implements Request {
         new DiskImagesListRpcCall(appManagement),
         new DeleteDiskImageRpcCall(appManagement));
 
-    Map<String, RpcCall> callsMapped = new HashMap<>();
-    for (RpcCall call : calls) {
+    Map<String, RpcCall<RpcParameters>> callsMapped = new HashMap<>();
+    for (RpcCall<RpcParameters> call : calls) {
       if (callsMapped.containsKey(call.getName())) {
         LOG.severe("RPC call name conflict: " + call.getName());
       }
@@ -84,17 +85,17 @@ public class RpcCallRequest implements Request {
       return false;
     }
 
-    String method = requestData.getParameter(RPC_METHOD_PARAM);
-    if (method == null) {
+    Optional<String> method = requestData.getString(RPC_METHOD_PARAM);
+    if (!method.isPresent()) {
       responder.respondBadRequest("No method name specified.");
-    } else if (!mRpcCalls.containsKey(method)) {
+    } else if (!mRpcCalls.containsKey(method.get())) {
       responder.respondBadRequest(String.format("RPC method '%s' not found.", method));
     } else {
-      RpcCall rpcCall = mRpcCalls.get(method);
+      RpcCall<RpcParameters> rpcCall = mRpcCalls.get(method.get());
       if (!rpcCall.isPermitted(accountTypeProvider.getForCurrentUser())) {
         responder.respondBadRequest("Current user not permitted.");
       } else {
-        RpcParametersImpl params = new RpcParametersImpl(requestData);
+        RpcParameters params = new RpcParametersImpl(requestData);
         rpcCall.call(params, responder);
       }
     }

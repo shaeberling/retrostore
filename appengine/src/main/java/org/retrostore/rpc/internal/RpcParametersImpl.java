@@ -26,7 +26,6 @@ import java.util.logging.Logger;
  * Maps Requests to RpcParameters.
  */
 public class RpcParametersImpl implements RpcParameters {
-  private static final Logger LOG = Logger.getLogger("RpcParametersImpl");
   private final RequestData mRequestData;
 
   RpcParametersImpl(RequestData requestData) {
@@ -35,25 +34,17 @@ public class RpcParametersImpl implements RpcParameters {
 
   @Override
   public Optional<Integer> getInt(String name) {
-    String value = mRequestData.getParameter(name);
-    if (value == null) {
-      return Optional.absent();
-    }
-    return NumUtil.parseInteger(value);
+    return mRequestData.getInt(name);
   }
 
   @Override
   public Optional<Long> getLong(String name) {
-    String value = mRequestData.getParameter(name);
-    if (value == null) {
-      return Optional.absent();
-    }
-    return NumUtil.parseLong(value);
+    return mRequestData.getLong(name);
   }
 
   @Override
   public Optional<String> getString(String name) {
-    return Optional.fromNullable(mRequestData.getParameter(name));
+    return mRequestData.getString(name);
   }
 
   @Override

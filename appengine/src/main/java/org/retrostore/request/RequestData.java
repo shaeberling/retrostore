@@ -16,6 +16,8 @@
 
 package org.retrostore.request;
 
+import com.google.common.base.Optional;
+
 /**
  * Interface for the request data.
  */
@@ -23,8 +25,14 @@ public interface RequestData {
   /** The URL of the request. */
   String getUrl();
 
-  /** Returns the request parameter with the given name. */
-  String getParameter(String name);
+  /** Returns an parameter value as an int, if it exists. */
+  Optional<Integer> getInt(String name);
+
+  /** Returns an parameter value as an long, if it exists. */
+  Optional<Long> getLong(String name);
+
+  /** Returns a parameter value as a string, if it exists. */
+  Optional<String> getString(String name);
 
   /** If one was sent, this will contains the body content. */
   String getBody();

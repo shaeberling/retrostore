@@ -1,1 +1,3 @@
 include ':appengine'
+include ':client-common'
+include ':client-library'

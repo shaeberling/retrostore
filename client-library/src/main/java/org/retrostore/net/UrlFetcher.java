@@ -14,21 +14,24 @@
  * limitations under the License.
  */
 
-package org.retrostore.rpc.internal;
+package org.retrostore.net;
 
-import org.retrostore.data.user.UserAccountType;
-import org.retrostore.request.Responder;
+import java.io.IOException;
 
 /**
- * Interface for all RPC calls.
+ * Common interface for fetching URLs.
  */
-public interface RpcCall<T> {
-  /** The name of the RPC method. */
-  String getName();
+public interface UrlFetcher {
+  /**
+   * Fetched the given URL.
+   *
+   * @param url  the URL to fetch.
+   * @param body the body data to be sent.
+   * @return The contents of the URL as a byte array.
+   * @throws IOException Thrown of the URL could not be fetched. Contains information about what
+   *                     happened.
+   */
+  byte[] fetchUrl(String url, byte[] body) throws IOException;
 
-  /** Whether the current user is permitted to make this call. */
-  boolean isPermitted(UserAccountType type);
-
-  /** Performs the RPC call. */
-  void call(T params, Responder responder);
+  byte[] fetchUrl(String url, Object obj) throws IOException;
 }

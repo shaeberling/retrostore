@@ -19,12 +19,13 @@ package org.retrostore.rpc.internal;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import org.retrostore.client.common.ApiResponse;
 import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.user.UserService;
 import org.retrostore.request.Request;
 import org.retrostore.request.RequestData;
 import org.retrostore.request.Responder;
-import org.retrostore.rpc.UploadDiskImageRpcCall;
+import org.retrostore.rpc.api.ListAppsApiCall;
 
 import java.util.HashMap;
 import java.util.List;
@@ -32,37 +33,38 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 /**
- * Serves uploads requests through POST.
+ * API requests are coming from external clients and are handled through this class.
  */
-public class PostUploadRequest implements Request {
-  private static final Logger LOG = Logger.getLogger("PostUploadRequest");
-  private static final String RPC_PREFIX = "/post";
+public class ApiRequest implements Request {
+  private static final Logger LOG = Logger.getLogger("ApiRequest");
 
-  private final Map<String, RpcCall> mRpcCalls;
+  private static final String API_PREFIX = "/api";
+  private final Map<String, ApiCall> mApiCalls;
 
-  public PostUploadRequest(AppManagement appManagement) {
-    List<RpcCall<RequestData>> calls =
-        ImmutableList.of((RpcCall<RequestData>) new UploadDiskImageRpcCall(appManagement));
-    Map<String, RpcCall> callsMapped = new HashMap<>();
-    for (RpcCall call : calls) {
+  public ApiRequest(AppManagement mAppManagement) {
+    List<ApiCall> calls = ImmutableList.<ApiCall>of(new ListAppsApiCall(mAppManagement));
+
+    Map<String, ApiCall> callsMapped = new HashMap<>();
+    for (ApiCall call : calls) {
       if (callsMapped.containsKey(call.getName())) {
-        LOG.severe("RPC call name conflict: " + call.getName());
+        LOG.severe("API call name conflict: " + call.getName());
       }
       callsMapped.put(call.getName(), call);
     }
-    mRpcCalls = ImmutableMap.copyOf(callsMapped);
+    mApiCalls = ImmutableMap.copyOf(callsMapped);
   }
+
 
   @Override
   public boolean serveUrl(RequestData requestData, Responder responder, UserService userService) {
     String url = requestData.getUrl();
-    if (!url.startsWith(RPC_PREFIX)) {
+    if (!url.startsWith(API_PREFIX)) {
       return false;
     }
 
     String[] urlParts = url.substring(1).split("/");
     if (urlParts.length < 2) {
-      LOG.info(String.format("POST url does not match: '%s'.", url));
+      LOG.info(String.format("API url does not match: '%s'.", url));
       return false;
     }
     String method = urlParts[1];
@@ -70,15 +72,11 @@ public class PostUploadRequest implements Request {
 
     if (Strings.isNullOrEmpty(method)) {
       responder.respondBadRequest("No method name specified.");
-    } else if (!mRpcCalls.containsKey(method)) {
+    } else if (!mApiCalls.containsKey(method)) {
       responder.respondBadRequest(String.format("RPC method '%s' not found.", method));
     } else {
-      RpcCall rpcCall = mRpcCalls.get(method);
-      if (!rpcCall.isPermitted(userService.getForCurrentUser())) {
-        responder.respondBadRequest("Current user not permitted.");
-      } else {
-        rpcCall.call(requestData, responder);
-      }
+      ApiCall apiCall = mApiCalls.get(method);
+      responder.respondObject(apiCall.call(requestData));
     }
     return true;
   }

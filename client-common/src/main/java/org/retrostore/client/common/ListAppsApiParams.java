@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ *        http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,21 +14,26 @@
  * limitations under the License.
  */
 
-package org.retrostore.rpc.internal;
-
-import org.retrostore.data.user.UserAccountType;
-import org.retrostore.request.Responder;
+package org.retrostore.client.common;
 
 /**
- * Interface for all RPC calls.
+ * Parameters used for the ListApps API call.
  */
-public interface RpcCall<T> {
-  /** The name of the RPC method. */
-  String getName();
+public class ListAppsApiParams {
+  /** Start index of the first item to return. */
+  public final int start;
 
-  /** Whether the current user is permitted to make this call. */
-  boolean isPermitted(UserAccountType type);
+  /** The maximum number of items to return/ */
+  public final int num;
 
-  /** Performs the RPC call. */
-  void call(T params, Responder responder);
+  /** Needed for GSON instantiation. */
+  public ListAppsApiParams() {
+    this.start = 0;
+    this.num = 0;
+  }
+
+  public ListAppsApiParams(int start, int num) {
+    this.start = start;
+    this.num = num;
+  }
 }

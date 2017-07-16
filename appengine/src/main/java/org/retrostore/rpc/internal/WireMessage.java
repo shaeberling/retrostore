@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ *        http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,19 +16,12 @@
 
 package org.retrostore.rpc.internal;
 
-import org.retrostore.data.user.UserAccountType;
-import org.retrostore.request.Responder;
+import java.io.IOException;
 
 /**
- * Interface for all RPC calls.
+ * A data type implementing this can be serialized and send over the wire.
  */
-public interface RpcCall<T> {
-  /** The name of the RPC method. */
-  String getName();
-
-  /** Whether the current user is permitted to make this call. */
-  boolean isPermitted(UserAccountType type);
-
-  /** Performs the RPC call. */
-  void call(T params, Responder responder);
+public interface WireMessage {
+  /** Turns the class data into a serialized format. */
+  byte[] toWireFormat(boolean gzip) throws IOException;
 }

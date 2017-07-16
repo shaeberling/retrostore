@@ -17,11 +17,12 @@
 package org.retrostore.request;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Optional;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CharStreams;
+import org.retrostore.util.NumUtil;
 
 import javax.servlet.http.HttpServletRequest;
-
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.logging.Logger;
@@ -45,8 +46,26 @@ public class RequestDataImpl implements RequestData {
   }
 
   @Override
-  public String getParameter(String name) {
-    return mRequest.getParameter(name);
+  public Optional<Integer> getInt(String name) {
+    String value = getParameter(name);
+    if (value == null) {
+      return Optional.absent();
+    }
+    return NumUtil.parseInteger(value);
+  }
+
+  @Override
+  public Optional<Long> getLong(String name) {
+    String value = getParameter(name);
+    if (value == null) {
+      return Optional.absent();
+    }
+    return NumUtil.parseLong(name);
+  }
+
+  @Override
+  public Optional<String> getString(String name) {
+    return Optional.fromNullable(getParameter(name));
   }
 
   @Override
@@ -68,5 +87,9 @@ public class RequestDataImpl implements RequestData {
       LOG.warning(String.format("Could not read request body: '%s'.", ex.getMessage()));
       return new byte[0];
     }
+  }
+
+  private String getParameter(String name) {
+    return mRequest.getParameter(name);
   }
 }

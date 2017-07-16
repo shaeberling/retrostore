@@ -20,6 +20,7 @@ def appengineVersion = "1.9.51"
 
 dependencies {
   appengineSdk "com.google.appengine:appengine-java-sdk:${appengineVersion}"
+  compile project(':client-common')
   compile "javax.servlet:servlet-api:2.5"
   compile "com.google.appengine:appengine-api-1.0-sdk:${appengineVersion}"
   compile 'com.google.guava:guava:20.0'

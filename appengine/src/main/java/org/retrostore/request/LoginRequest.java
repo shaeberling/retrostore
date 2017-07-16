@@ -34,7 +34,7 @@ public class LoginRequest implements Request {
   private static List<String> sLoginPrefixWhiteList = getLoginPrefixWhiteList();
 
   private static List<String> getLoginPrefixWhiteList() {
-    return ImmutableList.of("/rpc");
+    return ImmutableList.of("/rpc", "/api");
   }
 
   private boolean matchesPrefix(String url) {
