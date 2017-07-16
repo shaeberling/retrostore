@@ -21,6 +21,7 @@ import com.google.gson.Gson;
 import org.retrostore.client.common.ApiResponse;
 import org.retrostore.client.common.ListAppsApiParams;
 import org.retrostore.client.common.RetrostoreAppItem;
+import org.retrostore.client.common.RetrostoreAppItem.MediaImage.Type;
 import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.app.AppStoreItem;
 import org.retrostore.request.RequestData;
@@ -79,21 +80,19 @@ public class ListAppsApiCall implements ApiCall<RetrostoreAppItem> {
       ImmutableList.Builder<RetrostoreAppItem.MediaImage> mediaImagesForClient =
           ImmutableList.builder();
       for (AppStoreItem.MediaImage mediaImage : app.configuration.disk) {
-        if (mediaImage == null) {
-          continue;
+        if (mediaImage != null) {
+          mediaImagesForClient.add(toClientType(mediaImage, DISK));
         }
-        RetrostoreAppItem.MediaImage mediaImageForClient = new RetrostoreAppItem.MediaImage
-            (DISK, mediaImage.data, mediaImage.uploadTime, mediaImage.description);
-        mediaImagesForClient.add(mediaImageForClient);
       }
 
       AppStoreItem.MediaImage cassette = app.configuration.cassette;
-      mediaImagesForClient.add(new RetrostoreAppItem.MediaImage(
-          CASETTE, cassette.data, cassette.uploadTime, cassette.description));
+      if (cassette != null) {
+        toClientType(cassette, CASETTE);
+      }
       item.mediaImages = mediaImagesForClient.build();
       appItems.add(item);
     }
-    return new ApiResponse<>(true, "", appItems);
+    return new ApiResponse<>(true, "All good", appItems);
   }
 
   private ListAppsApiParams parseParams(String params) {
@@ -103,5 +102,11 @@ public class ListAppsApiCall implements ApiCall<RetrostoreAppItem> {
       LOG.log(Level.WARNING, "Cannot parse params", ex);
       return null;
     }
+  }
+
+  private static RetrostoreAppItem.MediaImage toClientType(AppStoreItem.MediaImage mediaImage,
+                                                           Type type) {
+    return new RetrostoreAppItem.MediaImage(
+        DISK, mediaImage.data, mediaImage.uploadTime, mediaImage.description);
   }
 }
