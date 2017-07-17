@@ -107,6 +107,6 @@ public class ListAppsApiCall implements ApiCall<RetrostoreAppItem> {
   private static RetrostoreAppItem.MediaImage toClientType(AppStoreItem.MediaImage mediaImage,
                                                            Type type) {
     return new RetrostoreAppItem.MediaImage(
-        DISK, mediaImage.data, mediaImage.uploadTime, mediaImage.description);
+        type, mediaImage.filename, mediaImage.data, mediaImage.uploadTime, mediaImage.description);
   }
 }

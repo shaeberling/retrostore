@@ -18,9 +18,6 @@ package org.retrostore;
 
 import org.retrostore.client.common.RetrostoreAppItem;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
 
@@ -28,11 +25,13 @@ import java.util.List;
  * A CLI to test the retrostore API.
  */
 public class TestCli {
+  // https://test-dot-trs-80.appspot.com
+
   public static void main(String[] args) throws ApiException, IOException {
     System.out.println("Testing the RetrostoreClient.");
 
     RetrostoreClientImpl retrostore =
-        RetrostoreClientImpl.get("n/a", "http://127.0.0.1:8888/api/%s", false);
+        RetrostoreClientImpl.get("n/a", "http://localhost:8888/api/%s", false);
     List<RetrostoreAppItem> items = retrostore.fetchApps(0, 1);
     System.out.println(String.format("Got %d items.", items.size()));
 
@@ -40,6 +39,7 @@ public class TestCli {
       System.out.println(item.name);
       System.out.println("Num media images: " + item.mediaImages.size());
       for (RetrostoreAppItem.MediaImage image : item.mediaImages) {
+        System.out.println("Media image name: " + image.filename);
         System.out.println("Media image size: " + image.data.length);
       }
     }

@@ -28,8 +28,9 @@ public class RetrostoreAppItem {
       CASETTE
     }
 
-    public MediaImage(Type type, byte[] data, long uploadTime, String description) {
+    public MediaImage(Type type, String filename, byte[] data, long uploadTime, String description) {
       this.type = type;
+      this.filename = filename;
       this.data = data;
       this.uploadTime = uploadTime;
       this.description = description;
@@ -37,6 +38,8 @@ public class RetrostoreAppItem {
 
     /** The type of this media image. */
     public final Type type;
+    /** The file name of this media image. */
+    public final String filename;
     /** The actual data of this media image. */
     public final byte[] data;
     /** When the image was uploaded. */

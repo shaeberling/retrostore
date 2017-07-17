@@ -107,6 +107,11 @@ public class AppStoreItem {
   public static class MediaImage {
     /** The timestamp of when this image was uploaded. */
     public long uploadTime;
+    /**
+     * Type for TRS80 is a string of the file name, with which an emulator will determine how
+     * to read it.
+     */
+    public String filename;
     /** An optional note for this image to describe it. */
     public String description;
     /** Will become a GAE blob structure. */
@@ -172,6 +177,9 @@ public class AppStoreItem {
 
   @Id
   public Long id;
+
+  // TODO: This configuration is platform-specific and should only be a link or somewhat
+  // generalized.
   public Configuration configuration = new Configuration();
   public Listing listing = new Listing();
   @Load

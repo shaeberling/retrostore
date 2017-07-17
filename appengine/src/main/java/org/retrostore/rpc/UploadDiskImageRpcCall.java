@@ -57,6 +57,12 @@ public class UploadDiskImageRpcCall implements RpcCall<RequestData> {
       return;
     }
 
+    Optional<String> filename = data.getFilename();
+    if (!filename.isPresent()) {
+      responder.respondBadRequest("Cannot get filename.");
+      return;
+    }
+
     String appIdStr = urlParts[2];
     String diskImageStr = urlParts[3];
     LOG.info(String.format("AppId: '%s', image: '%s'.", appIdStr, diskImageStr));
@@ -96,12 +102,14 @@ public class UploadDiskImageRpcCall implements RpcCall<RequestData> {
       }
       app.configuration.disk[diskNo].data = content;
       app.configuration.disk[diskNo].uploadTime = now;
+      app.configuration.disk[diskNo].filename = filename.get();
     } else if (diskNo == 4) {
       if (app.configuration.cassette == null) {
         app.configuration.cassette = new AppStoreItem.MediaImage();
       }
       app.configuration.cassette.data = content;
       app.configuration.cassette.uploadTime = now;
+      app.configuration.cassette.filename = filename.get();
     } else {
       responder.respondBadRequest(String.format("Illegal disk image number '%d'.", diskNo));
       return;

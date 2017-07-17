@@ -39,4 +39,7 @@ public interface RequestData {
 
   /** Get the body of the request as bytes. */
   byte[] getRawBody();
+
+  /** For POST upload requests, this return the name of the uploaded file. */
+  Optional<String> getFilename();
 }

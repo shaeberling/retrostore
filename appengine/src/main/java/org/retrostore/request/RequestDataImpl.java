@@ -20,11 +20,19 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CharStreams;
+import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload.FileItemIterator;
+import org.apache.commons.fileupload.FileUploadException;
+import org.apache.commons.fileupload.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.retrostore.util.NumUtil;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -89,7 +97,28 @@ public class RequestDataImpl implements RequestData {
     }
   }
 
+  @Override
+  public Optional<String> getFilename() {
+    if (!ServletFileUpload.isMultipartContent(mRequest)) {
+      return Optional.absent();
+    }
+
+    ServletFileUpload upload = new ServletFileUpload();
+    try {
+      FileItemIterator itemIterator = upload.getItemIterator(mRequest);
+      if (!itemIterator.hasNext()) {
+        LOG.log(Level.WARNING, "No file item found");
+        return Optional.absent();
+      }
+      return Optional.of(itemIterator.next().getName());
+    } catch (FileUploadException | IOException e) {
+      LOG.log(Level.WARNING, "Cannot parse request for filename.", e);
+      return Optional.absent();
+    }
+  }
+
   private String getParameter(String name) {
     return mRequest.getParameter(name);
   }
+
 }
