@@ -28,7 +28,7 @@ import org.retrostore.util.NumUtil;
 /**
  * Lists data about the disk images of an app.
  */
-public class DiskImagesListRpcCall implements RpcCall<RpcParameters> {
+public class ListDiskImagesRpcCall implements RpcCall<RpcParameters> {
   public static class DiskImageInfo {
     int id;
     long sizeInBytes;
@@ -45,7 +45,7 @@ public class DiskImagesListRpcCall implements RpcCall<RpcParameters> {
       "Cassette image"};
   private final AppManagement mAppManagement;
 
-  public DiskImagesListRpcCall(AppManagement appManagement) {
+  public ListDiskImagesRpcCall(AppManagement appManagement) {
     mAppManagement = appManagement;
   }
 
