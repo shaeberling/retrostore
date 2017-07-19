@@ -33,6 +33,7 @@ public class DiskImagesListRpcCall implements RpcCall<RpcParameters> {
     int id;
     long sizeInBytes;
     String label;
+    String name;
     long uploadTime;
   }
 
@@ -86,6 +87,7 @@ public class DiskImagesListRpcCall implements RpcCall<RpcParameters> {
       infos[i].label = DISK_IMAGE_LABELS[i];
 
       if (configuration.disk != null && configuration.disk[i] != null) {
+        infos[i].name = configuration.disk[i].filename;
         infos[i].sizeInBytes = configuration.disk[i].data.length;
         infos[i].uploadTime = configuration.disk[i].uploadTime;
       }
@@ -94,6 +96,7 @@ public class DiskImagesListRpcCall implements RpcCall<RpcParameters> {
     infos[4].id = 4;
     infos[4].label = DISK_IMAGE_LABELS[4];
     if (configuration.cassette != null) {
+      infos[4].name = configuration.cassette.filename;
       infos[4].sizeInBytes = configuration.cassette.data.length;
       infos[4].uploadTime = configuration.cassette.uploadTime;
     }

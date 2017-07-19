@@ -191,6 +191,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <table class="disk-image-table">
       <tr>
         <th>Disk Image</th>
+        <th>Name</th>
         <th>Uploaded</th>
         <th>Size</th>
         <th>Upload</th>
@@ -199,6 +200,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <template is="dom-repeat" items="{{diskImages}}">
         <tr>
           <td>{{item.label}}</td>
+          <td>{{item.name}}</td>
           <td><retro-time millis="{{item.uploadTime}}"></retro-time></td>
           <td>{{item.sizeInBytes}}</td>
           <td><paper-button on-tap="onUploadDiskImage" class="action-edit">Upload</paper-button></td>
