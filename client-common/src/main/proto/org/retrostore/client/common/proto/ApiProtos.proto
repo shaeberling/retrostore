@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+option java_package = "org.retrostore.client.common.proto";
+option java_outer_classname = "ApiProtos";
+option java_multiple_files = true;
+
+message ApiResponseApps {
+    bool success = 1;
+    string message = 2;
+    repeated App app = 3;
+}
+
+message App {
+    // The ID to uniquely identify an app.
+    int64 id = 1;
+    // The name of the app.
+    string name = 2;
+    // The human readable version of this app.
+    string version = 3;
+    // The description of this app.
+    string description = 4;
+    // URLs to screenshots for this app.
+    repeated string screenshot_url = 5;
+    // The media images included with this app.
+    repeated MediaImage media_image = 6;
+}
+
+message MediaImage {
+    // The type of this media image.
+    MediaType type = 1;
+    // The file name of this media image.
+    string filename = 2;
+    // The actual data of this media image.
+    bytes data = 3;
+    // When the image was uploaded.
+    int64 uploadTime = 4;
+    // An optional description of this media image describing its contents.
+    string description = 5;
+}
+
+enum MediaType {
+    UNKNOWN = 0;
+    DISK = 1;
+    CASSETTE = 2;
+}
