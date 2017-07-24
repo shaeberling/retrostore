@@ -46,6 +46,6 @@ public class AdminUserListRpcCall implements RpcCall<RpcParameters> {
 
   @Override
   public void call(RpcParameters params, Responder responder) {
-    responder.respondObject(mUserManagement.getAllUsers());
+    responder.respondJson(mUserManagement.getAllUsers());
   }
 }

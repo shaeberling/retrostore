@@ -35,6 +35,6 @@ public class RpcResponse {
     RpcResponse response = new RpcResponse();
     response.success = success;
     response.message = message;
-    responder.respondObject(response);
+    responder.respondJson(response);
   }
 }

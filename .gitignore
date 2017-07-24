@@ -36,3 +36,6 @@ appengine/build
 appengine/local.properties
 client-common/build
 client-library/build
+
+# Contains auto-generated protocol buffer files.
+client-common/src/main/java/org/retrostore/client/common/proto/

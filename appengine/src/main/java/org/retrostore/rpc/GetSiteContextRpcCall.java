@@ -24,8 +24,6 @@ import org.retrostore.request.Responder;
 import org.retrostore.rpc.internal.RpcCall;
 import org.retrostore.rpc.internal.RpcParameters;
 
-import java.util.List;
-
 /**
  * Responds with a context object that is requested from the site when loaded.
  */
@@ -58,6 +56,6 @@ public class GetSiteContextRpcCall implements RpcCall<RpcParameters> {
     if (currentUser.isPresent()) {
       context.firstName = currentUser.get().firstName;
     }
-    responder.respondObject(context);
+    responder.respondJson(context);
   }
 }

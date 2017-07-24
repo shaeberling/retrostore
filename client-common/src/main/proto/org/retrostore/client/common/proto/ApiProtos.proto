@@ -4,12 +4,17 @@ option java_package = "org.retrostore.client.common.proto";
 option java_outer_classname = "ApiProtos";
 option java_multiple_files = true;
 
+// Response for APIs that receive a list of apps.
 message ApiResponseApps {
+    // Whether the request was a success.
     bool success = 1;
+    // An optional (error) message, human-readable.
     string message = 2;
+    // A list of apps returned by the request.
     repeated App app = 3;
 }
 
+// A RetroStore app item.
 message App {
     // The ID to uniquely identify an app.
     int64 id = 1;
@@ -25,6 +30,7 @@ message App {
     repeated MediaImage media_image = 6;
 }
 
+// A media image for an app.
 message MediaImage {
     // The type of this media image.
     MediaType type = 1;
@@ -38,6 +44,7 @@ message MediaImage {
     string description = 5;
 }
 
+// Types of MediaImages (TRS-80 specific).
 enum MediaType {
     UNKNOWN = 0;
     DISK = 1;

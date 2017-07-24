@@ -19,7 +19,6 @@ package org.retrostore.rpc.internal;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import org.retrostore.client.common.ApiResponse;
 import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.user.UserService;
 import org.retrostore.request.Request;
@@ -76,7 +75,7 @@ public class ApiRequest implements Request {
       responder.respondBadRequest(String.format("RPC method '%s' not found.", method));
     } else {
       ApiCall apiCall = mApiCalls.get(method);
-      responder.respondObject(apiCall.call(requestData));
+      apiCall.call(requestData).respond(responder);
     }
     return true;
   }

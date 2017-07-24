@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *        http://www.apache.org/licenses/LICENSE-2.0
+ *       http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,19 +14,12 @@
  * limitations under the License.
  */
 
-package org.retrostore.rpc.internal;
-
-import org.retrostore.request.RequestData;
-import org.retrostore.request.Response;
+package org.retrostore.request;
 
 /**
- * All API call subclasses implement this interface.
+ * A basic response interface for types that can be sent to a responder.
  */
-public interface ApiCall<T> {
-
-  /** The name of this API call. */
-  String getName();
-
-  /** Executes this API call with the given parameters. */
-  Response call(RequestData params);
+public interface Response {
+  /** Send this response through the given responder. */
+  void respond(Responder responder);
 }

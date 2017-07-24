@@ -16,29 +16,28 @@
 
 package org.retrostore.rpc.api;
 
-import com.google.common.collect.ImmutableList;
 import com.google.gson.Gson;
-import org.retrostore.client.common.ApiResponse;
+import com.google.protobuf.ByteString;
 import org.retrostore.client.common.ListAppsApiParams;
-import org.retrostore.client.common.RetrostoreAppItem;
-import org.retrostore.client.common.RetrostoreAppItem.MediaImage.Type;
+import org.retrostore.client.common.proto.ApiResponseApps;
+import org.retrostore.client.common.proto.App;
+import org.retrostore.client.common.proto.MediaImage;
+import org.retrostore.client.common.proto.MediaType;
 import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.app.AppStoreItem;
 import org.retrostore.request.RequestData;
+import org.retrostore.request.Responder;
+import org.retrostore.request.Response;
 import org.retrostore.rpc.internal.ApiCall;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static org.retrostore.client.common.RetrostoreAppItem.MediaImage.Type.CASETTE;
-import static org.retrostore.client.common.RetrostoreAppItem.MediaImage.Type.DISK;
-
 /**
  * API call to list apps from the store.
  */
-public class ListAppsApiCall implements ApiCall<RetrostoreAppItem> {
+public class ListAppsApiCall implements ApiCall<App> {
   private static final Logger LOG = Logger.getLogger("ListAppsApiCall");
   private final AppManagement mAppManagement;
 
@@ -52,47 +51,57 @@ public class ListAppsApiCall implements ApiCall<RetrostoreAppItem> {
   }
 
   @Override
-  public ApiResponse<RetrostoreAppItem> call(RequestData data) {
+  public Response call(RequestData data) {
+    final ApiResponseApps responseApps = callInternal(data);
+    return new Response() {
+      @Override
+      public void respond(Responder responder) {
+        responder.respondProto(responseApps);
+      }
+    };
+  }
+
+  private ApiResponseApps callInternal(RequestData data) {
+    ApiResponseApps.Builder response = ApiResponseApps.newBuilder();
     ListAppsApiParams params = parseParams(data.getBody());
     if (params == null) {
-      return new ApiResponse<>("Cannot parse parameters.");
+      return response.setSuccess(false).setMessage("Cannot parse parameters.").build();
     }
 
     // TODO: This is not efficient once we have a large number of apps.
     List<AppStoreItem> allApps = mAppManagement.getAllApps();
     if (allApps.size() - 1 < params.start) {
-      return new ApiResponse<>("Parameter 'start' out of range");
+      return response.setSuccess(false).setMessage("Parameter 'start' out of range").build();
     }
 
-    List<RetrostoreAppItem> appItems = new ArrayList<>();
     for (int i = params.start; i < params.start + params.num && i < allApps.size(); ++i) {
       AppStoreItem app = allApps.get(i);
-      RetrostoreAppItem item = new RetrostoreAppItem();
+      App.Builder appBuilder = App.newBuilder();
 
-      item.id = app.id;
-      item.name = app.listing.name;
-      item.version = app.listing.versionString;
-      item.description = app.listing.description;
+      appBuilder.setId(app.id);
+      appBuilder.setName(app.listing.name);
+      appBuilder.setVersion(app.listing.versionString);
+      appBuilder.setDescription(app.listing.description);
       // TODO: Add support for screenshots.
-      item.screenshotUrls = new String[0];
+      // FIXME: URL just for testing.
+      appBuilder.addScreenshotUrl("http://www.thesvd.com/Images/ldosmod1.jpg");
 
       // Create the list of media images for this app (disks and casettes).
-      ImmutableList.Builder<RetrostoreAppItem.MediaImage> mediaImagesForClient =
-          ImmutableList.builder();
       for (AppStoreItem.MediaImage mediaImage : app.configuration.disk) {
         if (mediaImage != null) {
-          mediaImagesForClient.add(toClientType(mediaImage, DISK));
+          appBuilder.addMediaImage(toClientType(mediaImage, MediaType.DISK));
         }
       }
 
       AppStoreItem.MediaImage cassette = app.configuration.cassette;
       if (cassette != null) {
-        toClientType(cassette, CASETTE);
+        appBuilder.addMediaImage(toClientType(cassette, MediaType.CASSETTE));
       }
-      item.mediaImages = mediaImagesForClient.build();
-      appItems.add(item);
+      response.addApp(appBuilder);
     }
-    return new ApiResponse<>(true, "All good", appItems);
+
+    response.setSuccess(true).setMessage("All good :-)");
+    return response.build();
   }
 
   private ListAppsApiParams parseParams(String params) {
@@ -104,9 +113,13 @@ public class ListAppsApiCall implements ApiCall<RetrostoreAppItem> {
     }
   }
 
-  private static RetrostoreAppItem.MediaImage toClientType(AppStoreItem.MediaImage mediaImage,
-                                                           Type type) {
-    return new RetrostoreAppItem.MediaImage(
-        type, mediaImage.filename, mediaImage.data, mediaImage.uploadTime, mediaImage.description);
+  private static MediaImage.Builder toClientType(AppStoreItem.MediaImage mediaImage,
+                                                 MediaType type) {
+    return MediaImage.newBuilder()
+        .setType(type)
+        .setFilename(mediaImage.filename != null ? mediaImage.filename : "")
+        .setData(ByteString.copyFrom(mediaImage.data))
+        .setUploadTime(mediaImage.uploadTime)
+        .setDescription(mediaImage.description != null ? mediaImage.description : "");
   }
 }

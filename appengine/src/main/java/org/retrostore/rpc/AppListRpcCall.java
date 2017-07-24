@@ -61,6 +61,6 @@ public class AppListRpcCall implements RpcCall<RpcParameters> {
         app.configuration.cassette = null;
       }
     }
-    responder.respondObject(allApps);
+    responder.respondJson(allApps);
   }
 }

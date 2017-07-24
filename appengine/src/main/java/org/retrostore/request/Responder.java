@@ -31,6 +31,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class Responder {
   public enum ContentType {
     PLAIN("text/plain"),
+    BYTES("application/octet-stream"),
     HTML("text/html"),
     CSS("text/css"),
     JS("application/javascript"),
@@ -52,6 +53,7 @@ public class Responder {
     mResponse = checkNotNull(response);
   }
 
+  /** Respond with the given content text and type. */
   public void respond(String content, ContentType contentType) {
     try {
       mResponse.setContentType(contentType.str);
@@ -61,7 +63,8 @@ public class Responder {
     }
   }
 
-  public void respondObject(Object object) {
+  /** Converts the given object into JSON and sends it. */
+  public void respondJson(Object object) {
     try {
       mResponse.setContentType(ContentType.JSON.str);
       mResponse.getWriter().write((new Gson()).toJson(object));
@@ -70,6 +73,18 @@ public class Responder {
     }
   }
 
+  /** Respond with a Protocol Buffer lite message. */
+  public void respondProto(com.google.protobuf.GeneratedMessageLite object) {
+    try {
+      mResponse.setContentType(ContentType.BYTES.str);
+      object.writeTo(mResponse.getOutputStream());
+      mResponse.getOutputStream().close();
+    } catch (IOException ex) {
+      LOG.log(Level.SEVERE, "Cannot serve data", ex);
+    }
+  }
+
+  /** Respond with a bad request and a plain text error message. */
   public void respondBadRequest(String content) {
     try {
       mResponse.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -80,6 +95,7 @@ public class Responder {
     }
   }
 
+  /** Respond with not-found error code and no content. */
   public void respondNotFound() {
     try {
       mResponse.setStatus(HttpServletResponse.SC_NOT_FOUND);

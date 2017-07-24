@@ -16,7 +16,7 @@
 
 package org.retrostore;
 
-import org.retrostore.client.common.RetrostoreAppItem;
+import org.retrostore.client.common.proto.App;
 
 import java.util.List;
 import java.util.concurrent.Future;
@@ -33,7 +33,7 @@ public interface RetrostoreClient {
    * @return A future which will provide a list of the items requested or an error, if something
    * went wrong.
    */
-  List<RetrostoreAppItem> fetchApps(int start, int num) throws ApiException;
+  List<App> fetchApps(int start, int num) throws ApiException;
 
   /**
    * Fetches a number of Retrostore app items. Returns immediately.
@@ -43,5 +43,5 @@ public interface RetrostoreClient {
    * @return A future which will provide a list of the items requested or an error, if something
    * went wrong.
    */
-  Future<List<RetrostoreAppItem>> fetchAppsAsync(int start, int num);
+  Future<List<App>> fetchAppsAsync(int start, int num);
 }

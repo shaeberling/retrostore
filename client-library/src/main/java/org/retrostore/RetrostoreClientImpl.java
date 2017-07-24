@@ -17,14 +17,13 @@
 package org.retrostore;
 
 import com.google.common.util.concurrent.SettableFuture;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-import org.retrostore.client.common.ApiResponse;
 import org.retrostore.client.common.ListAppsApiParams;
-import org.retrostore.client.common.RetrostoreAppItem;
+import org.retrostore.client.common.proto.ApiResponseApps;
+import org.retrostore.client.common.proto.App;
 import org.retrostore.net.UrlFetcher;
 import org.retrostore.net.UrlFetcherImpl;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -65,8 +64,8 @@ public class RetrostoreClientImpl implements RetrostoreClient {
   }
 
   @Override
-  public Future<List<RetrostoreAppItem>> fetchAppsAsync(final int start, final int num) {
-    final SettableFuture<List<RetrostoreAppItem>> future = SettableFuture.create();
+  public Future<List<App>> fetchAppsAsync(final int start, final int num) {
+    final SettableFuture<List<App>> future = SettableFuture.create();
     mExecutor.execute(new Runnable() {
       @Override
       public void run() {
@@ -81,22 +80,18 @@ public class RetrostoreClientImpl implements RetrostoreClient {
   }
 
   @Override
-  public List<RetrostoreAppItem> fetchApps(int start, int num) throws ApiException {
+  public List<App> fetchApps(int start, int num) throws ApiException {
     ListAppsApiParams params = new ListAppsApiParams(start, num);
     String url = String.format(mServerUrl, "listApps");
     try {
-      byte[] bytes = mUrlFetcher.fetchUrl(url, params);
-      String data = new String(bytes);
+      byte[] content = mUrlFetcher.fetchUrl(url, params);
+      ApiResponseApps apiResponse = ApiResponseApps.parseFrom(content);
 
-      TypeToken<ApiResponse<RetrostoreAppItem>> type = new
-          TypeToken<ApiResponse<RetrostoreAppItem>>() {
-          };
-      ApiResponse<RetrostoreAppItem> apiResponse = new Gson().fromJson(data, type.getType());
-      if (!apiResponse.success) {
+      if (!apiResponse.getSuccess()) {
         throw new ApiException(String.format(
-            "Server reported error: '%s'", apiResponse.errorMessage));
+            "Server reported error: '%s'", apiResponse.getMessage()));
       }
-      return apiResponse.items;
+      return apiResponse.getAppList();
     } catch (IOException e) {
       throw new ApiException("Unable to make request to server.", e);
     }

@@ -68,7 +68,7 @@ public class GetAppFormDataRpcCall implements RpcCall<RpcParameters> {
     appFormData.keyboardLayouts = DropdownValueForClient.from(AppStoreItem.KeyboardLayout.values());
     appFormData.characterColors = DropdownValueForClient.from(AppStoreItem.CharacterColor.values());
 
-    responder.respondObject(appFormData);
+    responder.respondJson(appFormData);
   }
 
   private static List<DropdownValueForClient> forAuthors(List<Author> authors) {

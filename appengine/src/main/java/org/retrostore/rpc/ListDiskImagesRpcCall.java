@@ -100,6 +100,6 @@ public class ListDiskImagesRpcCall implements RpcCall<RpcParameters> {
       infos[4].sizeInBytes = configuration.cassette.data.length;
       infos[4].uploadTime = configuration.cassette.uploadTime;
     }
-    responder.respondObject(infos);
+    responder.respondJson(infos);
   }
 }
