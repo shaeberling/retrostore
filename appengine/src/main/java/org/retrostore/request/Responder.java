@@ -16,6 +16,8 @@
 
 package org.retrostore.request;
 
+import com.google.appengine.api.blobstore.BlobKey;
+import com.google.appengine.api.blobstore.BlobstoreService;
 import com.google.gson.Gson;
 
 import javax.servlet.http.HttpServletResponse;
@@ -48,9 +50,11 @@ public class Responder {
 
   private static final Logger LOG = Logger.getLogger("Responder");
   private final HttpServletResponse mResponse;
+  private final BlobstoreService mBlobstoreService;
 
-  public Responder(HttpServletResponse response) {
+  public Responder(HttpServletResponse response, BlobstoreService blobstoreService) {
     mResponse = checkNotNull(response);
+    mBlobstoreService = blobstoreService;
   }
 
   /** Respond with the given content text and type. */
@@ -106,4 +110,20 @@ public class Responder {
     }
   }
 
+  /**
+   * Serves the blob with the given ID.
+   *
+   * @param key the key of the blob to serve.
+   * @return Whether serving the blob was successful.
+   */
+  public boolean respondBlob(String key) {
+    BlobKey blobKey = new BlobKey(checkNotNull(key));
+    try {
+      mBlobstoreService.serve(blobKey, mResponse);
+      return true;
+    } catch (IOException e) {
+      LOG.log(Level.SEVERE, String.format("Cannot serve blob '%s'", key), e);
+    }
+    return false;
+  }
 }

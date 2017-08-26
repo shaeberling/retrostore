@@ -18,10 +18,16 @@ package org.retrostore.request;
 
 import com.google.common.base.Optional;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * Interface for the request data.
  */
 public interface RequestData {
+  /** Returns the type of the request. */
+  Type getType();
+
   /** The URL of the request. */
   String getUrl();
 
@@ -41,5 +47,23 @@ public interface RequestData {
   byte[] getRawBody();
 
   /** For POST upload requests, this return the name of the uploaded file. */
-  Optional<String> getFilename();
+  List<UploadFile> getFiles();
+
+  /** If present, returns the blobkeys for this request. */
+  Map<String, List<String>> getBlobKeys();
+
+  /** They type of request. */
+  enum Type {
+    POST, GET
+  }
+
+  class UploadFile {
+    public final String filename;
+    public final byte[] content;
+
+    public UploadFile(String filename, byte[] content) {
+      this.filename = filename;
+      this.content = content;
+    }
+  }
 }

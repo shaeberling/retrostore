@@ -16,6 +16,8 @@
 
 package org.retrostore;
 
+import com.google.appengine.api.blobstore.BlobstoreService;
+import com.google.appengine.api.blobstore.BlobstoreServiceFactory;
 import com.google.appengine.api.users.UserServiceFactory;
 import com.google.common.base.Strings;
 import org.retrostore.data.app.AppManagement;
@@ -26,8 +28,10 @@ import org.retrostore.request.EnsureAdminExistsRequest;
 import org.retrostore.request.LoginRequest;
 import org.retrostore.request.PolymerRequest;
 import org.retrostore.request.Request;
+import org.retrostore.request.RequestData.Type;
 import org.retrostore.request.RequestDataImpl;
 import org.retrostore.request.Responder;
+import org.retrostore.request.ScreenshotRequest;
 import org.retrostore.resources.DefaultResourceLoader;
 import org.retrostore.resources.PolymerDebugLoader;
 import org.retrostore.resources.ResourceLoader;
@@ -51,6 +55,7 @@ public class MainServlet extends RetroStoreServlet {
 
   private static com.google.appengine.api.users.UserService sUserService =
       UserServiceFactory.getUserService();
+  private static BlobstoreService sBlobstoreService = BlobstoreServiceFactory.getBlobstoreService();
   private static UserManagement sUserManagement = new UserManagement(sUserService);
   private static AppManagement sAppManagement = new AppManagement();
   private static UserService sAccountTypeProvider =
@@ -67,6 +72,7 @@ public class MainServlet extends RetroStoreServlet {
     sRequestServers.add(new PolymerRequest(getResourceLoader()));
     sRequestServers.add(new PostUploadRequest(sAppManagement));
     sRequestServers.add(new ApiRequest(sAppManagement));
+    sRequestServers.add(new ScreenshotRequest());
     // Note: Add more request servers here. Keep in mind that this is in priority-order.
   }
 
@@ -84,20 +90,21 @@ public class MainServlet extends RetroStoreServlet {
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp)
       throws ServletException, IOException {
-    serveMainHtml(req, resp);
+    serveMainHtml(req, resp, Type.GET);
   }
 
   @Override
   protected void doPost(HttpServletRequest req, HttpServletResponse resp)
       throws ServletException, IOException {
-    serveMainHtml(req, resp);
+    serveMainHtml(req, resp, Type.POST);
   }
 
-  private void serveMainHtml(HttpServletRequest req, HttpServletResponse resp)
+  private void serveMainHtml(HttpServletRequest req, HttpServletResponse resp, Type type)
       throws ServletException, IOException {
-    Responder responder = new Responder(resp);
+    Responder responder = new Responder(resp, sBlobstoreService);
     for (Request server : sRequestServers) {
-      if (server.serveUrl(new RequestDataImpl(req), responder, sAccountTypeProvider)) {
+      if (server.serveUrl(RequestDataImpl.create(req, type, sBlobstoreService),
+          responder, sAccountTypeProvider)) {
         return;
       }
     }

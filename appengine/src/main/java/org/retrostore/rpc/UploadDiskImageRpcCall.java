@@ -21,10 +21,12 @@ import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.app.AppStoreItem;
 import org.retrostore.data.user.UserAccountType;
 import org.retrostore.request.RequestData;
+import org.retrostore.request.RequestData.UploadFile;
 import org.retrostore.request.Responder;
 import org.retrostore.rpc.internal.RpcCall;
 import org.retrostore.util.NumUtil;
 
+import java.util.List;
 import java.util.logging.Logger;
 
 /**
@@ -57,19 +59,20 @@ public class UploadDiskImageRpcCall implements RpcCall<RequestData> {
       return;
     }
 
-    Optional<String> filename = data.getFilename();
-    if (!filename.isPresent()) {
+    List<UploadFile> files = data.getFiles();
+    if (files.isEmpty()) {
       responder.respondBadRequest("Cannot get filename.");
       return;
     }
+    // We expect exactly one file.
+    UploadFile file = files.get(0);
 
     String appIdStr = urlParts[2];
     String diskImageStr = urlParts[3];
     LOG.info(String.format("AppId: '%s', image: '%s'.", appIdStr, diskImageStr));
 
-    byte[] content = data.getRawBody();
-    LOG.info(String.format("Upload size: '%d bytes'", content.length));
-    if (content.length == 0) {
+    LOG.info(String.format("Upload size: '%d bytes'", file.content.length));
+    if (file.content.length == 0) {
       responder.respondBadRequest("Content content data.");
       return;
     }
@@ -100,16 +103,16 @@ public class UploadDiskImageRpcCall implements RpcCall<RequestData> {
       if (app.configuration.disk[diskNo] == null) {
         app.configuration.disk[diskNo] = new AppStoreItem.MediaImage();
       }
-      app.configuration.disk[diskNo].data = content;
+      app.configuration.disk[diskNo].data = file.content;
       app.configuration.disk[diskNo].uploadTime = now;
-      app.configuration.disk[diskNo].filename = filename.get();
+      app.configuration.disk[diskNo].filename = file.filename;
     } else if (diskNo == 4) {
       if (app.configuration.cassette == null) {
         app.configuration.cassette = new AppStoreItem.MediaImage();
       }
-      app.configuration.cassette.data = content;
+      app.configuration.cassette.data = file.content;
       app.configuration.cassette.uploadTime = now;
-      app.configuration.cassette.filename = filename.get();
+      app.configuration.cassette.filename = file.filename;
     } else {
       responder.respondBadRequest(String.format("Illegal disk image number '%d'.", diskNo));
       return;

@@ -16,22 +16,27 @@
 
 package org.retrostore.request;
 
+import com.google.appengine.api.blobstore.BlobInfo;
+import com.google.appengine.api.blobstore.BlobstoreService;
 import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CharStreams;
-import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileItemIterator;
+import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileUploadException;
-import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.retrostore.util.NumUtil;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.Enumeration;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -43,9 +48,27 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class RequestDataImpl implements RequestData {
   private static final Logger LOG = Logger.getLogger("RequestDataImpl");
   private final HttpServletRequest mRequest;
+  private final Type mType;
+  private final Map<String, List<BlobInfo>> mBlobInfos;
 
-  public RequestDataImpl(HttpServletRequest request) {
+  public static RequestData create(HttpServletRequest request,
+                                   Type type,
+                                   BlobstoreService blobstoreService) {
+    Map<String, List<BlobInfo>> blobInfos = blobstoreService.getBlobInfos(request);
+    blobInfos = blobInfos != null ? blobInfos : new HashMap<String, List<BlobInfo>>();
+    return new RequestDataImpl(request, type, ImmutableMap.copyOf(blobInfos));
+
+  }
+
+  RequestDataImpl(HttpServletRequest request, Type type, Map<String, List<BlobInfo>> blobInfos) {
     mRequest = checkNotNull(request);
+    mType = checkNotNull(type);
+    mBlobInfos =  checkNotNull(blobInfos);
+  }
+
+  @Override
+  public Type getType() {
+    return mType;
   }
 
   @Override
@@ -98,23 +121,39 @@ public class RequestDataImpl implements RequestData {
   }
 
   @Override
-  public Optional<String> getFilename() {
+  public List<UploadFile> getFiles() {
     if (!ServletFileUpload.isMultipartContent(mRequest)) {
-      return Optional.absent();
+      return new ArrayList<>();
     }
 
     ServletFileUpload upload = new ServletFileUpload();
     try {
+      List<UploadFile> files = new ArrayList<>();
       FileItemIterator itemIterator = upload.getItemIterator(mRequest);
-      if (!itemIterator.hasNext()) {
-        LOG.log(Level.WARNING, "No file item found");
-        return Optional.absent();
+      while (itemIterator.hasNext()) {
+        FileItemStream file = itemIterator.next();
+        ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
+        ByteStreams.copy(file.openStream(), bytesOut);
+        files.add(new UploadFile(file.getName(), bytesOut.toByteArray()));
       }
-      return Optional.of(itemIterator.next().getName());
+      return files;
     } catch (FileUploadException | IOException e) {
       LOG.log(Level.WARNING, "Cannot parse request for filename.", e);
-      return Optional.absent();
+      return new ArrayList<>();
     }
+  }
+
+  @Override
+  public Map<String, List<String>> getBlobKeys() {
+    Map<String, List<String>> blobKeys = new HashMap<>();
+    for (String name : mBlobInfos.keySet()) {
+      List<String> keys = new ArrayList<>();
+      for (BlobInfo info : mBlobInfos.get(name)) {
+        keys.add(info.getBlobKey().getKeyString());
+      }
+      blobKeys.put(name, keys);
+    }
+    return ImmutableMap.copyOf(blobKeys);
   }
 
   private String getParameter(String name) {
