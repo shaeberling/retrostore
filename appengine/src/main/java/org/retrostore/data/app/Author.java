@@ -17,6 +17,7 @@
 
 package org.retrostore.data.app;
 
+import com.googlecode.objectify.Key;
 import com.googlecode.objectify.annotation.Cache;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
@@ -39,5 +40,10 @@ public class Author {
 
   public Author(String name) {
     this.name = name;
+  }
+
+  /** Returns the key to get the author with the given ID. */
+  public static Key<Author> key(long id) {
+    return Key.create(Author.class, id);
   }
 }

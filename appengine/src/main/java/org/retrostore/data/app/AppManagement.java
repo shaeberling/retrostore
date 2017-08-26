@@ -105,4 +105,9 @@ public class AppManagement {
     });
     return authors;
   }
+
+  /** Returns the author with the given ID, if it exists. */
+  public Optional<Author> getAuthorById(long id) {
+    return Optional.fromNullable(ofy().load().key(Author.key(id)).now());
+  }
 }

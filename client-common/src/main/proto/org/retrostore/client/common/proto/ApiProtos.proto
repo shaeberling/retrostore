@@ -28,6 +28,16 @@ message App {
     repeated string screenshot_url = 5;
     // The media images included with this app.
     repeated MediaImage media_image = 6;
+    // The author of the app (not the uploader).
+    string author = 7;
+    // TRS80 specific parameters.
+    Trs80Params trs80_params = 8;
+}
+
+// Parameters specific to TRS-80 apps.
+message Trs80Params {
+    // The TRS-80 model type.
+    Trs80Model model = 1;
 }
 
 // A media image for an app.
@@ -49,4 +59,13 @@ enum MediaType {
     UNKNOWN = 0;
     DISK = 1;
     CASSETTE = 2;
+}
+
+// The TRS-80 model types.
+enum Trs80Model {
+    UNKNOWN_MODEL = 0;
+    MODEL_I = 1;
+    MODEL_III = 2;
+    MODEL_4 = 3;
+    MODEL_4P = 4;
 }

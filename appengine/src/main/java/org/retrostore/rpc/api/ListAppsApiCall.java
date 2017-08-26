@@ -16,6 +16,7 @@
 
 package org.retrostore.rpc.api;
 
+import com.google.common.base.Optional;
 import com.google.gson.Gson;
 import com.google.protobuf.ByteString;
 import org.retrostore.client.common.ListAppsApiParams;
@@ -23,8 +24,11 @@ import org.retrostore.client.common.proto.ApiResponseApps;
 import org.retrostore.client.common.proto.App;
 import org.retrostore.client.common.proto.MediaImage;
 import org.retrostore.client.common.proto.MediaType;
+import org.retrostore.client.common.proto.Trs80Model;
+import org.retrostore.client.common.proto.Trs80Params;
 import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.app.AppStoreItem;
+import org.retrostore.data.app.Author;
 import org.retrostore.request.RequestData;
 import org.retrostore.request.Responder;
 import org.retrostore.request.Response;
@@ -82,9 +86,34 @@ public class ListAppsApiCall implements ApiCall<App> {
       appBuilder.setName(app.listing.name);
       appBuilder.setVersion(app.listing.versionString);
       appBuilder.setDescription(app.listing.description);
+      Optional<Author> author = mAppManagement.getAuthorById(app.listing.authorId);
+      if (author.isPresent()) {
+        appBuilder.setAuthor(author.get().name);
+      }
+
+      // Set the TRS80 related parameters.
+      Trs80Params.Builder trsParams = Trs80Params.newBuilder();
+      switch (app.configuration.model) {
+        default:
+        case MODEL_I:
+          trsParams.setModel(Trs80Model.MODEL_I);
+          break;
+        case MODEL_III:
+          trsParams.setModel(Trs80Model.MODEL_III);
+          break;
+        case MODEL_4:
+          trsParams.setModel(Trs80Model.MODEL_4);
+          break;
+        case MODEL_4P:
+          trsParams.setModel(Trs80Model.MODEL_4P);
+          break;
+      }
+      appBuilder.setTrs80Params(trsParams);
+
       // TODO: Add support for screenshots.
       // FIXME: URL just for testing.
-      appBuilder.addScreenshotUrl("http://www.thesvd.com/Images/ldosmod1.jpg");
+      appBuilder.addScreenshotUrl("http://www.nightfallcrew.com" +
+          "/wp-content/gallery/radio-shack-trs-80-model-iii-microcomputer/20140202_154406.jpg");
 
       // Create the list of media images for this app (disks and casettes).
       for (AppStoreItem.MediaImage mediaImage : app.configuration.disk) {
