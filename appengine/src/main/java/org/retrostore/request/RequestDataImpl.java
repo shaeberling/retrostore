@@ -49,21 +49,27 @@ public class RequestDataImpl implements RequestData {
   private static final Logger LOG = Logger.getLogger("RequestDataImpl");
   private final HttpServletRequest mRequest;
   private final Type mType;
-  private final Map<String, List<BlobInfo>> mBlobInfos;
+  private final BlobProvider mBlobInfos;
 
-  public static RequestData create(HttpServletRequest request,
+  public static RequestData create(final HttpServletRequest request,
                                    Type type,
-                                   BlobstoreService blobstoreService) {
-    Map<String, List<BlobInfo>> blobInfos = blobstoreService.getBlobInfos(request);
-    blobInfos = blobInfos != null ? blobInfos : new HashMap<String, List<BlobInfo>>();
-    return new RequestDataImpl(request, type, ImmutableMap.copyOf(blobInfos));
+                                   final BlobstoreService blobstoreService) {
+    BlobProvider blobProvider = new BlobProvider() {
+      @Override
+      public Map<String, List<BlobInfo>> getBlobs() {
+        Map<String, List<BlobInfo>> blobInfos = blobstoreService.getBlobInfos(request);
+        blobInfos = blobInfos != null ? blobInfos : new HashMap<String, List<BlobInfo>>();
+        return ImmutableMap.copyOf(blobInfos);
+      }
+    };
+    return new RequestDataImpl(request, type, blobProvider);
 
   }
 
-  RequestDataImpl(HttpServletRequest request, Type type, Map<String, List<BlobInfo>> blobInfos) {
+  RequestDataImpl(HttpServletRequest request, Type type, BlobProvider blobInfos) {
     mRequest = checkNotNull(request);
     mType = checkNotNull(type);
-    mBlobInfos =  checkNotNull(blobInfos);
+    mBlobInfos = blobInfos;
   }
 
   @Override
@@ -146,9 +152,9 @@ public class RequestDataImpl implements RequestData {
   @Override
   public Map<String, List<String>> getBlobKeys() {
     Map<String, List<String>> blobKeys = new HashMap<>();
-    for (String name : mBlobInfos.keySet()) {
+    for (String name : mBlobInfos.getBlobs().keySet()) {
       List<String> keys = new ArrayList<>();
-      for (BlobInfo info : mBlobInfos.get(name)) {
+      for (BlobInfo info : mBlobInfos.getBlobs().get(name)) {
         keys.add(info.getBlobKey().getKeyString());
       }
       blobKeys.put(name, keys);
@@ -158,6 +164,10 @@ public class RequestDataImpl implements RequestData {
 
   private String getParameter(String name) {
     return mRequest.getParameter(name);
+  }
+
+  interface BlobProvider {
+    Map<String, List<BlobInfo>> getBlobs();
   }
 
 }
