@@ -1,4 +1,4 @@
-[[https://github.com/shaeberling/retrostore/blob/master/docs/retrostore_logo.png|alt=RetroStore]]
+<img src="https://github.com/shaeberling/retrostore/raw/master/docs/retrostore_logo.png" width="300">
 
 **RetroStore** aims to be an app store that is home to often long forgotten games and apps on platforms from our past.
 
