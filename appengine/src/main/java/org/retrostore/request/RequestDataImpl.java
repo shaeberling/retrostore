@@ -97,7 +97,7 @@ public class RequestDataImpl implements RequestData {
     if (value == null) {
       return Optional.absent();
     }
-    return NumUtil.parseLong(name);
+    return NumUtil.parseLong(value);
   }
 
   @Override

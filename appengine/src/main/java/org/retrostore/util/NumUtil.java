@@ -19,10 +19,15 @@ package org.retrostore.util;
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  * Utility funcitons for handling numbers.
  */
 public class NumUtil {
+  private static final Logger LOG = Logger.getLogger("NumUtil");
+
   /**
    * Parses a long value from a string.
    *
@@ -36,6 +41,7 @@ public class NumUtil {
     try {
       return Optional.of(Long.parseLong(longStr));
     } catch (NumberFormatException ex) {
+      LOG.log(Level.SEVERE, "Cannot parse integer", ex);
       return Optional.absent();
     }
   }
@@ -60,6 +66,7 @@ public class NumUtil {
     try {
       return Optional.of(Integer.parseInt(intStr));
     } catch (NumberFormatException ex) {
+      LOG.log(Level.SEVERE, "Cannot parse integer", ex);
       return Optional.absent();
     }
   }

@@ -25,6 +25,8 @@ import org.retrostore.request.Responder;
 import org.retrostore.rpc.internal.RpcCall;
 import org.retrostore.rpc.internal.RpcParameters;
 
+import java.util.logging.Logger;
+
 /**
  * Call to delete a disk image.
  */
