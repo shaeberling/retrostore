@@ -25,10 +25,13 @@ import org.retrostore.request.Responder;
 import org.retrostore.rpc.internal.RpcCall;
 import org.retrostore.rpc.internal.RpcParameters;
 
+import java.util.logging.Logger;
+
 /**
  * Call to delete a disk image.
  */
 public class DeleteDiskImageRpcCall implements RpcCall<RpcParameters> {
+  private static final Logger LOG = Logger.getLogger("DelDiskImgRpc");
   private final AppManagement mAppManagement;
 
   public DeleteDiskImageRpcCall(AppManagement appManagement) {
@@ -51,19 +54,25 @@ public class DeleteDiskImageRpcCall implements RpcCall<RpcParameters> {
     Optional<Integer> diskImageOpt = params.getInt("diskImageNo");
 
     if (!appIdOpt.isPresent() || !diskImageOpt.isPresent()) {
-      responder.respondBadRequest("Both 'appId' and 'diskImageNo' must be provided.");
+      String msg = "Both 'appId' and 'diskImageNo' must be provided.";
+      responder.respondBadRequest(msg);
+      LOG.warning(msg);
       return;
     }
 
     Optional<AppStoreItem> appOpt = mAppManagement.getAppById(appIdOpt.get());
     if (!appOpt.isPresent()) {
-      responder.respondBadRequest(String.format("App with ID '%d' not found.", appIdOpt.get()));
+      String msg = String.format("App with ID '%d' not found.", appIdOpt.get());
+      responder.respondBadRequest(msg);
+      LOG.warning(msg);
       return;
     }
 
     int diskImageNo = diskImageOpt.get();
     if (diskImageNo < 0 || diskImageNo > 4) {
-      responder.respondBadRequest(String.format("Invalid diskImageNo: '%d'.", diskImageNo));
+      String msg = String.format("Invalid diskImageNo: '%d'.", diskImageNo);
+      responder.respondBadRequest(msg);
+      LOG.warning(msg);
       return;
     }
 
