@@ -215,7 +215,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <template is="dom-repeat" items="{{screenshots}}">
         <div>
           <img src="/screenshotServe?key={{item}}" width="200px"><br>
-          <paper-button on-tap="onDeleteDiskImage" class="action-delete">Delete</paper-button>
+          <paper-button on-tap="onDeleteScreenshot" class="action-delete">Delete</paper-button>
         </tr>
       </template>
       <paper-button id="uploadScreenshotButton" on-tap="onUploadScreenshot" class="action-edit">Upload Screenshot</paper-button>
@@ -311,6 +311,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                on-response="onDeleteResponse"
                content-type="application/json"
                last-response="{{deleteXhrResponse}}"></iron-ajax>
+
+    <!-- Requests for disk image functionality. --> 
     <iron-ajax id="xhrListDiskImages"
                noauto
                url="/rpc?m=listDiskImages&appId={{requestDiskImagesAppId}}"
@@ -324,6 +326,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                on-response="onDeleteDiskImageResponse"
                debounce-duration="1000"></iron-ajax>
 
+    <!-- Requests for screenshot functionality. --> 
     <iron-ajax id="xhrListScreenshots"
                noauto
                url="/rpc?m=listScreenshots&appId={{assets_appId}}"
@@ -337,6 +340,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                debounce-duration="1000"
                on-response="onScreenshotUploadUrl"
                last-response="{{screenshotUploadUrl}}"></iron-ajax>
+    <iron-ajax id="xhrDeleteScreenshot"
+               noauto
+               url="/rpc?m=deleteScreenshot&appId={{assets_appId}}&blobKey={{deleteScreenshotKey}}"
+               handle-as="json"
+               on-response="onScreenshotDeleteResponse"
+               debounce-duration="1000"></iron-ajax>
   </template>
 
   <script>
@@ -476,6 +485,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       onScreenshotUploadUrl() {
         this.$.uploadScreenshotButton.disabled = false;
         this.$.uploadScreenshotDialog.open();
+      }
+
+      onDeleteScreenshot(e) {
+        this.deleteScreenshotKey = e.model.get("item");
+        this.$.xhrDeleteScreenshot.generateRequest();
+      }
+      onScreenshotDeleteResponse() {
+        this.$.xhrListScreenshots.generateRequest();
       }
 
       clearForm() {

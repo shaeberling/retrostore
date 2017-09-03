@@ -31,6 +31,7 @@ import org.retrostore.rpc.AdminUserListRpcCall;
 import org.retrostore.rpc.AppListRpcCall;
 import org.retrostore.rpc.DeleteAppRpcCall;
 import org.retrostore.rpc.DeleteDiskImageRpcCall;
+import org.retrostore.rpc.DeleteScreenshotRpcCall;
 import org.retrostore.rpc.DeleteUserRpcCall;
 import org.retrostore.rpc.GetAppFormDataRpcCall;
 import org.retrostore.rpc.GetSiteContextRpcCall;
@@ -67,7 +68,8 @@ public class RpcCallRequest implements Request {
         new DeleteAppRpcCall(appManagement),
         new ListDiskImagesRpcCall(appManagement),
         new DeleteDiskImageRpcCall(appManagement),
-        new ListScreenshotsRpcCall(appManagement));
+        new ListScreenshotsRpcCall(appManagement),
+        new DeleteScreenshotRpcCall(appManagement));
 
     Map<String, RpcCall<RpcParameters>> callsMapped = new HashMap<>();
     for (RpcCall<RpcParameters> call : calls) {
