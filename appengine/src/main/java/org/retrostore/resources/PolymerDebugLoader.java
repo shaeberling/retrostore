@@ -40,14 +40,14 @@ public class PolymerDebugLoader implements ResourceLoader {
   }
 
   @Override
-  public Optional<String> load(String filename) {
+  public Optional<byte[]> load(String filename) {
     if (!filename.startsWith(POLYMER_ROOT)) {
       LOG.warning(String.format("Not a polymer file, falling back for '%s'.", filename));
       return mFallbackResourceLoader.load(filename);
     }
     String url = mPolymerServer + filename.substring(POLYMER_ROOT.length());
 
-    Optional<String> resource = loadUrl(url);
+    Optional<byte[]> resource = loadUrl(url);
     if (!resource.isPresent()) {
       LOG.warning(
           String.format("Polymer debug resource cannot be loaded: '%s'. Falling back.", url));
@@ -59,7 +59,7 @@ public class PolymerDebugLoader implements ResourceLoader {
   }
 
   @Override
-  public Optional<String> loadUrl(String url) {
+  public Optional<byte[]> loadUrl(String url) {
     return mFallbackResourceLoader.loadUrl(url);
   }
 }

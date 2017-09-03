@@ -16,15 +16,14 @@
 
 package org.retrostore.resources;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
-import com.google.common.io.CharStreams;
+import com.google.common.io.ByteStreams;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.logging.Level;
@@ -37,15 +36,13 @@ public class DefaultResourceLoader implements ResourceLoader {
   private static final Logger LOG = Logger.getLogger("DefaultResourceLoader");
 
   @Override
-  public Optional<String> load(String filename) {
+  public Optional<byte[]> load(String filename) {
     // TODO: Cache!
     // TODO: Debug mode for local reloading
     try {
       File file = new File(filename);
       LOG.info("Loading file: " + file.getAbsolutePath());
-      InputStream fileStream = new FileInputStream(file);
-      String content = CharStreams.toString(new InputStreamReader(fileStream, Charsets.UTF_8));
-      return Optional.of(content);
+      return Optional.of(toBytes(new FileInputStream(file)));
     } catch (IOException e) {
       LOG.log(Level.SEVERE, "Cannot load file.", e);
     }
@@ -53,18 +50,22 @@ public class DefaultResourceLoader implements ResourceLoader {
   }
 
   @Override
-  public Optional<String> loadUrl(String urlStr) {
+  public Optional<byte[]> loadUrl(String urlStr) {
     try {
       URL url = new URL(urlStr);
       InputStream is = url.openStream();
-      String content = CharStreams.toString(new InputStreamReader(is, Charsets.UTF_8));
-      is.close();
-      return Optional.of(content);
+      return Optional.of(toBytes(is));
     } catch (MalformedURLException e) {
       LOG.log(Level.SEVERE, "Invalid URL", e);
     } catch (IOException e) {
       LOG.log(Level.SEVERE, "Cannot read URL", e);
     }
     return Optional.absent();
+  }
+
+  private byte[] toBytes(InputStream input) throws IOException {
+    ByteArrayOutputStream data = new ByteArrayOutputStream();
+    ByteStreams.copy(input, data);
+    return data.toByteArray();
   }
 }

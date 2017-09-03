@@ -67,6 +67,16 @@ public class Responder {
     }
   }
 
+  /** Respond with the given content text and type. */
+  public void respond(byte[] content, ContentType contentType) {
+    try {
+      mResponse.setContentType(contentType.str);
+      mResponse.getOutputStream().write(content);
+    } catch (IOException ex) {
+      LOG.log(Level.SEVERE, "Cannot serve data", ex);
+    }
+  }
+
   /** Converts the given object into JSON and sends it. */
   public void respondJson(Object object) {
     try {

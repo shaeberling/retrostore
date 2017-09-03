@@ -32,7 +32,7 @@ public class PolymerRequest implements Request {
 
   private static final String POLYMER_ROOT = "WEB-INF/polymer-app";
   private static final Set<String> FORWARD = Sets.newHashSet("/bower_components",
-      "/images", "/src", "/service-worker.js", "/manifest.json", "/index.html");
+      "/favicon", "/images", "/src", "/service-worker.js", "/manifest.json", "/index.html");
 
   private final ResourceLoader mResourceLoader;
 
@@ -53,9 +53,14 @@ public class PolymerRequest implements Request {
       url = "/index.html";
     }
 
+    // Re-write the favicon path in case the browser is requesting it.
+    if (url.equals("/favicon.ico")) {
+      url = "/favicon/favicon.ico";
+    }
+
     for (String path : FORWARD) {
       if (url.startsWith(path)) {
-        Optional<String> content = mResourceLoader.load(POLYMER_ROOT + url);
+        Optional<byte[]> content = mResourceLoader.load(POLYMER_ROOT + url);
         if (content.isPresent()) {
           responder.respond(content.get(), fromFilename(url));
         }

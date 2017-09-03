@@ -23,8 +23,8 @@ import com.google.common.base.Optional;
  */
 public interface ResourceLoader {
   /** Loads a file with the given name. */
-  Optional<String> load(String filename);
+  Optional<byte[]> load(String filename);
 
   /** Loads the given URL. */
-  Optional<String> loadUrl(String url);
+  Optional<byte[]> loadUrl(String url);
 }
