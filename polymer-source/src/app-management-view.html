@@ -212,28 +212,35 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     <div id="addEditScreenshotsCard" class="card" show$="{{showMode}}">
       <h3>Screenshots</h3>
-      <table class="disk-image-table">
-      <tr>
-        <th>Screenshot</th>
-        <th>Size (TODO: Preview)</th>
-        <th>Upload</th>
-        <th>Delete</th>
-      </tr>
       <template is="dom-repeat" items="{{screenshots}}">
-        <tr>
-          <td>{{item.id}}</td>
-          <td>{{item.sizeInBytes}}</td>
-          <td><paper-button on-tap="onUploadDiskImage" class="action-edit">Upload</paper-button></td>
-          <td><paper-button on-tap="onDeleteDiskImage" class="action-delete">Delete</paper-button></td>
+        <div>
+          <img src="/screenshotServe?key={{item}}" width="200px"><br>
+          <paper-button on-tap="onDeleteDiskImage" class="action-delete">Delete</paper-button>
         </tr>
       </template>
-      </table>
+      <paper-button id="uploadScreenshotButton" on-tap="onUploadScreenshot" class="action-edit">Upload Screenshot</paper-button>
     </div>
 
+    <!-- Disk image upload dialog. -->
     <paper-dialog id="uploadDialog" on-iron-overlay-opened="_patchOverlay" modal>
       <p>{{model_dialog_text}}</p>
       <vaadin-upload id="fileUpload"
                      target="/post/uploadDiskImage/{{assets_appId}}/{{upload_item.id}}" 
+                     max-files="1"
+                     method="POST" maxFileSize="10000000">
+        <iron-icon slot="drop-label-icon" icon="cloud-upload"></iron-icon>
+        <span slot="drop-label">{{upload_item.label}}</span>
+      </vaadin-upload>
+      <div class="buttons">
+        <paper-button id="cancelUpload" dialog-confirm autofocus>Cancel</paper-button>
+      </div>
+    </paper-dialog>
+
+    <!-- Screenshot upload dialog -->
+    <paper-dialog id="uploadScreenshotDialog" on-iron-overlay-opened="_patchOverlay" modal>
+      <p>Upload new screenshot</p>
+      <vaadin-upload id="screenshotUpload"
+                     target="{{screenshotUploadUrl}}" 
                      max-files="1"
                      method="POST" maxFileSize="10000000">
         <iron-icon slot="drop-label-icon" icon="cloud-upload"></iron-icon>
@@ -308,14 +315,28 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                noauto
                url="/rpc?m=listDiskImages&appId={{requestDiskImagesAppId}}"
                handle-as="json"
-               debounce-duration="300"
+               debounce-duration="1000"
                last-response="{{diskImages}}"></iron-ajax>
     <iron-ajax id="xhrDeleteDiskImage"
                noauto
                url="/rpc?m=deleteDiskImage&appId={{deleteDiskImageAppId}}&diskImageNo={{deleteDiskImageNo}}"
                handle-as="json"
                on-response="onDeleteDiskImageResponse"
-               debounce-duration="300"></iron-ajax>
+               debounce-duration="1000"></iron-ajax>
+
+    <iron-ajax id="xhrListScreenshots"
+               noauto
+               url="/rpc?m=listScreenshots&appId={{assets_appId}}"
+               handle-as="json"
+               debounce-duration="1000"
+               last-response="{{screenshots}}"></iron-ajax>
+    <iron-ajax id="xhrGetScreenshotUploadUrl"
+               noauto
+               url="/screenshotUrlForUpload?appId={{assets_appId}}"
+               handle-as="json"
+               debounce-duration="1000"
+               on-response="onScreenshotUploadUrl"
+               last-response="{{screenshotUploadUrl}}"></iron-ajax>
   </template>
 
   <script>
@@ -338,6 +359,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           thiz.$.fileUpload.files = [];
           thiz.$.uploadDialog.close();
         });
+        this.$.uploadScreenshotDialog.addEventListener('upload-response', function(e) {
+          // Reload screenshot list.
+          thiz.$.xhrListScreenshots.generateRequest();
+          thiz.$.screenshotUpload.files = [];
+          thiz.$.uploadScreenshotDialog.close();
+        });
+
       }
 
       onBackToAppList() {
@@ -355,6 +383,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.showMode = "assets";
         this.requestDiskImagesAppId = this.assets_appId;
         this.$.xhrListDiskImages.generateRequest();
+        this.$.xhrListScreenshots.generateRequest();
       }
       onEditApp(e) {
         this.clearForm();
@@ -434,6 +463,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       onDeleteDiskImageResponse() {
         this.$.xhrListDiskImages.generateRequest();        
       }
+
+      // Users wants to upload a screenshot.
+      onUploadScreenshot() {
+        // Prevent clicking the button multiple times before a response came in.
+        this.$.uploadScreenshotButton.disabled = true;
+        // We first request to get the upload URL.
+        this.$.xhrGetScreenshotUploadUrl.generateRequest();
+      }
+
+      // Called when the upload URL was received.
+      onScreenshotUploadUrl() {
+        this.$.uploadScreenshotButton.disabled = false;
+        this.$.uploadScreenshotDialog.open();
+      }
+
       clearForm() {
         this.addEditSuccess = "none";
         this.form_appId = "";
