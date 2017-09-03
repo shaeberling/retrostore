@@ -20,9 +20,12 @@ package org.retrostore.data;
  * Wrapper around Blobstore that can easily be faked.
  */
 public interface BlobstoreWrapper {
+  /** Creates a URL that can be uploaded to via POST. */
   String createUploadUrl(String forwardUrl);
 
+  /** Loads a blob's raw data. */
   byte[] loadBlob(String key);
 
+  /** Deletes a blob if it exists. */
   void deleteBlob(String key);
 }

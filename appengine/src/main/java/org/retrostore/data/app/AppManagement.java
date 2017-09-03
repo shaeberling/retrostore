@@ -21,7 +21,7 @@ import com.google.common.base.Optional;
 import java.util.List;
 
 /**
- * * Functionality to manage apps.
+ * Functionality to manage apps.
  */
 public interface AppManagement {
   /**
@@ -40,7 +40,7 @@ public interface AppManagement {
   /**
    * Adds a screenshot's blob key for the app with the given ID.
    *
-   * @param appId      the ID of the app to add the screenshot to.
+   * @param appId   the ID of the app to add the screenshot to.
    * @param blobKey the blob key of the screenshot to add.
    * @return Whether the screenshot was successfully added.
    */
@@ -49,7 +49,7 @@ public interface AppManagement {
   /**
    * Remove a screenshot's blob key for the app with the given ID.
    *
-   * @param appId      the ID of the app to add the screenshot to.
+   * @param appId   the ID of the app to add the screenshot to.
    * @param blobKey the blob key of the screenshot to remove.
    * @return Whether the screenshot was successfully removed.
    */
