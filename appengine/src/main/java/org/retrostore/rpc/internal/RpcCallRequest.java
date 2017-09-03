@@ -32,9 +32,10 @@ import org.retrostore.rpc.AppListRpcCall;
 import org.retrostore.rpc.DeleteAppRpcCall;
 import org.retrostore.rpc.DeleteDiskImageRpcCall;
 import org.retrostore.rpc.DeleteUserRpcCall;
-import org.retrostore.rpc.ListDiskImagesRpcCall;
 import org.retrostore.rpc.GetAppFormDataRpcCall;
 import org.retrostore.rpc.GetSiteContextRpcCall;
+import org.retrostore.rpc.ListDiskImagesRpcCall;
+import org.retrostore.rpc.ListScreenshotsRpcCall;
 
 import java.util.HashMap;
 import java.util.List;
@@ -65,7 +66,8 @@ public class RpcCallRequest implements Request {
         new AppListRpcCall(appManagement),
         new DeleteAppRpcCall(appManagement),
         new ListDiskImagesRpcCall(appManagement),
-        new DeleteDiskImageRpcCall(appManagement));
+        new DeleteDiskImageRpcCall(appManagement),
+        new ListScreenshotsRpcCall(appManagement));
 
     Map<String, RpcCall<RpcParameters>> callsMapped = new HashMap<>();
     for (RpcCall<RpcParameters> call : calls) {

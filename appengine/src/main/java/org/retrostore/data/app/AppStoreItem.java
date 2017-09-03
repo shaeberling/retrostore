@@ -23,7 +23,9 @@ import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
 import com.googlecode.objectify.annotation.Load;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -182,7 +184,6 @@ public class AppStoreItem {
   // generalized.
   public Configuration configuration = new Configuration();
   public Listing listing = new Listing();
-  @Load
-  Ref<ScreenshotSet> screenshots;
-
+  /** The blobkeys of the screenshots to serve. */
+  public List<String> screenshotsBlobKeys = new ArrayList<>();
 }

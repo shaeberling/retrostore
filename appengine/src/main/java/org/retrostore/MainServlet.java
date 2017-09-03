@@ -18,9 +18,13 @@ package org.retrostore;
 
 import com.google.appengine.api.blobstore.BlobstoreService;
 import com.google.appengine.api.blobstore.BlobstoreServiceFactory;
+import com.google.appengine.api.files.FileServiceFactory;
 import com.google.appengine.api.users.UserServiceFactory;
 import com.google.common.base.Strings;
+import org.retrostore.data.BlobstoreWrapper;
+import org.retrostore.data.BlobstoreWrapperImpl;
 import org.retrostore.data.app.AppManagement;
+import org.retrostore.data.app.AppManagementImpl;
 import org.retrostore.data.user.UserManagement;
 import org.retrostore.data.user.UserService;
 import org.retrostore.data.user.UserServiceImpl;
@@ -56,8 +60,9 @@ public class MainServlet extends RetroStoreServlet {
   private static com.google.appengine.api.users.UserService sUserService =
       UserServiceFactory.getUserService();
   private static BlobstoreService sBlobstoreService = BlobstoreServiceFactory.getBlobstoreService();
+  private static BlobstoreWrapper sBlobstoreWrapper = new BlobstoreWrapperImpl(sBlobstoreService);
   private static UserManagement sUserManagement = new UserManagement(sUserService);
-  private static AppManagement sAppManagement = new AppManagement();
+  private static AppManagement sAppManagement = new AppManagementImpl(sBlobstoreWrapper);
   private static UserService sAccountTypeProvider =
       new UserServiceImpl(sUserManagement, sUserService);
   private static DefaultResourceLoader sDefaultResourceLoader = new DefaultResourceLoader();
@@ -69,10 +74,10 @@ public class MainServlet extends RetroStoreServlet {
     sRequestServers.add(new LoginRequest());
     sRequestServers.add(new EnsureAdminExistsRequest(sUserManagement));
     sRequestServers.add(new RpcCallRequest(sUserManagement, sAppManagement));
+    sRequestServers.add(new ScreenshotRequest(sBlobstoreWrapper, sAppManagement));
     sRequestServers.add(new PolymerRequest(getResourceLoader()));
     sRequestServers.add(new PostUploadRequest(sAppManagement));
     sRequestServers.add(new ApiRequest(sAppManagement));
-    sRequestServers.add(new ScreenshotRequest());
     // Note: Add more request servers here. Keep in mind that this is in priority-order.
   }
 

@@ -21,6 +21,7 @@ import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import org.retrostore.data.app.AppManagement;
+import org.retrostore.data.app.AppManagementImpl;
 import org.retrostore.data.app.AppStoreItem;
 import org.retrostore.data.app.AppStoreItem.CharacterColor;
 import org.retrostore.data.app.AppStoreItem.KeyboardLayout;

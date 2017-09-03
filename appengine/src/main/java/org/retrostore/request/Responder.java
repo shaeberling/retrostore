@@ -126,4 +126,13 @@ public class Responder {
     }
     return false;
   }
+
+  /** Responds with a redirect request to the given URL. */
+  public void respondRedirect(String url) {
+    try {
+      mResponse.sendRedirect(url);
+    } catch (IOException ex) {
+      LOG.log(Level.SEVERE, "Cannot serve redirect", ex);
+    }
+  }
 }
