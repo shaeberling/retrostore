@@ -16,6 +16,7 @@ hs_err_pid*
 .externalToolBuilders
 .gradle
 .signing/
+.idea/dictionaries/
 .idea/libraries/
 .idea/inspectionProfiles/
 .idea/workspace.xml
@@ -29,6 +30,7 @@ hs_err_pid*
 .idea/scopes/scope_settings.xml
 .idea/vcs.xml
 .idea/runConfigurations.xml
+.idea/uiDesigner.xml
 *.iml
 
 local_db.bin
