@@ -165,6 +165,7 @@ public class AppStoreItem {
     public long lastUpdateTime;
     public long authorId;
     public String publisherEmail;
+    public int releaseYear;
   }
 
   /**

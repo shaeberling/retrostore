@@ -46,6 +46,7 @@ public class AddEditAppRpcCall implements RpcCall<RpcParameters> {
     public String appName;
     public String appVersion;
     public String description;
+    public String releaseYear;
     public String origAuthorId;
     public String newAuthor;
     public String category;
@@ -89,6 +90,7 @@ public class AddEditAppRpcCall implements RpcCall<RpcParameters> {
       if (checkNullEmpty(data.appName, "App name missing", responder) ||
           checkNullEmpty(data.appVersion, "App version missing", responder) ||
           checkNullEmpty(data.description, "Description missing", responder) ||
+          checkNoValidInt(data.releaseYear, "Release yer invalid", responder, true) ||
           checkNullEmpty(data.category, "Category missing", responder) ||
           checkNullEmpty(data.model, "Model missing", responder) ||
           checkNullEmpty(data.kbLayoutLand, "Landscape Keyboard layout missing", responder) ||
@@ -142,6 +144,8 @@ public class AddEditAppRpcCall implements RpcCall<RpcParameters> {
       appStoreItem.listing.name = data.appName;
       appStoreItem.listing.versionString = data.appVersion;
       appStoreItem.listing.description = data.description;
+      // We already checked above that this is a valid integer.
+      appStoreItem.listing.releaseYear = Integer.parseInt(data.releaseYear);
       appStoreItem.listing.categories.clear();
       appStoreItem.listing.categories.add(category.get());
       appStoreItem.configuration.model = model.get();
@@ -198,6 +202,21 @@ public class AddEditAppRpcCall implements RpcCall<RpcParameters> {
       return true;
     } else {
       return false;
+    }
+  }
+
+  private static boolean checkNoValidInt(String var, String errorMessage, Responder responder,
+                                         boolean enforcePositiveNum) {
+    try {
+      int num = Integer.parseInt(var);
+      if (enforcePositiveNum && num < 0) {
+        RpcResponse.respond(false, errorMessage, responder);
+        return true;
+      }
+      return false;
+    } catch (NumberFormatException ex) {
+      RpcResponse.respond(false, errorMessage, responder);
+      return true;
     }
   }
 

@@ -122,6 +122,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <paper-input name="appName" label="App name" value="{{form_appName}}" required></paper-input>
         <paper-input name="appVersion" label="App version" value="{{form_appVersion}}" required></paper-input>
         <paper-input name="description" label="Description" value="{{form_description}}" required></paper-input>
+        <paper-input name="releaseYear" label="Release rear" value="{{form_releaseYear}}"></paper-input>
         <paper-dropdown-menu name="origAuthor" label="Original Author" required>
           <paper-listbox slot="dropdown-content" selected="{{form_origAuthorId}}" attr-for-selected="value">
             <paper-item value="-1">Other (Enter below)</paper-item>
@@ -410,6 +411,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.form_appName = e.model.get('item.listing.name');
         this.form_appVersion = e.model.get('item.listing.versionString');
         this.form_description = e.model.get('item.listing.description');
+        this.form_releaseYear = e.model.get('item.listing.releaseYear');
         this.form_origAuthorId = e.model.get('item.listing.authorId');
         this.form_newAuthor = "";
         this.form_category = e.model.get('item.listing.categories')[0];
@@ -438,6 +440,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           appName: this.form_appName,
           appVersion: this.form_appVersion,
           description: this.form_description,
+          releaseYear: this.form_releaseYear,
           origAuthorId: this.form_origAuthorId,
           newAuthor: this.form_newAuthor,
           category: this.form_category,
@@ -528,6 +531,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.form_appName = "";
         this.form_appVersion = "";
         this.form_description = "";
+        this.form_releaseYear = "";
         this.form_origAuthorId = "-1";
         this.form_newAuthor = "";
 
