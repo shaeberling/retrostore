@@ -16,14 +16,13 @@
 
 package org.retrostore.request;
 
-import com.google.appengine.api.blobstore.BlobKey;
 import com.google.appengine.api.images.Image;
 import com.google.appengine.api.images.ImagesServiceFactory;
-import com.google.appengine.api.images.ServingUrlOptions;
 import com.google.common.base.Optional;
 import org.retrostore.data.BlobstoreWrapper;
 import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.user.UserService;
+import org.retrostore.resources.ImageServiceWrapper;
 
 import java.util.List;
 import java.util.Map;
@@ -41,12 +40,17 @@ public class ScreenshotRequest implements Request {
   private static final String PATH_UPLOAD = "/screenshotUpload";
   private static final String PATH_UPLOAD_URL = "/screenshotUrlForUpload";
   private static final String PARAM_KEY = "key";
+  private static final int SCREENSHOT_SIZE = 800;
   private final BlobstoreWrapper mBlobStore;
   private final AppManagement mAppManagement;
+  private final ImageServiceWrapper mImageService;
 
-  public ScreenshotRequest(BlobstoreWrapper blobStore, AppManagement appManagement) {
+  public ScreenshotRequest(BlobstoreWrapper blobStore,
+                           AppManagement appManagement,
+                           ImageServiceWrapper imageService) {
     mBlobStore = checkNotNull(blobStore);
     mAppManagement = checkNotNull(appManagement);
+    mImageService = imageService;
   }
 
   @Override
@@ -76,13 +80,7 @@ public class ScreenshotRequest implements Request {
       LOG.warning("No 'key' present for serving screenshot.");
       return;
     }
-
-    ServingUrlOptions options = ServingUrlOptions.Builder
-        .withBlobKey(new BlobKey(blobKeyOpt.get()))
-        .secureUrl(true)
-        .imageSize(800);
-    String servingUrl = ImagesServiceFactory.getImagesService().getServingUrl(options);
-    responder.respondRedirect(servingUrl);
+    responder.respondRedirect(mImageService.getServingUrl(blobKeyOpt.get(), SCREENSHOT_SIZE));
   }
 
   private void uploadScreenshotUrl(RequestData requestData, Responder responder) {

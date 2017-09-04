@@ -24,6 +24,7 @@ import org.retrostore.data.user.UserService;
 import org.retrostore.request.Request;
 import org.retrostore.request.RequestData;
 import org.retrostore.request.Responder;
+import org.retrostore.resources.ImageServiceWrapper;
 import org.retrostore.rpc.api.ListAppsApiCall;
 
 import java.util.HashMap;
@@ -40,8 +41,9 @@ public class ApiRequest implements Request {
   private static final String API_PREFIX = "/api";
   private final Map<String, ApiCall> mApiCalls;
 
-  public ApiRequest(AppManagement mAppManagement) {
-    List<ApiCall> calls = ImmutableList.<ApiCall>of(new ListAppsApiCall(mAppManagement));
+  public ApiRequest(AppManagement mAppManagement, ImageServiceWrapper imageService) {
+    List<ApiCall> calls = ImmutableList.<ApiCall>of(
+        new ListAppsApiCall(mAppManagement, imageService));
 
     Map<String, ApiCall> callsMapped = new HashMap<>();
     for (ApiCall call : calls) {

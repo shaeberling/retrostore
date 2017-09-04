@@ -18,7 +18,8 @@ package org.retrostore;
 
 import com.google.appengine.api.blobstore.BlobstoreService;
 import com.google.appengine.api.blobstore.BlobstoreServiceFactory;
-import com.google.appengine.api.files.FileServiceFactory;
+import com.google.appengine.api.images.ImagesService;
+import com.google.appengine.api.images.ImagesServiceFactory;
 import com.google.appengine.api.users.UserServiceFactory;
 import com.google.common.base.Strings;
 import org.retrostore.data.BlobstoreWrapper;
@@ -37,6 +38,7 @@ import org.retrostore.request.RequestDataImpl;
 import org.retrostore.request.Responder;
 import org.retrostore.request.ScreenshotRequest;
 import org.retrostore.resources.DefaultResourceLoader;
+import org.retrostore.resources.ImageServiceWrapper;
 import org.retrostore.resources.PolymerDebugLoader;
 import org.retrostore.resources.ResourceLoader;
 import org.retrostore.rpc.internal.ApiRequest;
@@ -66,6 +68,8 @@ public class MainServlet extends RetroStoreServlet {
   private static UserService sAccountTypeProvider =
       new UserServiceImpl(sUserManagement, sUserService);
   private static DefaultResourceLoader sDefaultResourceLoader = new DefaultResourceLoader();
+  private static ImagesService sImagesService = ImagesServiceFactory.getImagesService();
+  private static ImageServiceWrapper sImgServWrapper = new ImageServiceWrapper(sImagesService);
 
   private static List<Request> sRequestServers;
 
@@ -74,10 +78,10 @@ public class MainServlet extends RetroStoreServlet {
     sRequestServers.add(new LoginRequest());
     sRequestServers.add(new EnsureAdminExistsRequest(sUserManagement));
     sRequestServers.add(new RpcCallRequest(sUserManagement, sAppManagement));
-    sRequestServers.add(new ScreenshotRequest(sBlobstoreWrapper, sAppManagement));
+    sRequestServers.add(new ScreenshotRequest(sBlobstoreWrapper, sAppManagement, sImgServWrapper));
     sRequestServers.add(new PolymerRequest(getResourceLoader()));
     sRequestServers.add(new PostUploadRequest(sAppManagement));
-    sRequestServers.add(new ApiRequest(sAppManagement));
+    sRequestServers.add(new ApiRequest(sAppManagement, sImgServWrapper));
     // Note: Add more request servers here. Keep in mind that this is in priority-order.
   }
 

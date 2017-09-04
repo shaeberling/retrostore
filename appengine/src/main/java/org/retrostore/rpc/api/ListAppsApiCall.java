@@ -32,6 +32,7 @@ import org.retrostore.data.app.Author;
 import org.retrostore.request.RequestData;
 import org.retrostore.request.Responder;
 import org.retrostore.request.Response;
+import org.retrostore.resources.ImageServiceWrapper;
 import org.retrostore.rpc.internal.ApiCall;
 
 import java.util.List;
@@ -43,10 +44,13 @@ import java.util.logging.Logger;
  */
 public class ListAppsApiCall implements ApiCall<App> {
   private static final Logger LOG = Logger.getLogger("ListAppsApiCall");
+  private static final int SCREENSHOT_SIZE = 800;
   private final AppManagement mAppManagement;
+  private final ImageServiceWrapper mImageService;
 
-  public ListAppsApiCall(AppManagement appManagement) {
+  public ListAppsApiCall(AppManagement appManagement, ImageServiceWrapper imageService) {
     mAppManagement = appManagement;
+    mImageService = imageService;
   }
 
   @Override
@@ -110,10 +114,9 @@ public class ListAppsApiCall implements ApiCall<App> {
       }
       appBuilder.setTrs80Params(trsParams);
 
-      // TODO: Add support for screenshots.
-      // FIXME: URL just for testing.
-      appBuilder.addScreenshotUrl("http://www.nightfallcrew.com" +
-          "/wp-content/gallery/radio-shack-trs-80-model-iii-microcomputer/20140202_154406.jpg");
+      for (String blobKey : app.screenshotsBlobKeys) {
+        appBuilder.addScreenshotUrl(mImageService.getServingUrl(blobKey, SCREENSHOT_SIZE));
+      }
 
       // Create the list of media images for this app (disks and casettes).
       for (AppStoreItem.MediaImage mediaImage : app.configuration.disk) {
