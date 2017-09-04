@@ -216,8 +216,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <template is="dom-repeat" items="{{screenshots}}">
         <tr>
           <td><img src="/screenshotServe?key={{item}}" width="200px"><td>
-          <td>Up</td>
-          <td>Down</td>
+          <td><paper-button on-tap="onReorderScreenshotUp" class="action-edit">⇧</paper-button></td>
+          <td><paper-button on-tap="onReorderScreenshotDown" class="action-edit">⇩</paper-button></td>
           <td><paper-button on-tap="onDeleteScreenshot" class="action-delete">Delete</paper-button></td>
         </tr>
       </template>
@@ -350,6 +350,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                handle-as="json"
                on-response="onScreenshotDeleteResponse"
                debounce-duration="1000"></iron-ajax>
+    <iron-ajax id="xhrReorderScreenshot"
+               noauto
+               url="/rpc?m=reorderScreenshots&appId={{assets_appId}}&blobKey={{reorderScreenshotKey}}&direction={{reorderScreenshotDir}}"
+               handle-as="json"
+               on-response="onScreenshotReorderResponse"
+               debounce-duration="500"></iron-ajax>
   </template>
 
   <script>
@@ -500,6 +506,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       }
       onScreenshotDeleteResponse() {
+        this.$.xhrListScreenshots.generateRequest();
+      }
+      onReorderScreenshotUp(e) {
+        this.reorderScreenshotDir = "up";
+        this.reorderScreenshotKey = e.model.get("item");
+        this.$.xhrReorderScreenshot.generateRequest();
+      }
+      onReorderScreenshotDown(e) {
+        this.reorderScreenshotDir = "down";
+        this.reorderScreenshotKey = e.model.get("item");
+        this.$.xhrReorderScreenshot.generateRequest();
+      }
+      onScreenshotReorderResponse() {
         this.$.xhrListScreenshots.generateRequest();
       }
 
