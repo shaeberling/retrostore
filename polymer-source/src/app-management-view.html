@@ -14,6 +14,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
 <link rel="import" href="../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
 <link rel="import" href="../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../bower_components/paper-input/paper-textarea.html">
 <link rel="import" href="../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../bower_components/paper-listbox/paper-listbox.html">
 <link rel="import" href="../bower_components/polymer/polymer-element.html">
@@ -121,7 +122,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <paper-input name="appId" label="App ID" value="{{form_appId}}" hidden></paper-input>
         <paper-input name="appName" label="App name" value="{{form_appName}}" required></paper-input>
         <paper-input name="appVersion" label="App version" value="{{form_appVersion}}" required></paper-input>
-        <paper-input name="description" label="Description" value="{{form_description}}" required></paper-input>
+        <paper-textarea name="description" label="Description" value="{{form_description}}" required></paper-textarea>
         <paper-input name="releaseYear" label="Release rear" value="{{form_releaseYear}}"></paper-input>
         <paper-dropdown-menu name="origAuthor" label="Original Author" required>
           <paper-listbox slot="dropdown-content" selected="{{form_origAuthorId}}" attr-for-selected="value">
