@@ -24,6 +24,8 @@ message App {
     string version = 3;
     // The description of this app.
     string description = 4;
+    // The original release year of the app.
+    int32 release_year = 9;
     // URLs to screenshots for this app.
     repeated string screenshot_url = 5;
     // The media images included with this app.
@@ -32,6 +34,8 @@ message App {
     string author = 7;
     // TRS80 specific parameters.
     Trs80Params trs80_params = 8;
+
+    // NEXT ID: 10;
 }
 
 // Parameters specific to TRS-80 apps.

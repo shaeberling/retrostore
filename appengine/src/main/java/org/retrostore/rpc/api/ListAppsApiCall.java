@@ -90,6 +90,7 @@ public class ListAppsApiCall implements ApiCall<App> {
       appBuilder.setName(app.listing.name);
       appBuilder.setVersion(app.listing.versionString);
       appBuilder.setDescription(app.listing.description);
+      appBuilder.setReleaseYear(app.listing.releaseYear);
       Optional<Author> author = mAppManagement.getAuthorById(app.listing.authorId);
       if (author.isPresent()) {
         appBuilder.setAuthor(author.get().name);
