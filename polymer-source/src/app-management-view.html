@@ -212,12 +212,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     <div id="addEditScreenshotsCard" class="card" show$="{{showMode}}">
       <h3>Screenshots</h3>
+      <table class="disk-image-table">
       <template is="dom-repeat" items="{{screenshots}}">
-        <div>
-          <img src="/screenshotServe?key={{item}}" width="200px"><br>
-          <paper-button on-tap="onDeleteScreenshot" class="action-delete">Delete</paper-button>
+        <tr>
+          <td><img src="/screenshotServe?key={{item}}" width="200px"><td>
+          <td>Up</td>
+          <td>Down</td>
+          <td><paper-button on-tap="onDeleteScreenshot" class="action-delete">Delete</paper-button></td>
         </tr>
       </template>
+      </table>
       <paper-button id="uploadScreenshotButton" on-tap="onUploadScreenshot" class="action-edit">Upload Screenshot</paper-button>
     </div>
 
@@ -488,8 +492,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       onDeleteScreenshot(e) {
-        this.deleteScreenshotKey = e.model.get("item");
-        this.$.xhrDeleteScreenshot.generateRequest();
+        if (confirm("Are you sure you want to delete this Screenshot?")) {
+          this.deleteScreenshotKey = e.model.get("item");
+          this.$.xhrDeleteScreenshot.generateRequest();
+        } else {
+          // Do nothing.
+        }
       }
       onScreenshotDeleteResponse() {
         this.$.xhrListScreenshots.generateRequest();
