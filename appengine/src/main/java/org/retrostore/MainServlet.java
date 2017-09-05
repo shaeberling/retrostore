@@ -22,6 +22,7 @@ import com.google.appengine.api.images.ImagesService;
 import com.google.appengine.api.images.ImagesServiceFactory;
 import com.google.appengine.api.users.UserServiceFactory;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 import org.retrostore.data.BlobstoreWrapper;
 import org.retrostore.data.BlobstoreWrapperImpl;
 import org.retrostore.data.app.AppManagement;
@@ -49,7 +50,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -74,14 +74,15 @@ public class MainServlet extends RetroStoreServlet {
   private static List<Request> sRequestServers;
 
   static {
-    sRequestServers = new ArrayList<>();
-    sRequestServers.add(new LoginRequest());
-    sRequestServers.add(new EnsureAdminExistsRequest(sUserManagement));
-    sRequestServers.add(new RpcCallRequest(sUserManagement, sAppManagement));
-    sRequestServers.add(new ScreenshotRequest(sBlobstoreWrapper, sAppManagement, sImgServWrapper));
-    sRequestServers.add(new PolymerRequest(getResourceLoader()));
-    sRequestServers.add(new PostUploadRequest(sAppManagement));
-    sRequestServers.add(new ApiRequest(sAppManagement, sImgServWrapper));
+    sRequestServers = ImmutableList.of(
+        new LoginRequest(),
+        new EnsureAdminExistsRequest(sUserManagement),
+        new RpcCallRequest(sUserManagement, sAppManagement),
+        new ScreenshotRequest(sBlobstoreWrapper, sAppManagement, sImgServWrapper),
+        new PolymerRequest(getResourceLoader()),
+        new PostUploadRequest(sAppManagement),
+        new ApiRequest(sAppManagement, sImgServWrapper)
+    );
     // Note: Add more request servers here. Keep in mind that this is in priority-order.
   }
 
