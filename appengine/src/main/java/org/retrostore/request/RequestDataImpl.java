@@ -66,7 +66,7 @@ public class RequestDataImpl implements RequestData {
 
   }
 
-  RequestDataImpl(HttpServletRequest request, Type type, BlobProvider blobInfos) {
+  private RequestDataImpl(HttpServletRequest request, Type type, BlobProvider blobInfos) {
     mRequest = checkNotNull(request);
     mType = checkNotNull(type);
     mBlobInfos = blobInfos;

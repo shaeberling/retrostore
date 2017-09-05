@@ -34,6 +34,7 @@ import org.retrostore.request.EnsureAdminExistsRequest;
 import org.retrostore.request.LoginRequest;
 import org.retrostore.request.PolymerRequest;
 import org.retrostore.request.Request;
+import org.retrostore.request.RequestData;
 import org.retrostore.request.RequestData.Type;
 import org.retrostore.request.RequestDataImpl;
 import org.retrostore.request.Responder;
@@ -111,10 +112,17 @@ public class MainServlet extends RetroStoreServlet {
 
   private void serveMainHtml(HttpServletRequest req, HttpServletResponse resp, Type type)
       throws ServletException, IOException {
+    String url = req.getRequestURI().toLowerCase();
+    if (url.equals("/")) {
+      // Serve the public portion of the website where no login is required.
+      resp.getWriter().write("Welcome to RetroStore");
+      return;
+    }
+
+    RequestData requestData = RequestDataImpl.create(req, type, sBlobstoreService);
     Responder responder = new Responder(resp, sBlobstoreService);
     for (Request server : sRequestServers) {
-      if (server.serveUrl(RequestDataImpl.create(req, type, sBlobstoreService),
-          responder, sAccountTypeProvider)) {
+      if (server.serveUrl(requestData, responder, sAccountTypeProvider)) {
         return;
       }
     }

@@ -33,8 +33,10 @@ public class LoginRequest implements Request {
   private static final Logger LOG = Logger.getLogger("PolymerRequest");
   private static List<String> sLoginPrefixWhiteList = getLoginPrefixWhiteList();
 
+  // RPC and API will be protected on the backend side. We want these to be handled there and not
+  // replace these endpoints with a login page that is intended for humans.
   private static List<String> getLoginPrefixWhiteList() {
-    return ImmutableList.of("/rpc", "/api");
+    return ImmutableList.of("/rpc", "/api", "/public");
   }
 
   private boolean matchesPrefix(String url) {
@@ -54,10 +56,8 @@ public class LoginRequest implements Request {
       return false;
     }
 
-    // TODO: At the moment, there is not non-admin user-visible page. Once that exists and we
-    // have moved the admin portion to /admin, this filter can go away since we do not require
-    // normal users to be logged in.
-    if (matchesPrefix(requestData.getUrl())) {
+    // The public site "/" will not require a login.
+    if (url.equals("/") || matchesPrefix(requestData.getUrl())) {
       return false;
     }
 
