@@ -3,6 +3,7 @@
     <application>trs-80</application>
     <version>test</version>
     <threadsafe>true</threadsafe>
+    <ssl-enabled>true</ssl-enabled>
 
     <system-properties>
         <property name="java.util.logging.config.file" value="WEB-INF/logging.properties"/>
