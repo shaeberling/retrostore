@@ -31,8 +31,9 @@ public class PolymerRequest implements Request {
   private static final Logger LOG = Logger.getLogger("PolymerRequest");
 
   private static final String POLYMER_ROOT = "WEB-INF/polymer-app";
-  private static final Set<String> FORWARD = Sets.newHashSet("/bower_components",
-      "/favicon", "/images", "/src", "/service-worker.js", "/manifest.json", "/index.html");
+  private static final Set<String> FORWARD = Sets.newHashSet("/bower_components", "/images",
+      "/src", "/service-worker.js", "/manifest.json", "/user-management-view",
+      "/app-management-view");
 
   private final ResourceLoader mResourceLoader;
 
@@ -47,45 +48,20 @@ public class PolymerRequest implements Request {
     String url = requestData.getUrl();
     LOG.info("URL: " + url);
 
-    // If a request is not for a sub-directory, we map it to index.html where it will be handled
-    // by polymer on the client side.
-    if (url.equals("/") || url.equals("") || !url.substring(1).contains("/")) {
-      url = "/index.html";
-    }
-
-    // Re-write the favicon path in case the browser is requesting it.
-    if (url.equals("/favicon.ico")) {
-      url = "/favicon/favicon.ico";
+    String rewriteUrl = url;
+    if (url.startsWith("/user-management-view") || url.startsWith("/app-management-view")) {
+      rewriteUrl = "/index.html";
     }
 
     for (String path : FORWARD) {
       if (url.startsWith(path)) {
-        Optional<byte[]> content = mResourceLoader.load(POLYMER_ROOT + url);
+        Optional<byte[]> content = mResourceLoader.load(POLYMER_ROOT + rewriteUrl);
         if (content.isPresent()) {
-          responder.respond(content.get(), fromFilename(url));
+          responder.respond(content.get(), ContentType.fromFilename(rewriteUrl));
         }
         return true;
       }
     }
     return false;
-  }
-
-  private Responder.ContentType fromFilename(String filename) {
-    if (filename.endsWith(".html")) {
-      return Responder.ContentType.HTML;
-    } else if (filename.endsWith(".css")) {
-      return Responder.ContentType.CSS;
-    } else if (filename.endsWith(".js")) {
-      return Responder.ContentType.JS;
-    } else if (filename.endsWith(".json")) {
-      return Responder.ContentType.JSON;
-    } else if (filename.endsWith(".jpeg")) {
-      return Responder.ContentType.JPEG;
-    } else if (filename.endsWith(".png")) {
-      return Responder.ContentType.PNG;
-    } else {
-      LOG.warning("Content type not recognized for: " + filename);
-      return Responder.ContentType.PLAIN;
-    }
   }
 }

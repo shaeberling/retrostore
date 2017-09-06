@@ -36,7 +36,7 @@ public class LoginRequest implements Request {
   // RPC and API will be protected on the backend side. We want these to be handled there and not
   // replace these endpoints with a login page that is intended for humans.
   private static List<String> getLoginPrefixWhiteList() {
-    return ImmutableList.of("/rpc", "/api", "/public");
+    return ImmutableList.of("/gfx", "/rpc", "/api", "/public");
   }
 
   private boolean matchesPrefix(String url) {

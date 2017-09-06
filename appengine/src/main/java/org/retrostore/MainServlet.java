@@ -21,6 +21,7 @@ import com.google.appengine.api.blobstore.BlobstoreServiceFactory;
 import com.google.appengine.api.images.ImagesService;
 import com.google.appengine.api.images.ImagesServiceFactory;
 import com.google.appengine.api.users.UserServiceFactory;
+import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import org.retrostore.data.BlobstoreWrapper;
@@ -39,6 +40,7 @@ import org.retrostore.request.RequestData.Type;
 import org.retrostore.request.RequestDataImpl;
 import org.retrostore.request.Responder;
 import org.retrostore.request.ScreenshotRequest;
+import org.retrostore.request.StaticFileRequest;
 import org.retrostore.resources.DefaultResourceLoader;
 import org.retrostore.resources.ImageServiceWrapper;
 import org.retrostore.resources.PolymerDebugLoader;
@@ -81,6 +83,7 @@ public class MainServlet extends RetroStoreServlet {
         new RpcCallRequest(sUserManagement, sAppManagement),
         new ScreenshotRequest(sBlobstoreWrapper, sAppManagement, sImgServWrapper),
         new PolymerRequest(getResourceLoader()),
+        new StaticFileRequest(sDefaultResourceLoader),
         new PostUploadRequest(sAppManagement),
         new ApiRequest(sAppManagement, sImgServWrapper)
     );
