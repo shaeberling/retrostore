@@ -18,6 +18,7 @@ package org.retrostore.resources;
 
 import com.google.common.base.Optional;
 import com.google.common.io.ByteStreams;
+import org.retrostore.request.Cache;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -30,23 +31,37 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Functionality around files, e.g. loading them as resources.
+ * Loads files as resources and caches them aggressively.
  */
 public class DefaultResourceLoader implements ResourceLoader {
   private static final Logger LOG = Logger.getLogger("DefaultResourceLoader");
 
+  private final Cache mCache;
+
+  public DefaultResourceLoader(Cache cache) {
+    mCache = cache;
+  }
+
   @Override
-  public Optional<byte[]> load(String filename) {
-    // TODO: Cache!
+  public Optional<byte[]> load(final String filename) {
+    return mCache.get(filename, new Cache.DataProvider() {
+      @Override
+      public byte[] provide() {
+        return loadFile(filename);
+      }
+    });
+  }
+
+  private byte[] loadFile(String filename) {
     // TODO: Debug mode for local reloading
     try {
       File file = new File(filename);
       LOG.info("Loading file: " + file.getAbsolutePath());
-      return Optional.of(toBytes(new FileInputStream(file)));
+      return toBytes(new FileInputStream(file));
     } catch (IOException e) {
       LOG.log(Level.SEVERE, "Cannot load file.", e);
     }
-    return Optional.absent();
+    return null;
   }
 
   @Override

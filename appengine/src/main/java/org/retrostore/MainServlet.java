@@ -20,8 +20,8 @@ import com.google.appengine.api.blobstore.BlobstoreService;
 import com.google.appengine.api.blobstore.BlobstoreServiceFactory;
 import com.google.appengine.api.images.ImagesService;
 import com.google.appengine.api.images.ImagesServiceFactory;
+import com.google.appengine.api.memcache.MemcacheServiceFactory;
 import com.google.appengine.api.users.UserServiceFactory;
-import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import org.retrostore.data.BlobstoreWrapper;
@@ -31,6 +31,7 @@ import org.retrostore.data.app.AppManagementImpl;
 import org.retrostore.data.user.UserManagement;
 import org.retrostore.data.user.UserService;
 import org.retrostore.data.user.UserServiceImpl;
+import org.retrostore.request.Cache;
 import org.retrostore.request.EnsureAdminExistsRequest;
 import org.retrostore.request.LoginRequest;
 import org.retrostore.request.PolymerRequest;
@@ -41,8 +42,11 @@ import org.retrostore.request.RequestDataImpl;
 import org.retrostore.request.Responder;
 import org.retrostore.request.ScreenshotRequest;
 import org.retrostore.request.StaticFileRequest;
+import org.retrostore.request.TwoLayerCacheImpl;
 import org.retrostore.resources.DefaultResourceLoader;
 import org.retrostore.resources.ImageServiceWrapper;
+import org.retrostore.resources.MemcacheWrapper;
+import org.retrostore.resources.MemcacheWrapperImpl;
 import org.retrostore.resources.PolymerDebugLoader;
 import org.retrostore.resources.ResourceLoader;
 import org.retrostore.rpc.internal.ApiRequest;
@@ -70,9 +74,12 @@ public class MainServlet extends RetroStoreServlet {
   private static AppManagement sAppManagement = new AppManagementImpl(sBlobstoreWrapper);
   private static UserService sAccountTypeProvider =
       new UserServiceImpl(sUserManagement, sUserService);
-  private static DefaultResourceLoader sDefaultResourceLoader = new DefaultResourceLoader();
   private static ImagesService sImagesService = ImagesServiceFactory.getImagesService();
   private static ImageServiceWrapper sImgServWrapper = new ImageServiceWrapper(sImagesService);
+  private static MemcacheWrapper sMemcache =
+      new MemcacheWrapperImpl(MemcacheServiceFactory.getMemcacheService());
+  private static Cache sCache = new TwoLayerCacheImpl(sMemcache);
+  private static DefaultResourceLoader sDefaultResourceLoader = new DefaultResourceLoader(sCache);
 
   private static List<Request> sRequestServers;
 
