@@ -32,6 +32,7 @@ public class AppManagementCached implements AppManagement {
   private final AppManagement mAppManagement;
 
   /** TODO: Handle sorting. */
+  /** Important: These items are not immutable and a client might change them. */
   private final Map<Long, AppStoreItem> mAppCacheById;
   private final Map<Long, Author> mAuthorCacheById;
 
@@ -123,6 +124,7 @@ public class AppManagementCached implements AppManagement {
 
   private void updateAppCache() {
     List<AppStoreItem> apps = mAppManagement.getAllApps();
+    mAppCacheById.clear();
     for (AppStoreItem app : apps) {
       mAppCacheById.put(app.id, app);
     }

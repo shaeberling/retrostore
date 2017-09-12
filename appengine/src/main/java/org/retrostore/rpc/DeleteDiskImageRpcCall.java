@@ -87,6 +87,8 @@ public class DeleteDiskImageRpcCall implements RpcCall<RpcParameters> {
       }
     } else if (diskImageNo == 4) {
       app.configuration.cassette = null;
+    } else if (diskImageNo == 5) {
+      app.configuration.command = null;
     }
     mAppManagement.addOrChangeApp(app);
   }

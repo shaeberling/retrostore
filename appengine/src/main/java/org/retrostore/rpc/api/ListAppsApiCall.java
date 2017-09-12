@@ -130,6 +130,10 @@ public class ListAppsApiCall implements ApiCall<App> {
       if (cassette != null) {
         appBuilder.addMediaImage(toClientType(cassette, MediaType.CASSETTE));
       }
+      AppStoreItem.MediaImage command = app.configuration.command;
+      if (command != null) {
+        appBuilder.addMediaImage(toClientType(command, MediaType.COMMAND));
+      }
       response.addApp(appBuilder);
     }
 

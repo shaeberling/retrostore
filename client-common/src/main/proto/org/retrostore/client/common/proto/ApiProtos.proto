@@ -63,6 +63,7 @@ enum MediaType {
     UNKNOWN = 0;
     DISK = 1;
     CASSETTE = 2;
+    COMMAND = 3;
 }
 
 // The TRS-80 model types.

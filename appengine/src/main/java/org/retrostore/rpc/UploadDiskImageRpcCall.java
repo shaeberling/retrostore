@@ -113,6 +113,13 @@ public class UploadDiskImageRpcCall implements RpcCall<RequestData> {
       app.configuration.cassette.data = file.content;
       app.configuration.cassette.uploadTime = now;
       app.configuration.cassette.filename = file.filename;
+    } else if (diskNo == 5) {
+      if (app.configuration.command == null) {
+        app.configuration.command = new AppStoreItem.MediaImage();
+      }
+      app.configuration.command.data = file.content;
+      app.configuration.command.uploadTime = now;
+      app.configuration.command.filename = file.filename;
     } else {
       responder.respondBadRequest(String.format("Illegal disk image number '%d'.", diskNo));
       return;

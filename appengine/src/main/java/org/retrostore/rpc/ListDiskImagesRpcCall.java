@@ -42,7 +42,8 @@ public class ListDiskImagesRpcCall implements RpcCall<RpcParameters> {
       "Disk Image #2",
       "Disk Image #3",
       "Disk Image #4",
-      "Cassette image"};
+      "Cassette image",
+      "Command image"};
   private final AppManagement mAppManagement;
 
   public ListDiskImagesRpcCall(AppManagement appManagement) {
@@ -80,7 +81,7 @@ public class ListDiskImagesRpcCall implements RpcCall<RpcParameters> {
       return;
     }
 
-    DiskImageInfo[] infos = new DiskImageInfo[5];
+    DiskImageInfo[] infos = new DiskImageInfo[6];
     for (int i = 0; i < 4; ++i) {
       infos[i] = new DiskImageInfo();
       infos[i].id = i;
@@ -92,6 +93,8 @@ public class ListDiskImagesRpcCall implements RpcCall<RpcParameters> {
         infos[i].uploadTime = configuration.disk[i].uploadTime;
       }
     }
+
+    // Casette
     infos[4] = new DiskImageInfo();
     infos[4].id = 4;
     infos[4].label = DISK_IMAGE_LABELS[4];
@@ -99,6 +102,16 @@ public class ListDiskImagesRpcCall implements RpcCall<RpcParameters> {
       infos[4].name = configuration.cassette.filename;
       infos[4].sizeInBytes = configuration.cassette.data.length;
       infos[4].uploadTime = configuration.cassette.uploadTime;
+    }
+
+    // Command image.
+    infos[5] = new DiskImageInfo();
+    infos[5].id = 5;
+    infos[5].label = DISK_IMAGE_LABELS[5];
+    if (configuration.command != null) {
+      infos[5].name = configuration.command.filename;
+      infos[5].sizeInBytes = configuration.command.data.length;
+      infos[5].uploadTime = configuration.command.uploadTime;
     }
     responder.respondJson(infos);
   }

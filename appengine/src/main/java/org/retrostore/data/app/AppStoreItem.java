@@ -147,6 +147,7 @@ public class AppStoreItem {
     // Disk 1-4 + cassette (type/extension + data)
     public MediaImage[] disk = new MediaImage[4];
     public MediaImage cassette;
+    public MediaImage command;
 
     public boolean soundMuted;
     public KeyboardLayout kbLayoutLandscape;
@@ -181,6 +182,9 @@ public class AppStoreItem {
 
   @Id
   public Long id;
+
+  /** Optional. Might be a UUID provided by an uploader. */
+  public String alternativeId;
 
   // TODO: This configuration is platform-specific and should only be a link or somewhat
   // generalized.
