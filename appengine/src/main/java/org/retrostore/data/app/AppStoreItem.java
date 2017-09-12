@@ -122,6 +122,7 @@ public class AppStoreItem {
 
   public enum ListingCategory {
     GAME("Game"),
+    GAME_ARCADE("Game/Arcade"),
     OFFICE("Office"),
     OTHER("Other");
 
