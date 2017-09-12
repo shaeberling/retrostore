@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import org.retrostore.data.BlobstoreWrapper;
 import org.retrostore.data.BlobstoreWrapperImpl;
 import org.retrostore.data.app.AppManagement;
+import org.retrostore.data.app.AppManagementCached;
 import org.retrostore.data.app.AppManagementImpl;
 import org.retrostore.data.user.UserManagement;
 import org.retrostore.data.user.UserService;
@@ -71,7 +72,8 @@ public class MainServlet extends RetroStoreServlet {
   private static BlobstoreService sBlobstoreService = BlobstoreServiceFactory.getBlobstoreService();
   private static BlobstoreWrapper sBlobstoreWrapper = new BlobstoreWrapperImpl(sBlobstoreService);
   private static UserManagement sUserManagement = new UserManagement(sUserService);
-  private static AppManagement sAppManagement = new AppManagementImpl(sBlobstoreWrapper);
+  private static AppManagement sAppManagement = new AppManagementCached(
+      new AppManagementImpl(sBlobstoreWrapper));
   private static UserService sAccountTypeProvider =
       new UserServiceImpl(sUserManagement, sUserService);
   private static ImagesService sImagesService = ImagesServiceFactory.getImagesService();
