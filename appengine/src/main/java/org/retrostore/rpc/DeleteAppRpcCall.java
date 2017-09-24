@@ -66,12 +66,11 @@ public class DeleteAppRpcCall implements RpcCall<RpcParameters> {
         return;
       }
 
-      try {
-        long id = Long.parseLong(data.id);
-        mAppManagement.removeApp(id);
+      if (!Strings.isNullOrEmpty(data.id)) {
+        mAppManagement.removeApp(data.id);
         RpcResponse.respond(true, "App deleted", responder);
-      } catch (NumberFormatException ex) {
-        RpcResponse.respond(false, String.format("Invalid ID '%s' ", data.id), responder);
+      } else {
+        RpcResponse.respond(false, String.format("No app ID"), responder);
       }
     } catch (JsonSyntaxException e) {
       RpcResponse.respond(false, "Invalid JSON data", responder);

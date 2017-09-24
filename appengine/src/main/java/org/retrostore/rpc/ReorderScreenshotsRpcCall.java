@@ -23,7 +23,6 @@ import org.retrostore.data.user.UserAccountType;
 import org.retrostore.request.Responder;
 import org.retrostore.rpc.internal.RpcCall;
 import org.retrostore.rpc.internal.RpcParameters;
-import org.retrostore.util.NumUtil;
 
 import java.util.Collections;
 import java.util.List;
@@ -58,7 +57,7 @@ public class ReorderScreenshotsRpcCall implements RpcCall<RpcParameters> {
 
   @Override
   public void call(RpcParameters params, Responder responder) {
-    Optional<Long> appIdOpt = NumUtil.parseLong(params.getString(PARAM_APP_ID));
+    Optional<String> appIdOpt = params.getString(PARAM_APP_ID);
     if (!appIdOpt.isPresent()) {
       respondAndLogbadRequest("No valid 'appId' given.", responder);
       return;

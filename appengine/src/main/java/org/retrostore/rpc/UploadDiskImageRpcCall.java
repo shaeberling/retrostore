@@ -17,6 +17,7 @@
 package org.retrostore.rpc;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Strings;
 import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.app.AppStoreItem;
 import org.retrostore.data.user.UserAccountType;
@@ -77,10 +78,9 @@ public class UploadDiskImageRpcCall implements RpcCall<RequestData> {
       return;
     }
 
-    Optional<Long> appIdOpt = NumUtil.parseLong(appIdStr);
     Optional<Long> diskImageOpt = NumUtil.parseLong(diskImageStr);
 
-    if (!appIdOpt.isPresent()) {
+    if (Strings.isNullOrEmpty(appIdStr)) {
       responder.respondBadRequest(String.format("Illegal app ID '%s'.", appIdStr));
       return;
     }
@@ -89,10 +89,9 @@ public class UploadDiskImageRpcCall implements RpcCall<RequestData> {
       return;
     }
 
-    long appId = appIdOpt.get();
-    Optional<AppStoreItem> appOpt = mAppManagement.getAppById(appId);
+    Optional<AppStoreItem> appOpt = mAppManagement.getAppById(appIdStr);
     if (!appOpt.isPresent()) {
-      responder.respondBadRequest(String.format("No app with ID '%d'.", appId));
+      responder.respondBadRequest(String.format("No app with ID '%s'.", appIdStr));
       return;
     }
     int diskNo = (int) (long) diskImageOpt.get();

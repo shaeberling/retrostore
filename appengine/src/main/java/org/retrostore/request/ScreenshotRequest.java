@@ -95,14 +95,14 @@ public class ScreenshotRequest implements Request {
   }
 
   private void uploadScreenshot(RequestData requestData, Responder responder) {
-    Optional<Long> appIdOpt = requestData.getLong("appId");
+    Optional<String> appIdOpt = requestData.getString("appId");
     if (!appIdOpt.isPresent()) {
       final String msg = "'appId' missing from post-upload URL.";
       LOG.log(Level.SEVERE, msg);
       responder.respondBadRequest(msg);
       return;
     }
-    long appId = appIdOpt.get();
+    String appId = appIdOpt.get();
 
     Map<String, List<String>> blobKeys = requestData.getBlobKeys();
     if (blobKeys.isEmpty()) {

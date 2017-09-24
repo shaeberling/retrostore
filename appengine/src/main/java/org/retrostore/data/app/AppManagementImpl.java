@@ -47,12 +47,12 @@ public class AppManagementImpl implements AppManagement {
   }
 
   @Override
-  public Optional<AppStoreItem> getAppById(long id) {
+  public Optional<AppStoreItem> getAppById(String id) {
     return Optional.fromNullable(ofy().load().key(AppStoreItem.key(id)).now());
   }
 
   @Override
-  public boolean addScreenshot(long id, String blobKey) {
+  public boolean addScreenshot(String id, String blobKey) {
     Optional<AppStoreItem> appOpt = getAppById(id);
     if (!appOpt.isPresent()) {
       LOG.warning("App not found for adding screenshot: " + id);
@@ -64,7 +64,7 @@ public class AppManagementImpl implements AppManagement {
   }
 
   @Override
-  public boolean removeScreenshot(long id, String blobKey) {
+  public boolean removeScreenshot(String id, String blobKey) {
     // First delete the blob itself.
     mBlobstore.deleteBlob(blobKey);
 
@@ -87,7 +87,8 @@ public class AppManagementImpl implements AppManagement {
     return ofy().load().type(AppStoreItem.class).list();
   }
 
-  public void removeApp(long id) {
+  @Override
+  public void removeApp(String id) {
     ofy().delete().key(AppStoreItem.key(id)).now();
 
     // FIXME: Delete screenshots + disk images.

@@ -23,7 +23,6 @@ import org.retrostore.data.user.UserAccountType;
 import org.retrostore.request.Responder;
 import org.retrostore.rpc.internal.RpcCall;
 import org.retrostore.rpc.internal.RpcParameters;
-import org.retrostore.util.NumUtil;
 
 /**
  * Lists data about the disk images of an app.
@@ -63,7 +62,7 @@ public class ListDiskImagesRpcCall implements RpcCall<RpcParameters> {
 
   @Override
   public void call(RpcParameters params, Responder responder) {
-    Optional<Long> appIdOpt = NumUtil.parseLong(params.getString("appId"));
+    Optional<String> appIdOpt = params.getString("appId");
     if (!appIdOpt.isPresent()) {
       responder.respondBadRequest("No valid 'appId' given.");
       return;

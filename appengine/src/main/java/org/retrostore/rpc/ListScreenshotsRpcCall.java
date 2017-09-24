@@ -23,7 +23,6 @@ import org.retrostore.data.user.UserAccountType;
 import org.retrostore.request.Responder;
 import org.retrostore.rpc.internal.RpcCall;
 import org.retrostore.rpc.internal.RpcParameters;
-import org.retrostore.util.NumUtil;
 
 /**
  * Serves a list of screenshots for a given app.
@@ -48,7 +47,7 @@ public class ListScreenshotsRpcCall implements RpcCall<RpcParameters> {
 
   @Override
   public void call(RpcParameters params, Responder responder) {
-    Optional<Long> appIdOpt = NumUtil.parseLong(params.getString(PARAM_APP_ID));
+    Optional<String> appIdOpt = params.getString(PARAM_APP_ID);
     if (!appIdOpt.isPresent()) {
       responder.respondBadRequest("No valid 'appId' given.");
       return;

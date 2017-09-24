@@ -17,11 +17,9 @@
 package org.retrostore.data.app;
 
 import com.googlecode.objectify.Key;
-import com.googlecode.objectify.Ref;
 import com.googlecode.objectify.annotation.Cache;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
-import com.googlecode.objectify.annotation.Load;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -173,7 +171,7 @@ public class AppStoreItem {
   /**
    * Create a key for ann AppStoreItem based on its unique ID.
    */
-  public static Key<AppStoreItem> key(long id) {
+  public static Key<AppStoreItem> key(String id) {
     return Key.create(AppStoreItem.class, id);
   }
 
@@ -181,10 +179,7 @@ public class AppStoreItem {
   }
 
   @Id
-  public Long id;
-
-  /** Optional. Might be a UUID provided by an uploader. */
-  public String alternativeId;
+  public String id;
 
   // TODO: This configuration is platform-specific and should only be a link or somewhat
   // generalized.

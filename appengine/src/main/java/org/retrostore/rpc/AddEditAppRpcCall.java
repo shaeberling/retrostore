@@ -21,7 +21,6 @@ import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import org.retrostore.data.app.AppManagement;
-import org.retrostore.data.app.AppManagementImpl;
 import org.retrostore.data.app.AppStoreItem;
 import org.retrostore.data.app.AppStoreItem.CharacterColor;
 import org.retrostore.data.app.AppStoreItem.KeyboardLayout;
@@ -128,8 +127,7 @@ public class AddEditAppRpcCall implements RpcCall<RpcParameters> {
       // Let's see if an existing app exists, so this becomes an edit and not an add operation.
       if (!Strings.isNullOrEmpty(data.appId)) {
         try {
-          long appId = Long.parseLong(data.appId);
-          Optional<AppStoreItem> existingApp = mAppManagement.getAppById(appId);
+          Optional<AppStoreItem> existingApp = mAppManagement.getAppById(data.appId);
           if (existingApp.isPresent()) {
             appStoreItem = existingApp.get();
           } else {

@@ -51,7 +51,7 @@ public class DeleteScreenshotRpcCall implements RpcCall<RpcParameters> {
 
   @Override
   public void call(RpcParameters params, Responder responder) {
-    Optional<Long> appIdOpt = params.getLong(PARAM_APP_ID);
+    Optional<String> appIdOpt = params.getString(PARAM_APP_ID);
     Optional<String> blobKeyOpt = params.getString(PARAM_BLOB_KEY);
 
     if (!appIdOpt.isPresent()) {
@@ -67,7 +67,7 @@ public class DeleteScreenshotRpcCall implements RpcCall<RpcParameters> {
       return;
     }
 
-    long appId = appIdOpt.get();
+    String appId = appIdOpt.get();
     String blobKey = blobKeyOpt.get();
     if (!mAppManagement.removeScreenshot(appId, blobKey)) {
       String msg = String.format(

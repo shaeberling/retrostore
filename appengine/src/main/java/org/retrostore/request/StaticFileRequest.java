@@ -33,7 +33,7 @@ public class StaticFileRequest implements Request {
 
 
   private static final Set<String> FILTER = Sets.newHashSet(
-      "/gfx", "/public", "/static", "/favicon", "/bootstrap");
+      "/gfx", "/public", "/static", "/favicon", "/bootstrap", "/.well-known");
 
   private final ResourceLoader mResourceLoader;
 

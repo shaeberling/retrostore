@@ -35,7 +35,7 @@ public interface AppManagement {
    * @param id the ID of the app to retrieve.
    * @return The AppStoreItem instance for the app, if it exists.
    */
-  Optional<AppStoreItem> getAppById(long id);
+  Optional<AppStoreItem> getAppById(String id);
 
   /**
    * Adds a screenshot's blob key for the app with the given ID.
@@ -44,7 +44,7 @@ public interface AppManagement {
    * @param blobKey the blob key of the screenshot to add.
    * @return Whether the screenshot was successfully added.
    */
-  boolean addScreenshot(long appId, String blobKey);
+  boolean addScreenshot(String appId, String blobKey);
 
   /**
    * Remove a screenshot's blob key for the app with the given ID.
@@ -53,7 +53,7 @@ public interface AppManagement {
    * @param blobKey the blob key of the screenshot to remove.
    * @return Whether the screenshot was successfully removed.
    */
-  boolean removeScreenshot(long appId, String blobKey);
+  boolean removeScreenshot(String appId, String blobKey);
 
   /**
    * Returns a list of all apps int the data store.
@@ -64,7 +64,7 @@ public interface AppManagement {
    * Deletes the app with the given ID an all the data associated with it, like disk images and
    * screenshots.
    */
-  void removeApp(long id);
+  void removeApp(String id);
 
   /**
    * Stores an author with the given name, if it does not exist.

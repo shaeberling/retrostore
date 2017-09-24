@@ -17,7 +17,7 @@ message ApiResponseApps {
 // A RetroStore app item.
 message App {
     // The ID to uniquely identify an app.
-    int64 id = 1;
+    string id = 1;
     // The name of the app.
     string name = 2;
     // The human readable version of this app.

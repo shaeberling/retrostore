@@ -56,7 +56,6 @@ public class AppListRpcCall implements RpcCall<RpcParameters> {
     for (AppStoreItem app : allApps) {
       AppStoreItem listingApp = new AppStoreItem();
       listingApp.id = app.id;
-      listingApp.alternativeId = app.alternativeId;
       listingApp.listing = app.listing;
       listingApps.add(listingApp);
     }

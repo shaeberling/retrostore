@@ -33,7 +33,7 @@ public class AppManagementCached implements AppManagement {
 
   /** TODO: Handle sorting. */
   /** Important: These items are not immutable and a client might change them. */
-  private final Map<Long, AppStoreItem> mAppCacheById;
+  private final Map<String, AppStoreItem> mAppCacheById;
   private final Map<Long, Author> mAuthorCacheById;
 
   public AppManagementCached(AppManagement appManagement) {
@@ -53,7 +53,7 @@ public class AppManagementCached implements AppManagement {
   }
 
   @Override
-  public Optional<AppStoreItem> getAppById(long id) {
+  public Optional<AppStoreItem> getAppById(String id) {
     if (mAppCacheById.containsKey(id)) {
       return Optional.of(mAppCacheById.get(id));
     }
@@ -66,14 +66,14 @@ public class AppManagementCached implements AppManagement {
   }
 
   @Override
-  public boolean addScreenshot(long appId, String blobKey) {
+  public boolean addScreenshot(String appId, String blobKey) {
     boolean success = mAppManagement.addScreenshot(appId, blobKey);
     updateAppCacheItem(appId);
     return success;
   }
 
   @Override
-  public boolean removeScreenshot(long appId, String blobKey) {
+  public boolean removeScreenshot(String appId, String blobKey) {
     boolean success = mAppManagement.removeScreenshot(appId, blobKey);
     updateAppCacheItem(appId);
     return success;
@@ -85,7 +85,7 @@ public class AppManagementCached implements AppManagement {
   }
 
   @Override
-  public void removeApp(long id) {
+  public void removeApp(String id) {
     mAppManagement.removeApp(id);
     mAppCacheById.remove(id);
   }
@@ -113,7 +113,7 @@ public class AppManagementCached implements AppManagement {
     return Optional.fromNullable(mAuthorCacheById.get(id));
   }
 
-  private void updateAppCacheItem(long id) {
+  private void updateAppCacheItem(String id) {
     Optional<AppStoreItem> appOpt = mAppManagement.getAppById(id);
     if (!appOpt.isPresent()) {
       return;

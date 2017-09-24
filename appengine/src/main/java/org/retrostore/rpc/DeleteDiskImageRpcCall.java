@@ -50,7 +50,7 @@ public class DeleteDiskImageRpcCall implements RpcCall<RpcParameters> {
 
   @Override
   public void call(RpcParameters params, Responder responder) {
-    Optional<Long> appIdOpt = params.getLong("appId");
+    Optional<String> appIdOpt = params.getString("appId");
     Optional<Integer> diskImageOpt = params.getInt("diskImageNo");
 
     if (!appIdOpt.isPresent() || !diskImageOpt.isPresent()) {
@@ -62,14 +62,14 @@ public class DeleteDiskImageRpcCall implements RpcCall<RpcParameters> {
 
     Optional<AppStoreItem> appOpt = mAppManagement.getAppById(appIdOpt.get());
     if (!appOpt.isPresent()) {
-      String msg = String.format("App with ID '%d' not found.", appIdOpt.get());
+      String msg = String.format("App with ID '%s' not found.", appIdOpt.get());
       responder.respondBadRequest(msg);
       LOG.warning(msg);
       return;
     }
 
     int diskImageNo = diskImageOpt.get();
-    if (diskImageNo < 0 || diskImageNo > 4) {
+    if (diskImageNo < 0 || diskImageNo > 5) {
       String msg = String.format("Invalid diskImageNo: '%d'.", diskImageNo);
       responder.respondBadRequest(msg);
       LOG.warning(msg);

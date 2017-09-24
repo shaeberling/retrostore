@@ -129,6 +129,7 @@ public class RequestDataImpl implements RequestData {
   @Override
   public List<UploadFile> getFiles() {
     if (!ServletFileUpload.isMultipartContent(mRequest)) {
+      LOG.warning("This is not a multipart content request.");
       return new ArrayList<>();
     }
 

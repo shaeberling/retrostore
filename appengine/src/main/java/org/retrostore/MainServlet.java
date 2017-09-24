@@ -34,6 +34,7 @@ import org.retrostore.data.user.UserService;
 import org.retrostore.data.user.UserServiceImpl;
 import org.retrostore.request.Cache;
 import org.retrostore.request.EnsureAdminExistsRequest;
+import org.retrostore.request.ImportRpkRequest;
 import org.retrostore.request.LoginRequest;
 import org.retrostore.request.PolymerRequest;
 import org.retrostore.request.Request;
@@ -89,6 +90,7 @@ public class MainServlet extends RetroStoreServlet {
     sRequestServers = ImmutableList.of(
         new LoginRequest(),
         new EnsureAdminExistsRequest(sUserManagement),
+        new ImportRpkRequest((getResourceLoader()), sAppManagement),
         new RpcCallRequest(sUserManagement, sAppManagement),
         new ScreenshotRequest(sBlobstoreWrapper, sAppManagement, sImgServWrapper),
         new PolymerRequest(getResourceLoader()),
@@ -141,3 +143,4 @@ public class MainServlet extends RetroStoreServlet {
     resp.sendError(HttpServletResponse.SC_NOT_FOUND);
   }
 }
+
