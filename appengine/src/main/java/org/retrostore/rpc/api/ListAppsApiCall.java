@@ -24,8 +24,8 @@ import org.retrostore.client.common.proto.ApiResponseApps;
 import org.retrostore.client.common.proto.App;
 import org.retrostore.client.common.proto.MediaImage;
 import org.retrostore.client.common.proto.MediaType;
-import org.retrostore.client.common.proto.Trs80Model;
-import org.retrostore.client.common.proto.Trs80Params;
+import org.retrostore.client.common.proto.Trs80Extension;
+import org.retrostore.client.common.proto.Trs80Extension.Trs80Model;
 import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.app.AppStoreItem;
 import org.retrostore.data.app.Author;
@@ -97,23 +97,22 @@ public class ListAppsApiCall implements ApiCall<App> {
       }
 
       // Set the TRS80 related parameters.
-      Trs80Params.Builder trsParams = Trs80Params.newBuilder();
+      Trs80Extension.Builder trsExtension = Trs80Extension.newBuilder();
       switch (app.configuration.model) {
         default:
         case MODEL_I:
-          trsParams.setModel(Trs80Model.MODEL_I);
+          trsExtension.setModel(Trs80Model.MODEL_I);
           break;
         case MODEL_III:
-          trsParams.setModel(Trs80Model.MODEL_III);
+          trsExtension.setModel(Trs80Model.MODEL_III);
           break;
         case MODEL_4:
-          trsParams.setModel(Trs80Model.MODEL_4);
+          trsExtension.setModel(Trs80Model.MODEL_4);
           break;
         case MODEL_4P:
-          trsParams.setModel(Trs80Model.MODEL_4P);
+          trsExtension.setModel(Trs80Model.MODEL_4P);
           break;
       }
-      appBuilder.setTrs80Params(trsParams);
 
       for (String blobKey : app.screenshotsBlobKeys) {
         appBuilder.addScreenshotUrl(mImageService.getServingUrl(blobKey, SCREENSHOT_SIZE));
@@ -122,18 +121,19 @@ public class ListAppsApiCall implements ApiCall<App> {
       // Create the list of media images for this app (disks and casettes).
       for (AppStoreItem.MediaImage mediaImage : app.configuration.disk) {
         if (mediaImage != null) {
-          appBuilder.addMediaImage(toClientType(mediaImage, MediaType.DISK));
+          trsExtension.addMediaImage(toClientType(mediaImage, MediaType.DISK));
         }
       }
 
       AppStoreItem.MediaImage cassette = app.configuration.cassette;
       if (cassette != null) {
-        appBuilder.addMediaImage(toClientType(cassette, MediaType.CASSETTE));
+        trsExtension.addMediaImage(toClientType(cassette, MediaType.CASSETTE));
       }
       AppStoreItem.MediaImage command = app.configuration.command;
       if (command != null) {
-        appBuilder.addMediaImage(toClientType(command, MediaType.COMMAND));
+        trsExtension.addMediaImage(toClientType(command, MediaType.COMMAND));
       }
+      appBuilder.setExtTrs80(trsExtension);
       response.addApp(appBuilder);
     }
 

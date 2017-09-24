@@ -25,23 +25,32 @@ message App {
     // The description of this app.
     string description = 4;
     // The original release year of the app.
-    int32 release_year = 9;
+    int32 release_year = 5;
     // URLs to screenshots for this app.
-    repeated string screenshot_url = 5;
-    // The media images included with this app.
-    repeated MediaImage media_image = 6;
+    repeated string screenshot_url = 6;
     // The author of the app (not the uploader).
     string author = 7;
-    // TRS80 specific parameters.
-    Trs80Params trs80_params = 8;
+    // Extension set for TRS80 apps.
+    Trs80Extension ext_trs80 = 8;
 
-    // NEXT ID: 10;
+    // NEXT ID: 9;
 }
 
 // Parameters specific to TRS-80 apps.
-message Trs80Params {
+message Trs80Extension {
     // The TRS-80 model type.
     Trs80Model model = 1;
+    // The media images included with this app.
+    repeated MediaImage media_image = 2;
+
+    // The TRS-80 model types.
+    enum Trs80Model {
+        UNKNOWN_MODEL = 0;
+        MODEL_I = 1;
+        MODEL_III = 2;
+        MODEL_4 = 3;
+        MODEL_4P = 4;
+    }
 }
 
 // A media image for an app.
@@ -58,19 +67,10 @@ message MediaImage {
     string description = 5;
 }
 
-// Types of MediaImages (TRS-80 specific).
+// Types of MediaImages.
 enum MediaType {
     UNKNOWN = 0;
     DISK = 1;
     CASSETTE = 2;
     COMMAND = 3;
-}
-
-// The TRS-80 model types.
-enum Trs80Model {
-    UNKNOWN_MODEL = 0;
-    MODEL_I = 1;
-    MODEL_III = 2;
-    MODEL_4 = 3;
-    MODEL_4P = 4;
 }
