@@ -20,6 +20,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
+import org.retrostore.data.BlobstoreWrapper;
 import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.app.AppStoreItem;
 import org.retrostore.data.rpk.RpkData;
@@ -41,12 +42,14 @@ public class ImportRpkRequest implements Request {
   private final ResourceLoader mResourceLoader;
   private final AppManagement mAppManagement;
   private final UserManagement mUserManagement;
+  private final BlobstoreWrapper mBlobstore;
 
   public ImportRpkRequest(ResourceLoader resourceLoader, AppManagement appManagement,
-                          UserManagement userManagement) {
+                          UserManagement userManagement, BlobstoreWrapper blobstore) {
     mResourceLoader = resourceLoader;
     mAppManagement = appManagement;
     mUserManagement = userManagement;
+    mBlobstore = blobstore;
   }
 
   @Override
@@ -54,6 +57,8 @@ public class ImportRpkRequest implements Request {
     if (!requestData.getUrl().startsWith("/import")) {
       return false;
     }
+
+    LOG.info("Cookies: " + requestData.getCookieRaw());
 
     if (requestData.getType() == RequestData.Type.GET) {
       serveGet(responder);
@@ -108,7 +113,7 @@ public class ImportRpkRequest implements Request {
       return false;
     }
 
-    AppStoreItem app =  new AppStoreItem(data.app.id);
+    AppStoreItem app = new AppStoreItem(data.app.id);
     Optional<AppStoreItem> appById = mAppManagement.getAppById(data.app.id);
     if (appById.isPresent()) {
       app = appById.get();
@@ -158,9 +163,24 @@ public class ImportRpkRequest implements Request {
       app.configuration.command.filename = String.format("command.%s", data.trs.image.cmd.ext);
     }
 
-    // TODO: Screenshots.
+    // Screenshots. If we are updating an existing item, delete the old screenshots first.
+    for (String blobKey : app.screenshotsBlobKeys) {
+      mBlobstore.deleteBlob(blobKey);
+    }
+    app.screenshotsBlobKeys.clear();
 
+    // Store the instance now. Once the screenshots are uploaded they will be added automatically.
     mAppManagement.addOrChangeApp(app);
+
+    // Then add the new ones screenshots.
+    for (RpkData.MediaImage screenshot : data.app.screenshot) {
+      Optional<byte[]> screenshotContent = Base64Util.decode(screenshot.content);
+      if (!screenshotContent.isPresent()) {
+        continue;
+      }
+      mBlobstore.addScreenshot(app.id, screenshotContent.get(),
+          ContentType.fromFilename("." + screenshot.ext));
+    }
     return true;
   }
 }

@@ -83,6 +83,12 @@ public class RequestDataImpl implements RequestData {
   }
 
   @Override
+  public String getRootUrl() {
+    return String.format("%s://%s:%d", mRequest.getScheme(),
+        mRequest.getServerName(), mRequest.getServerPort());
+  }
+
+  @Override
   public Optional<Integer> getInt(String name) {
     String value = getParameter(name);
     if (value == null) {
@@ -124,6 +130,11 @@ public class RequestDataImpl implements RequestData {
       LOG.warning(String.format("Could not read request body: '%s'.", ex.getMessage()));
       return new byte[0];
     }
+  }
+
+  @Override
+  public String getCookieRaw() {
+    return mRequest.getHeader("Cookie");
   }
 
   @Override

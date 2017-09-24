@@ -16,6 +16,8 @@
 
 package org.retrostore.data;
 
+import org.retrostore.request.Responder.ContentType;
+
 /**
  * Wrapper around Blobstore that can easily be faked.
  */
@@ -28,4 +30,7 @@ public interface BlobstoreWrapper {
 
   /** Deletes a blob if it exists. */
   void deleteBlob(String key);
+
+  /** Adds a screenshot to the blobstore for the app with the given ID.. */
+  void addScreenshot(String appId, byte[] data, ContentType contentType);
 }

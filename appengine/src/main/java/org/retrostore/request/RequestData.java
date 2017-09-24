@@ -31,6 +31,9 @@ public interface RequestData {
   /** The URL of the request. */
   String getUrl();
 
+  /** The root of the URL, e.g. https://foobar:1234. */
+  String getRootUrl();
+
   /** Returns an parameter value as an int, if it exists. */
   Optional<Integer> getInt(String name);
 
@@ -45,6 +48,9 @@ public interface RequestData {
 
   /** Get the body of the request as bytes. */
   byte[] getRawBody();
+
+  /** Gets the raw cookie string. */
+  String getCookieRaw();
 
   /** For POST upload requests, this return the name of the uploaded file. */
   List<UploadFile> getFiles();
@@ -61,7 +67,7 @@ public interface RequestData {
     public final String filename;
     public final byte[] content;
 
-    public UploadFile(String filename, byte[] content) {
+    UploadFile(String filename, byte[] content) {
       this.filename = filename;
       this.content = content;
     }

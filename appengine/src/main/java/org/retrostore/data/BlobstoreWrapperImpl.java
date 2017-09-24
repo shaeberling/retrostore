@@ -18,6 +18,22 @@ package org.retrostore.data;
 
 import com.google.appengine.api.blobstore.BlobKey;
 import com.google.appengine.api.blobstore.BlobstoreService;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.mime.HttpMultipartMode;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.entity.mime.content.ByteArrayBody;
+import org.apache.http.entity.mime.content.FileBody;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.retrostore.request.Responder;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -25,6 +41,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Default implementation for the BlobStore wrapper.
  */
 public class BlobstoreWrapperImpl implements BlobstoreWrapper {
+  private static final Logger LOG = Logger.getLogger("Blobstore");
+
   private final BlobstoreService mBlobstoreService;
 
   public BlobstoreWrapperImpl(BlobstoreService blobstoreService) {
@@ -38,13 +56,50 @@ public class BlobstoreWrapperImpl implements BlobstoreWrapper {
 
   @Override
   public byte[] loadBlob(String key) {
-    byte[] bytes = mBlobstoreService.fetchData(
+    return mBlobstoreService.fetchData(
         new BlobKey(key), 0, BlobstoreService.MAX_BLOB_FETCH_SIZE - 1);
-    return bytes;
   }
 
   @Override
   public void deleteBlob(String key) {
     mBlobstoreService.delete(new BlobKey(key));
+  }
+
+  @Override
+  public void addScreenshot(String appId, byte[] data, Responder.ContentType contentType) {
+    LOG.info(String.format("About to add a blob of size %d with type %s.",
+        data.length, contentType.str));
+
+
+    final String PATH_UPLOAD = "/screenshotUpload";
+    String forwardTo = PATH_UPLOAD + "?appId=" + appId;
+
+    LOG.info("Forward to: " + forwardTo);
+
+    String uploadUrl = createUploadUrl(forwardTo);
+    LOG.info("UploadUrl: " + uploadUrl);
+
+
+    HttpPost post = new HttpPost(uploadUrl);
+    MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+
+    builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
+    builder.addPart("file", new ByteArrayBody(data, contentType.str, "screenshot"));
+
+    HttpEntity entity = builder.build();
+    post.setEntity(entity);
+
+    HttpClient client = HttpClientBuilder.create().build();
+    try {
+      LOG.info("POST constructed. About to make request!");
+      HttpResponse response = client.execute(post);
+      LOG.info("Request succeeded!");
+      ByteArrayOutputStream out = new ByteArrayOutputStream();
+      response.getEntity().writeTo(out);
+      LOG.info(new String(out.toByteArray(), "UTF-8"));
+
+    } catch (IOException e) {
+      LOG.log(Level.SEVERE, "Cannot make POST request.", e);
+    }
   }
 }
