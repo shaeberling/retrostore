@@ -42,7 +42,7 @@ public class AppManagementImpl implements AppManagement {
 
   @Override
   public void addOrChangeApp(AppStoreItem app) {
-    app.listing.lastUpdateTime = System.currentTimeMillis();
+    app.setUpdateAndPublishTime();
     ofy().save().entity(app).now();
   }
 

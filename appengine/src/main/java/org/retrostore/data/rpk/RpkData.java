@@ -22,7 +22,7 @@ package org.retrostore.data.rpk;
  */
 public class RpkData {
   public AppData app = new AppData();
-  public Submitter submitter = new Submitter();
+  public Publisher publisher = new Publisher();
   public TrsExtension trs = new TrsExtension();
 
   public static class AppData {
@@ -37,8 +37,9 @@ public class RpkData {
     public MediaImage[] screenshot = new MediaImage[0];
   }
 
-  public static class Submitter {
-    public String name;
+  public static class Publisher {
+    public String first_name;
+    public String last_name;
     public String email;
   }
 

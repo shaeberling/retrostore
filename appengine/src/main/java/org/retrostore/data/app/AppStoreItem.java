@@ -16,6 +16,8 @@
 
 package org.retrostore.data.app;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.annotation.Cache;
 import com.googlecode.objectify.annotation.Entity;
@@ -25,6 +27,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -103,7 +106,7 @@ public class AppStoreItem {
     }
   }
 
-  // E.g. Casette or disk image.
+  // E.g. Cassette or disk image.
   public static class MediaImage {
     /** The timestamp of when this image was uploaded. */
     public long uploadTime;
@@ -176,6 +179,12 @@ public class AppStoreItem {
   }
 
   public AppStoreItem() {
+    // Generate a new ID for this app.
+    id = UUID.randomUUID().toString();
+  }
+  public AppStoreItem(String newId) {
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(newId), "ID may not be empty.");
+    id = newId;
   }
 
   @Id
@@ -187,4 +196,13 @@ public class AppStoreItem {
   public Listing listing = new Listing();
   /** The blobkeys of the screenshots to serve. */
   public List<String> screenshotsBlobKeys = new ArrayList<>();
+
+  public void setUpdateAndPublishTime() {
+    // Ensure the times are set correctly.
+    final long now = System.currentTimeMillis();
+    if (listing.firstPublishTime <= 0) {
+      listing.firstPublishTime = now;
+    }
+    listing.lastUpdateTime = now;
+  }
 }

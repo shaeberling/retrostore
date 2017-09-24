@@ -90,7 +90,7 @@ public class MainServlet extends RetroStoreServlet {
     sRequestServers = ImmutableList.of(
         new LoginRequest(),
         new EnsureAdminExistsRequest(sUserManagement),
-        new ImportRpkRequest((getResourceLoader()), sAppManagement),
+        new ImportRpkRequest((getResourceLoader()), sAppManagement, sUserManagement),
         new RpcCallRequest(sUserManagement, sAppManagement),
         new ScreenshotRequest(sBlobstoreWrapper, sAppManagement, sImgServWrapper),
         new PolymerRequest(getResourceLoader()),

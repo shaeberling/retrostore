@@ -58,9 +58,10 @@ public class RpkTestCli {
       System.out.println("  - Content: " + screenshot.content);
     }
     System.out.println("Platform: " + rpkData.app.platform);
-    System.out.println("---------- Submitter ----------");
-    System.out.println("Name : " + rpkData.submitter.name);
-    System.out.println("EMail: " + rpkData.submitter.email);
+    System.out.println("---------- Publisher ----------");
+    System.out.println("First Name : " + rpkData.publisher.first_name);
+    System.out.println("Last Name : " + rpkData.publisher.last_name);
+    System.out.println("EMail: " + rpkData.publisher.email);
     System.out.println("---------- TRS Ext ----------");
     System.out.println("Model: " + rpkData.trs.model);
     System.out.println("Disk Num: " + rpkData.trs.image.disk.length);

@@ -44,7 +44,7 @@ public class RetroStoreUser {
   public String firstName;
   public String lastName;
   @Index
-  public UserAccountType type;
+  public UserAccountType type = UserAccountType.NO_ACCOUNT;
 
   // TODO: Add sanity checks before persisting the data.
 }

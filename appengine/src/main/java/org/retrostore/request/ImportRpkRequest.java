@@ -21,7 +21,10 @@ import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import org.retrostore.data.app.AppManagement;
+import org.retrostore.data.app.AppStoreItem;
 import org.retrostore.data.rpk.RpkData;
+import org.retrostore.data.user.RetroStoreUser;
+import org.retrostore.data.user.UserManagement;
 import org.retrostore.data.user.UserService;
 import org.retrostore.resources.ResourceLoader;
 
@@ -36,10 +39,13 @@ public class ImportRpkRequest implements Request {
   private static final Logger LOG = Logger.getLogger("ImportRpkRequest");
   private final ResourceLoader mResourceLoader;
   private final AppManagement mAppManagement;
+  private final UserManagement mUserManagement;
 
-  public ImportRpkRequest(ResourceLoader resourceLoader, AppManagement appManagement) {
+  public ImportRpkRequest(ResourceLoader resourceLoader, AppManagement appManagement,
+                          UserManagement userManagement) {
     mResourceLoader = resourceLoader;
     mAppManagement = appManagement;
+    mUserManagement = userManagement;
   }
 
   @Override
@@ -92,10 +98,43 @@ public class ImportRpkRequest implements Request {
   }
 
   private boolean storeRpk(RpkData data) {
+    if (!data.app.platform.equals("TRS-80")) {
+      LOG.warning("Unsupported platform. Cannot import.");
+      return false;
+    }
     if (Strings.isNullOrEmpty(data.app.id)) {
       LOG.warning("RpkData has not app ID.");
       return false;
     }
+
+    AppStoreItem app =  new AppStoreItem(data.app.id);
+    Optional<AppStoreItem> appById = mAppManagement.getAppById(data.app.id);
+    if (appById.isPresent()) {
+      app = appById.get();
+    }
+
+    app.listing.name = data.app.name;
+    app.listing.versionString = data.app.version;
+    app.listing.description = data.app.description;
+    app.listing.releaseYear = Integer.parseInt(data.app.year_published);
+    app.listing.categories.clear();
+    app.listing.categories.add(AppStoreItem.ListingCategory.valueOf(data.app.categories));
+    app.configuration.model = AppStoreItem.Model.valueOf(data.trs.model);
+    app.listing.authorId = mAppManagement.ensureAuthorExists(data.app.author);
+    Optional<RetroStoreUser> userByEmail = mUserManagement.getUserByEmail(data.publisher.email);
+    if (!userByEmail.isPresent()) {
+      RetroStoreUser newUser = new RetroStoreUser();
+      newUser.email = data.publisher.email;
+      newUser.firstName = data.publisher.first_name;
+      newUser.lastName = data.publisher.last_name;
+      mUserManagement.addOrChangeUser(newUser);
+    }
+    app.listing.publisherEmail = data.publisher.email;
+
+    // TODO: MediaImage
+    // TODO: Screenshots.
+
+    mAppManagement.addOrChangeApp(app);
     return true;
   }
 }

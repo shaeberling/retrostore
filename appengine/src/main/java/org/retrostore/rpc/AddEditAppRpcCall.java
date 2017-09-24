@@ -152,13 +152,6 @@ public class AddEditAppRpcCall implements RpcCall<RpcParameters> {
       appStoreItem.configuration.charColor = charColor.get();
       appStoreItem.configuration.soundMuted = data.soundMuted;
 
-      // Ensure the times are set correctly.
-      final long now = System.currentTimeMillis();
-      if (appStoreItem.listing.firstPublishTime <= 0) {
-        appStoreItem.listing.firstPublishTime = now;
-      }
-      appStoreItem.listing.lastUpdateTime = now;
-
       // Set the publisher.
       if (Strings.isNullOrEmpty(appStoreItem.listing.publisherEmail)) {
         Optional<String> loggedInEmail = mUserManagement.getLoggedInEmail();
