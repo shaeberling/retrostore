@@ -25,6 +25,7 @@ import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.app.AppStoreItem;
 import org.retrostore.data.rpk.RpkData;
 import org.retrostore.data.user.RetroStoreUser;
+import org.retrostore.data.user.UserAccountType;
 import org.retrostore.data.user.UserManagement;
 import org.retrostore.data.user.UserService;
 import org.retrostore.resources.ResourceLoader;
@@ -55,6 +56,11 @@ public class ImportRpkRequest implements Request {
   @Override
   public boolean serveUrl(RequestData requestData, Responder responder, UserService userService) {
     if (!requestData.getUrl().startsWith("/import")) {
+      return false;
+    }
+    if (userService.getForCurrentUser() != UserAccountType.USER &&
+        userService.getForCurrentUser() != UserAccountType.ADMIN &&
+        userService.getForCurrentUser() != UserAccountType.PUBLISHER) {
       return false;
     }
 
