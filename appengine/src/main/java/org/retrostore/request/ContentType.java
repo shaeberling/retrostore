@@ -22,6 +22,7 @@ package org.retrostore.request;
 final class ContentType {
   /** Return a content type depending on the filename. */
   static Responder.ContentType fromFilename(String filename) {
+    filename = filename.toLowerCase();
     if (filename.endsWith(".html")) {
       return Responder.ContentType.HTML;
     } else if (filename.endsWith(".css")) {
