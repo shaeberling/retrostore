@@ -27,6 +27,7 @@ import org.retrostore.data.user.RetroStoreUser;
 import org.retrostore.data.user.UserManagement;
 import org.retrostore.data.user.UserService;
 import org.retrostore.resources.ResourceLoader;
+import org.retrostore.util.Base64Util;
 
 import java.util.List;
 import java.util.logging.Level;
@@ -119,8 +120,10 @@ public class ImportRpkRequest implements Request {
     app.listing.releaseYear = Integer.parseInt(data.app.year_published);
     app.listing.categories.clear();
     app.listing.categories.add(AppStoreItem.ListingCategory.valueOf(data.app.categories));
-    app.configuration.model = AppStoreItem.Model.valueOf(data.trs.model);
     app.listing.authorId = mAppManagement.ensureAuthorExists(data.app.author);
+    app.configuration.model = AppStoreItem.Model.valueOf(data.trs.model);
+
+    // Handle publisher. If the user does not exist yet, add him to the database.
     Optional<RetroStoreUser> userByEmail = mUserManagement.getUserByEmail(data.publisher.email);
     if (!userByEmail.isPresent()) {
       RetroStoreUser newUser = new RetroStoreUser();
@@ -131,7 +134,30 @@ public class ImportRpkRequest implements Request {
     }
     app.listing.publisherEmail = data.publisher.email;
 
-    // TODO: MediaImage
+    // Handle MediaImages.
+    for (int i = 0; i < data.trs.image.disk.length; ++i) {
+      RpkData.MediaImage rpkMedia = data.trs.image.disk[i];
+      AppStoreItem.MediaImage image = new AppStoreItem.MediaImage();
+
+      Optional<byte[]> content = Base64Util.decode(rpkMedia.content);
+      if (!content.isPresent()) {
+        continue;
+      }
+
+      image.uploadTime = System.currentTimeMillis();
+      image.data = content.get();
+      image.filename = String.format("disk_%d.%s", i, rpkMedia.ext);
+      app.configuration.disk[i] = image;
+    }
+
+    app.configuration.command = new AppStoreItem.MediaImage();
+    Optional<byte[]> content = Base64Util.decode(data.trs.image.cmd.content);
+    if (content.isPresent()) {
+      app.configuration.command.uploadTime = System.currentTimeMillis();
+      app.configuration.command.data = content.get();
+      app.configuration.command.filename = String.format("command.%s", data.trs.image.cmd.ext);
+    }
+
     // TODO: Screenshots.
 
     mAppManagement.addOrChangeApp(app);

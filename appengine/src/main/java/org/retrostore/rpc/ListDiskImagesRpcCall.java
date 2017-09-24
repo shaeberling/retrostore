@@ -81,7 +81,7 @@ public class ListDiskImagesRpcCall implements RpcCall<RpcParameters> {
     }
 
     DiskImageInfo[] infos = new DiskImageInfo[6];
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < configuration.disk.length; ++i) {
       infos[i] = new DiskImageInfo();
       infos[i].id = i;
       infos[i].label = DISK_IMAGE_LABELS[i];
