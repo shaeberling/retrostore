@@ -18,6 +18,8 @@ package org.retrostore.data;
 
 import com.google.appengine.api.blobstore.BlobKey;
 import com.google.appengine.api.blobstore.BlobstoreService;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -66,24 +68,31 @@ public class BlobstoreWrapperImpl implements BlobstoreWrapper {
   }
 
   @Override
-  public void addScreenshot(String appId, byte[] data, Responder.ContentType contentType) {
-    LOG.info(String.format("About to add a blob of size %d with type %s.",
-        data.length, contentType.str));
+  public void addScreenshot(String appId, byte[] data, Responder.ContentType contentType,
+                            String cookie) {
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(appId), "'appId' missing");
+    Preconditions.checkArgument(data != null && data.length > 0, "'data' is empty");
+    Preconditions.checkNotNull(contentType, "'contentType' missing");
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(cookie), "'cookie' missing");
 
+    LOG.info(String.format("About to add a screenshot blob of size %d with type %s.",
+        data.length, contentType.str));
 
     final String PATH_UPLOAD = "/screenshotUpload";
     String forwardTo = PATH_UPLOAD + "?appId=" + appId;
 
     LOG.info("Forward to: " + forwardTo);
-
     String uploadUrl = createUploadUrl(forwardTo);
     LOG.info("UploadUrl: " + uploadUrl);
 
-
+    // It is important that we set the cookie so that we're authenticated. We do not allow
+    // anonymous requests to upload screenshots.
     HttpPost post = new HttpPost(uploadUrl);
-    MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+    post.setHeader("Cookie", cookie);
 
+    MultipartEntityBuilder builder = MultipartEntityBuilder.create();
     builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
+    // Note we need to use the deprecated constructor so we can use our content type.
     builder.addPart("file", new ByteArrayBody(data, contentType.str, "screenshot"));
 
     HttpEntity entity = builder.build();

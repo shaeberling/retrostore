@@ -96,8 +96,6 @@ public class ScreenshotRequest implements Request {
 
   private void uploadScreenshot(RequestData requestData, Responder responder) {
     Optional<String> appIdOpt = requestData.getString("appId");
-    LOG.info("===== UPLOADSCREENSHOT YAAAAAAAY. AppID: " + appIdOpt.orNull());
-
     if (!appIdOpt.isPresent()) {
       final String msg = "'appId' missing from post-upload URL.";
       LOG.log(Level.SEVERE, msg);

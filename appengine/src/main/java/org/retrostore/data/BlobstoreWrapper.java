@@ -31,6 +31,15 @@ public interface BlobstoreWrapper {
   /** Deletes a blob if it exists. */
   void deleteBlob(String key);
 
-  /** Adds a screenshot to the blobstore for the app with the given ID.. */
-  void addScreenshot(String appId, byte[] data, ContentType contentType);
+  /**
+   * Adds a screenshot to the blobstore for the app with the given ID.
+   *
+   * @param appId       the ID of the app to add the screenshot for
+   * @param data        the raw data of the screenshot file
+   * @param contentType the type of the image data
+   * @param cookie      the complete cookie from the original request. This is necessary so that our
+   *                    internal add request can use the same authentication as the original
+   *                    requester. Not setting this will make the call fail.
+   */
+  void addScreenshot(String appId, byte[] data, ContentType contentType, String cookie);
 }

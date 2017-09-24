@@ -63,7 +63,7 @@ public class ImportRpkRequest implements Request {
     if (requestData.getType() == RequestData.Type.GET) {
       serveGet(responder);
     } else if (requestData.getType() == RequestData.Type.POST) {
-      servePost(requestData.getFiles(), responder);
+      servePost(requestData.getFiles(), requestData, responder);
     }
     return true;
   }
@@ -77,7 +77,8 @@ public class ImportRpkRequest implements Request {
     }
   }
 
-  private void servePost(List<RequestData.UploadFile> files, Responder responder) {
+  private void servePost(List<RequestData.UploadFile> files, RequestData requestData,
+                         Responder responder) {
     if (files.isEmpty()) {
       responder.respondBadRequest("No files uploaded.");
       return;
@@ -85,7 +86,7 @@ public class ImportRpkRequest implements Request {
 
     int numImported = 0;
     for (RequestData.UploadFile file : files) {
-      if (addRpk(file)) {
+      if (addRpk(file, requestData)) {
         numImported++;
       }
     }
@@ -93,17 +94,17 @@ public class ImportRpkRequest implements Request {
         Responder.ContentType.HTML);
   }
 
-  private boolean addRpk(RequestData.UploadFile file) {
+  private boolean addRpk(RequestData.UploadFile file, RequestData requestData) {
     String json = new String(file.content);
     try {
-      return storeRpk((new Gson()).fromJson(json, RpkData.class));
+      return storeRpk((new Gson()).fromJson(json, RpkData.class), requestData);
     } catch (JsonSyntaxException ex) {
       LOG.log(Level.WARNING, "Cannot parse JSON", ex);
     }
     return false;
   }
 
-  private boolean storeRpk(RpkData data) {
+  private boolean storeRpk(RpkData data, RequestData requestData) {
     if (!data.app.platform.equals("TRS-80")) {
       LOG.warning("Unsupported platform. Cannot import.");
       return false;
@@ -179,7 +180,7 @@ public class ImportRpkRequest implements Request {
         continue;
       }
       mBlobstore.addScreenshot(app.id, screenshotContent.get(),
-          ContentType.fromFilename("." + screenshot.ext));
+          ContentType.fromFilename("." + screenshot.ext), requestData.getCookieRaw());
     }
     return true;
   }
