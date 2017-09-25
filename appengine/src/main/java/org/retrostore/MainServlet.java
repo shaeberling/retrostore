@@ -45,8 +45,10 @@ import org.retrostore.request.Responder;
 import org.retrostore.request.ScreenshotRequest;
 import org.retrostore.request.StaticFileRequest;
 import org.retrostore.request.TwoLayerCacheImpl;
+import org.retrostore.resources.CachingImageService;
 import org.retrostore.resources.DefaultResourceLoader;
 import org.retrostore.resources.ImageServiceWrapper;
+import org.retrostore.resources.ImageServiceWrapperImpl;
 import org.retrostore.resources.MemcacheWrapper;
 import org.retrostore.resources.MemcacheWrapperImpl;
 import org.retrostore.resources.PolymerDebugLoader;
@@ -78,9 +80,10 @@ public class MainServlet extends RetroStoreServlet {
   private static UserService sAccountTypeProvider =
       new UserServiceImpl(sUserManagement, sUserService);
   private static ImagesService sImagesService = ImagesServiceFactory.getImagesService();
-  private static ImageServiceWrapper sImgServWrapper = new ImageServiceWrapper(sImagesService);
   private static MemcacheWrapper sMemcache =
       new MemcacheWrapperImpl(MemcacheServiceFactory.getMemcacheService());
+  private static ImageServiceWrapper sImgServWrapper =
+      new CachingImageService(new ImageServiceWrapperImpl(sImagesService), sMemcache);
   private static Cache sCache = new TwoLayerCacheImpl(sMemcache);
   private static DefaultResourceLoader sDefaultResourceLoader = new DefaultResourceLoader(sCache);
 

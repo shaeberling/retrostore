@@ -31,10 +31,18 @@ public interface MemcacheWrapper {
   Optional<byte[]> get(String key);
 
   /**
+   * Gets the item with the given key, if available, as a String.
+   *
+   * @param key the key of the item.
+   * @return The item, if available in memcache.
+   */
+  Optional<String> getString(String key);
+
+  /**
    * Adds or updates an item in memcache.
    *
    * @param key  the key of the item.
    * @param data the data to put into the cache.
    */
-  void put(String key, byte[] data);
+  void put(String key, Object data);
 }

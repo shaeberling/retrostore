@@ -70,6 +70,7 @@ public class ListAppsApiCall implements ApiCall {
   }
 
   private ApiResponseApps callInternal(RequestData data) {
+    long tStart = System.currentTimeMillis();
     ApiResponseApps.Builder response = ApiResponseApps.newBuilder();
     ListAppsApiParams params = parseParams(data.getBody());
     if (params == null) {
@@ -82,6 +83,8 @@ public class ListAppsApiCall implements ApiCall {
       return response.setSuccess(false).setMessage("Parameter 'start' out of range").build();
     }
 
+    long tPreBuilding = System.currentTimeMillis();
+    LOG.fine("[Perf] getAllApps: " + (tStart - tPreBuilding));
     List<App.Builder> apps = new ArrayList<>();
     for (int i = params.start; i < params.start + params.num && i < allApps.size(); ++i) {
       AppStoreItem app = allApps.get(i);
@@ -121,6 +124,7 @@ public class ListAppsApiCall implements ApiCall {
       appBuilder.setExtTrs80(trsExtension);
       apps.add(appBuilder);
     }
+    LOG.fine("[Perf] Building list: " + (tPreBuilding - System.currentTimeMillis()));
 
     // Sort the output alphabetically.
     Collections.sort(apps, new Comparator<App.Builder>() {

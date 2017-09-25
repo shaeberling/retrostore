@@ -36,7 +36,12 @@ public class MemcacheWrapperImpl implements MemcacheWrapper {
   }
 
   @Override
-  public void put(String key, byte[] data) {
+  public void put(String key, Object data) {
     mMemcacheService.put(key, data);
+  }
+
+  @Override
+  public Optional<String> getString(String key) {
+    return Optional.fromNullable((String) mMemcacheService.get(key));
   }
 }
