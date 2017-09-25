@@ -34,15 +34,19 @@ public class AppManagementCached implements AppManagement {
   /** TODO: Handle sorting. */
   /** Important: These items are not immutable and a client might change them. */
   private final Map<String, AppStoreItem> mAppCacheById;
+  private final Map<Long, MediaImage> mMediaCacheById;
   private final Map<Long, Author> mAuthorCacheById;
 
   public AppManagementCached(AppManagement appManagement) {
     mAppManagement = Preconditions.checkNotNull(appManagement);
     mAppCacheById = new HashMap<>();
+    mMediaCacheById = new HashMap<>();
     mAuthorCacheById = new HashMap<>();
 
-    // Important: Update cache at the beginning so we can then keep it updates throoughout with
+    // Important: Update cache at the beginning so we can then keep it updates throughout with
     // incremental updates only.
+    // Note once we have a lot of apps this is no longer pracitcal. It might not fit in memory and
+    // will be very expensive to perform.
     updateAppCache();
   }
 
@@ -77,6 +81,32 @@ public class AppManagementCached implements AppManagement {
     boolean success = mAppManagement.removeScreenshot(appId, blobKey);
     updateAppCacheItem(appId);
     return success;
+  }
+
+  @Override
+  public long addMediaImage(String appId, String filename, byte[] data) {
+    return mAppManagement.addMediaImage(appId, filename, data);
+  }
+
+  @Override
+  public Map<Long, MediaImage> getMediaImagesForApp(String appId) {
+    // TODO: We should think about how to cache these better. Probably need to key by appId.
+    return mAppManagement.getMediaImagesForApp(appId);
+  }
+
+  @Override
+  public void deleteMediaImage(long mediaId) {
+    mMediaCacheById.remove(mediaId);
+    mAppManagement.deleteMediaImage(mediaId);
+  }
+
+  @Override
+  public long[] deleteMediaImagesForApp(String appId) {
+    long[] deleted = mAppManagement.deleteMediaImagesForApp(appId);
+    for (long mediaId : deleted) {
+      mMediaCacheById.remove(mediaId);
+    }
+    return deleted;
   }
 
   @Override

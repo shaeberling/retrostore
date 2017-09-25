@@ -18,12 +18,9 @@ package org.retrostore.rpc.api;
 
 import com.google.common.base.Optional;
 import com.google.gson.Gson;
-import com.google.protobuf.ByteString;
 import org.retrostore.client.common.ListAppsApiParams;
 import org.retrostore.client.common.proto.ApiResponseApps;
 import org.retrostore.client.common.proto.App;
-import org.retrostore.client.common.proto.MediaImage;
-import org.retrostore.client.common.proto.MediaType;
 import org.retrostore.client.common.proto.Trs80Extension;
 import org.retrostore.client.common.proto.Trs80Extension.Trs80Model;
 import org.retrostore.data.app.AppManagement;
@@ -118,21 +115,6 @@ public class ListAppsApiCall implements ApiCall {
         appBuilder.addScreenshotUrl(mImageService.getServingUrl(blobKey, SCREENSHOT_SIZE));
       }
 
-//      // Create the list of media images for this app (disks and casettes).
-//      for (AppStoreItem.MediaImage mediaImage : app.trs80Extension.disk) {
-//        if (mediaImage != null) {
-//          trsExtension.addMediaImage(toClientType(mediaImage, MediaType.DISK));
-//        }
-//      }
-//
-//      AppStoreItem.MediaImage cassette = app.trs80Extension.cassette;
-//      if (cassette != null) {
-//        trsExtension.addMediaImage(toClientType(cassette, MediaType.CASSETTE));
-//      }
-//      AppStoreItem.MediaImage command = app.trs80Extension.command;
-//      if (command != null) {
-//        trsExtension.addMediaImage(toClientType(command, MediaType.COMMAND));
-//      }
       appBuilder.setExtTrs80(trsExtension);
       response.addApp(appBuilder);
     }
@@ -148,15 +130,5 @@ public class ListAppsApiCall implements ApiCall {
       LOG.log(Level.WARNING, "Cannot parse params", ex);
       return null;
     }
-  }
-
-  private static MediaImage.Builder toClientType(AppStoreItem.MediaImage mediaImage,
-                                                 MediaType type) {
-    return MediaImage.newBuilder()
-        .setType(type)
-        .setFilename(mediaImage.filename != null ? mediaImage.filename : "")
-        .setData(ByteString.copyFrom(mediaImage.data))
-        .setUploadTime(mediaImage.uploadTime)
-        .setDescription(mediaImage.description != null ? mediaImage.description : "");
   }
 }

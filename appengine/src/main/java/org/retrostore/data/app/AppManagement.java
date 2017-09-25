@@ -19,6 +19,7 @@ package org.retrostore.data.app;
 import com.google.common.base.Optional;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Functionality to manage apps.
@@ -54,6 +55,42 @@ public interface AppManagement {
    * @return Whether the screenshot was successfully removed.
    */
   boolean removeScreenshot(String appId, String blobKey);
+
+  /**
+   * Add a media image to the data store.
+   * <p>
+   * Note: This will not add a reference to an AppStore item since media images are
+   * platform-dependent.
+   *
+   * @param appId    the ID of the app this image belongs to.
+   * @param filename the name of the file this image represents.
+   * @param data     the actual data of this media image.
+   * @return The ID of the media image just added.
+   */
+  long addMediaImage(String appId, String filename, byte[] data);
+
+  /**
+   * Gets all media images associated with an app.
+   *
+   * @param appId the ID of the app to fetch the images for.
+   * @return A media image map, keyed by media image ID.
+   */
+  Map<Long, MediaImage> getMediaImagesForApp(String appId);
+
+  /**
+   * Deletes the media imafge with the given ID.
+   *
+   * @param mediaId the id of the media image.
+   */
+  void deleteMediaImage(long mediaId);
+
+  /**
+   * Deletes all media images associated with a given app.
+   *
+   * @param appId the ID of the app for which to delete all media images.
+   * @return The list of media IDs of the media that got deleted.
+   */
+  long[] deleteMediaImagesForApp(String appId);
 
   /**
    * Returns a list of all apps int the data store.

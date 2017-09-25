@@ -19,6 +19,7 @@ package org.retrostore.data;
 import com.googlecode.objectify.ObjectifyService;
 import org.retrostore.data.app.AppStoreItem;
 import org.retrostore.data.app.Author;
+import org.retrostore.data.app.MediaImage;
 import org.retrostore.data.user.RetroStoreUser;
 
 /**
@@ -31,6 +32,7 @@ public class Register {
     if (!isRegistered) {
       ObjectifyService.register(AppStoreItem.class);
       ObjectifyService.register(Author.class);
+      ObjectifyService.register(MediaImage.class);
       ObjectifyService.register(RetroStoreUser.class);
       isRegistered = true;
     }

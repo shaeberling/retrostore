@@ -116,7 +116,7 @@ public class ImportRpkRequest implements Request {
       return false;
     }
     if (Strings.isNullOrEmpty(data.app.id)) {
-      LOG.warning("RpkData has not app ID.");
+      LOG.warning("RpkData has no app ID.");
       return false;
     }
 
@@ -149,25 +149,24 @@ public class ImportRpkRequest implements Request {
     // Handle MediaImages.
     for (int i = 0; i < data.trs.image.disk.length; ++i) {
       RpkData.MediaImage rpkMedia = data.trs.image.disk[i];
-      AppStoreItem.MediaImage image = new AppStoreItem.MediaImage();
 
       Optional<byte[]> content = Base64Util.decode(rpkMedia.content);
       if (!content.isPresent()) {
         continue;
       }
 
-      image.uploadTime = System.currentTimeMillis();
-      image.data = content.get();
-      image.filename = String.format("disk_%d.%s", i, rpkMedia.ext);
-      app.trs80Extension.disk[i] = image;
+      mAppManagement.deleteMediaImage(app.trs80Extension.disk[i]);
+      app.trs80Extension.disk[i] = mAppManagement.addMediaImage(
+          app.id, String.format("disk_%d.%s", i, rpkMedia.ext), content.get());
     }
 
-    app.trs80Extension.command = new AppStoreItem.MediaImage();
+    // TODO: No cassette support right now.
+
     Optional<byte[]> content = Base64Util.decode(data.trs.image.cmd.content);
     if (content.isPresent()) {
-      app.trs80Extension.command.uploadTime = System.currentTimeMillis();
-      app.trs80Extension.command.data = content.get();
-      app.trs80Extension.command.filename = String.format("command.%s", data.trs.image.cmd.ext);
+      mAppManagement.deleteMediaImage(app.trs80Extension.command);
+      app.trs80Extension.command =  mAppManagement.addMediaImage(
+          app.id, String.format("command.%s", data.trs.image.cmd.ext), content.get());
     }
 
     // Screenshots. If we are updating an existing item, delete the old screenshots first.

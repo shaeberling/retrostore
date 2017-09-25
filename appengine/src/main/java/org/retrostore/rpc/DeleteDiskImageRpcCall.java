@@ -83,12 +83,18 @@ public class DeleteDiskImageRpcCall implements RpcCall<RpcParameters> {
 
     if (diskImageNo < 4) {
       if (app.trs80Extension.disk != null) {
-        app.trs80Extension.disk[diskImageNo] = null;
+        long mediaId = app.trs80Extension.disk[diskImageNo];
+        mAppManagement.deleteMediaImage(mediaId);
+        app.trs80Extension.disk[diskImageNo] = 0;
       }
     } else if (diskImageNo == 4) {
-      app.trs80Extension.cassette = null;
+      long mediaId = app.trs80Extension.cassette;
+      mAppManagement.deleteMediaImage(mediaId);
+      app.trs80Extension.cassette = 0;
     } else if (diskImageNo == 5) {
-      app.trs80Extension.command = null;
+      long mediaId = app.trs80Extension.command;
+      mAppManagement.deleteMediaImage(mediaId);
+      app.trs80Extension.command = 0;
     }
     mAppManagement.addOrChangeApp(app);
   }

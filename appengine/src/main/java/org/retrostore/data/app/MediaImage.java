@@ -16,6 +16,7 @@
 
 package org.retrostore.data.app;
 
+import com.googlecode.objectify.Key;
 import com.googlecode.objectify.annotation.Cache;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
@@ -44,5 +45,9 @@ public class MediaImage {
   public String description;
   /** Will become a GAE blob structure. */
   public byte[] data;
+
+  public static Key<MediaImage> key(long id) {
+    return Key.create(MediaImage.class, id);
+  }
 
 }

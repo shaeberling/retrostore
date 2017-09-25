@@ -22,9 +22,12 @@ import com.google.common.base.Strings;
 import com.googlecode.objectify.Key;
 import org.retrostore.data.BlobstoreWrapper;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import static com.googlecode.objectify.ObjectifyService.ofy;
@@ -83,6 +86,70 @@ public class AppManagementImpl implements AppManagement {
   }
 
   @Override
+  public long addMediaImage(String appId, String filename, byte[] data) {
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(appId));
+    Preconditions.checkArgument(data.length > 0);
+
+    MediaImage mediaImage = new MediaImage();
+    mediaImage.appId = appId;
+    mediaImage.filename = filename;
+    mediaImage.data = data;
+    mediaImage.uploadTime = System.currentTimeMillis();
+
+    Key<MediaImage> key = ofy().save().entity(mediaImage).now();
+    return key.getId();
+  }
+
+  @Override
+  public Map<Long, MediaImage> getMediaImagesForApp(String appId) {
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(appId));
+    List<MediaImage> media = ofy().load().type(MediaImage.class).filter("appId", appId).list();
+    Map<Long, MediaImage> keyedResult = new HashMap<>(media.size());
+    for (MediaImage mediaImage : media) {
+      keyedResult.put(mediaImage.id, mediaImage);
+    }
+    return keyedResult;
+  }
+
+  @Override
+  public void deleteMediaImage(long mediaId) {
+    if (mediaId == 0) {
+      return;
+    }
+    ofy().delete().key(MediaImage.key(mediaId)).now();
+  }
+
+  @Override
+  public long[] deleteMediaImagesForApp(String appId) {
+    Optional<AppStoreItem> appById = getAppById(appId);
+    if (!appById.isPresent()) {
+      return new long[0];
+    }
+
+    AppStoreItem.Trs80Extension trs80 = appById.get().trs80Extension;
+    List<Key<MediaImage>> toDelete = new ArrayList<>();
+    // Note, add delete routines for other platforms here.
+    for (long id : trs80.disk) {
+      if (id > 0) {
+        toDelete.add(MediaImage.key(id));
+      }
+    }
+    if (trs80.cassette > 0) {
+      toDelete.add(MediaImage.key(trs80.cassette));
+    }
+    if (trs80.command > 0) {
+      toDelete.add(MediaImage.key(trs80.command));
+    }
+    ofy().delete().keys(toDelete).now();
+
+    long[] result = new long[toDelete.size()];
+    for (int i = 0; i < result.length; ++i) {
+      result[i] = toDelete.get(i).getId();
+    }
+    return result;
+  }
+
+  @Override
   public List<AppStoreItem> getAllApps() {
     return ofy().load().type(AppStoreItem.class).list();
   }
@@ -90,8 +157,8 @@ public class AppManagementImpl implements AppManagement {
   @Override
   public void removeApp(String id) {
     ofy().delete().key(AppStoreItem.key(id)).now();
-
-    // FIXME: Delete screenshots + disk images.
+    deleteMediaImagesForApp(id);
+    // FIXME: Delete screenshots.
   }
 
   @Override

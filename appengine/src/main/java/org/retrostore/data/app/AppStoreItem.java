@@ -72,21 +72,6 @@ public class AppStoreItem {
     }
   }
 
-  // E.g. Cassette or disk image.
-  public static class MediaImage {
-    /** The timestamp of when this image was uploaded. */
-    public long uploadTime;
-    /**
-     * Type for TRS80 is a string of the file name, with which an emulator will determine how to
-     * read it.
-     */
-    public String filename;
-    /** An optional note for this image to describe it. */
-    public String description;
-    /** Will become a GAE blob structure. */
-    public byte[] data;
-  }
-
   public enum ListingCategory {
     GAME("Game"),
     GAME_ARCADE("Game/Arcade"),
@@ -112,9 +97,10 @@ public class AppStoreItem {
     public Model model;
 
     // Disk 1-4 + cassette (type/extension + data)
-    public MediaImage[] disk = new MediaImage[4];
-    public MediaImage cassette;
-    public MediaImage command;
+    // These are IDs for the media images.
+    public long[] disk = new long[4];
+    public long cassette;
+    public long command;
   }
 
   /**

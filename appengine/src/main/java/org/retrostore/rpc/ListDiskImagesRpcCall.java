@@ -19,10 +19,13 @@ package org.retrostore.rpc;
 import com.google.common.base.Optional;
 import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.app.AppStoreItem;
+import org.retrostore.data.app.MediaImage;
 import org.retrostore.data.user.UserAccountType;
 import org.retrostore.request.Responder;
 import org.retrostore.rpc.internal.RpcCall;
 import org.retrostore.rpc.internal.RpcParameters;
+
+import java.util.Map;
 
 /**
  * Lists data about the disk images of an app.
@@ -79,39 +82,35 @@ public class ListDiskImagesRpcCall implements RpcCall<RpcParameters> {
       responder.respondBadRequest("App has no trs80Extension");
       return;
     }
+    Map<Long, MediaImage> mediaImages = mAppManagement.getMediaImagesForApp(appIdOpt.get());
 
     DiskImageInfo[] infos = new DiskImageInfo[6];
     for (int i = 0; i < trs80Extension.disk.length; ++i) {
       infos[i] = new DiskImageInfo();
       infos[i].id = i;
       infos[i].label = DISK_IMAGE_LABELS[i];
-
-      if (trs80Extension.disk != null && trs80Extension.disk[i] != null) {
-        infos[i].name = trs80Extension.disk[i].filename;
-        infos[i].sizeInBytes = trs80Extension.disk[i].data.length;
-        infos[i].uploadTime = trs80Extension.disk[i].uploadTime;
-      }
+      fillInfo(mediaImages.get(trs80Extension.disk[i]), infos[i]);
     }
 
-    // Casette
+    // Casette.
     infos[4] = new DiskImageInfo();
     infos[4].id = 4;
     infos[4].label = DISK_IMAGE_LABELS[4];
-    if (trs80Extension.cassette != null) {
-      infos[4].name = trs80Extension.cassette.filename;
-      infos[4].sizeInBytes = trs80Extension.cassette.data.length;
-      infos[4].uploadTime = trs80Extension.cassette.uploadTime;
-    }
+    fillInfo(mediaImages.get(trs80Extension.cassette), infos[4]);
 
     // Command image.
     infos[5] = new DiskImageInfo();
     infos[5].id = 5;
     infos[5].label = DISK_IMAGE_LABELS[5];
-    if (trs80Extension.command != null) {
-      infos[5].name = trs80Extension.command.filename;
-      infos[5].sizeInBytes = trs80Extension.command.data.length;
-      infos[5].uploadTime = trs80Extension.command.uploadTime;
-    }
+    fillInfo(mediaImages.get(trs80Extension.command), infos[5]);
     responder.respondJson(infos);
+  }
+
+  private void fillInfo(MediaImage mediaImage, DiskImageInfo info) {
+    if (mediaImage != null) {
+      info.name = mediaImage.filename;
+      info.sizeInBytes = mediaImage.data.length;
+      info.uploadTime = mediaImage.uploadTime;
+    }
   }
 }

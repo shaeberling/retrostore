@@ -98,27 +98,27 @@ public class UploadDiskImageRpcCall implements RpcCall<RequestData> {
     final long now = System.currentTimeMillis();
     AppStoreItem app = appOpt.get();
 
+    // Add the media image to the store.
+    long mediaId = mAppManagement.addMediaImage(appIdStr, file.filename, file.content);
+
     if (diskNo >= 0 && diskNo < 4) {
-      if (app.trs80Extension.disk[diskNo] == null) {
-        app.trs80Extension.disk[diskNo] = new AppStoreItem.MediaImage();
+      if (app.trs80Extension.disk[diskNo] != 0) {
+        // Delete the old media image.
+        mAppManagement.deleteMediaImage(app.trs80Extension.disk[diskNo]);
       }
-      app.trs80Extension.disk[diskNo].data = file.content;
-      app.trs80Extension.disk[diskNo].uploadTime = now;
-      app.trs80Extension.disk[diskNo].filename = file.filename;
+      app.trs80Extension.disk[diskNo] = mediaId;
     } else if (diskNo == 4) {
-      if (app.trs80Extension.cassette == null) {
-        app.trs80Extension.cassette = new AppStoreItem.MediaImage();
+      if (app.trs80Extension.cassette != 0) {
+        // Delete the old media image.
+        mAppManagement.deleteMediaImage(app.trs80Extension.cassette);
       }
-      app.trs80Extension.cassette.data = file.content;
-      app.trs80Extension.cassette.uploadTime = now;
-      app.trs80Extension.cassette.filename = file.filename;
+      app.trs80Extension.cassette = mediaId;
     } else if (diskNo == 5) {
-      if (app.trs80Extension.command == null) {
-        app.trs80Extension.command = new AppStoreItem.MediaImage();
+      if (app.trs80Extension.command != 0) {
+        // Delete the old media image.
+        mAppManagement.deleteMediaImage(app.trs80Extension.command);
       }
-      app.trs80Extension.command.data = file.content;
-      app.trs80Extension.command.uploadTime = now;
-      app.trs80Extension.command.filename = file.filename;
+      app.trs80Extension.command = mediaId;
     } else {
       responder.respondBadRequest(String.format("Illegal disk image number '%d'.", diskNo));
       return;
