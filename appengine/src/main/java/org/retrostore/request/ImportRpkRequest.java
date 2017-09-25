@@ -31,6 +31,7 @@ import org.retrostore.data.user.UserService;
 import org.retrostore.resources.ResourceLoader;
 import org.retrostore.util.Base64Util;
 
+import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -101,10 +102,10 @@ public class ImportRpkRequest implements Request {
   }
 
   private boolean addRpk(RequestData.UploadFile file, RequestData requestData) {
-    String json = new String(file.content);
     try {
+      String json = new String(file.content, "UTF-8");
       return storeRpk((new Gson()).fromJson(json, RpkData.class), requestData);
-    } catch (JsonSyntaxException ex) {
+    } catch (JsonSyntaxException | UnsupportedEncodingException ex) {
       LOG.log(Level.WARNING, "Cannot parse JSON", ex);
     }
     return false;
