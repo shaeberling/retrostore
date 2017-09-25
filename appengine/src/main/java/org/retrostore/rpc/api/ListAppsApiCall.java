@@ -32,6 +32,9 @@ import org.retrostore.request.Response;
 import org.retrostore.resources.ImageServiceWrapper;
 import org.retrostore.rpc.internal.ApiCall;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -79,6 +82,7 @@ public class ListAppsApiCall implements ApiCall {
       return response.setSuccess(false).setMessage("Parameter 'start' out of range").build();
     }
 
+    List<App.Builder> apps = new ArrayList<>();
     for (int i = params.start; i < params.start + params.num && i < allApps.size(); ++i) {
       AppStoreItem app = allApps.get(i);
       App.Builder appBuilder = App.newBuilder();
@@ -114,9 +118,22 @@ public class ListAppsApiCall implements ApiCall {
       for (String blobKey : app.screenshotsBlobKeys) {
         appBuilder.addScreenshotUrl(mImageService.getServingUrl(blobKey, SCREENSHOT_SIZE).or(""));
       }
-
       appBuilder.setExtTrs80(trsExtension);
-      response.addApp(appBuilder);
+      apps.add(appBuilder);
+    }
+
+    // Sort the output alphabetically.
+    Collections.sort(apps, new Comparator<App.Builder>() {
+      @Override
+      public int compare(App.Builder o1, App.Builder o2) {
+        if (o1 == null || o2 == null) {
+          return 0;
+        }
+        return o1.getName().compareTo(o2.getName());
+      }
+    });
+    for (App.Builder app : apps) {
+      response.addApp(app.build());
     }
     return response.setSuccess(true).setMessage("All good :-)").build();
   }
