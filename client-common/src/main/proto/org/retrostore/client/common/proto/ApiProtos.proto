@@ -14,6 +14,15 @@ message ApiResponseApps {
     repeated App app = 3;
 }
 
+message ApiResponseMediaImages {
+    // Whether the request was a success.
+    bool success = 1;
+    // An optional (error) message, human-readable.
+    string message = 2;
+    // The media images returnes by this respone.
+    repeated MediaImage media_image = 3;
+}
+
 // A RetroStore app item.
 message App {
     // The ID to uniquely identify an app.
@@ -40,8 +49,6 @@ message App {
 message Trs80Extension {
     // The TRS-80 model type.
     Trs80Model model = 1;
-    // The media images included with this app.
-    repeated MediaImage media_image = 2;
 
     // The TRS-80 model types.
     enum Trs80Model {

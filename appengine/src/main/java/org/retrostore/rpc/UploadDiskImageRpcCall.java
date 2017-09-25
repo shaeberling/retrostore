@@ -99,26 +99,26 @@ public class UploadDiskImageRpcCall implements RpcCall<RequestData> {
     AppStoreItem app = appOpt.get();
 
     if (diskNo >= 0 && diskNo < 4) {
-      if (app.configuration.disk[diskNo] == null) {
-        app.configuration.disk[diskNo] = new AppStoreItem.MediaImage();
+      if (app.trs80Extension.disk[diskNo] == null) {
+        app.trs80Extension.disk[diskNo] = new AppStoreItem.MediaImage();
       }
-      app.configuration.disk[diskNo].data = file.content;
-      app.configuration.disk[diskNo].uploadTime = now;
-      app.configuration.disk[diskNo].filename = file.filename;
+      app.trs80Extension.disk[diskNo].data = file.content;
+      app.trs80Extension.disk[diskNo].uploadTime = now;
+      app.trs80Extension.disk[diskNo].filename = file.filename;
     } else if (diskNo == 4) {
-      if (app.configuration.cassette == null) {
-        app.configuration.cassette = new AppStoreItem.MediaImage();
+      if (app.trs80Extension.cassette == null) {
+        app.trs80Extension.cassette = new AppStoreItem.MediaImage();
       }
-      app.configuration.cassette.data = file.content;
-      app.configuration.cassette.uploadTime = now;
-      app.configuration.cassette.filename = file.filename;
+      app.trs80Extension.cassette.data = file.content;
+      app.trs80Extension.cassette.uploadTime = now;
+      app.trs80Extension.cassette.filename = file.filename;
     } else if (diskNo == 5) {
-      if (app.configuration.command == null) {
-        app.configuration.command = new AppStoreItem.MediaImage();
+      if (app.trs80Extension.command == null) {
+        app.trs80Extension.command = new AppStoreItem.MediaImage();
       }
-      app.configuration.command.data = file.content;
-      app.configuration.command.uploadTime = now;
-      app.configuration.command.filename = file.filename;
+      app.trs80Extension.command.data = file.content;
+      app.trs80Extension.command.uploadTime = now;
+      app.trs80Extension.command.filename = file.filename;
     } else {
       responder.respondBadRequest(String.format("Illegal disk image number '%d'.", diskNo));
       return;

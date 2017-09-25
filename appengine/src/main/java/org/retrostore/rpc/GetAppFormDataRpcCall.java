@@ -43,8 +43,6 @@ public class GetAppFormDataRpcCall implements RpcCall<RpcParameters> {
     List<DropdownValueForClient> existingAppAuthors = new ArrayList<>();
     List<DropdownValueForClient> appListingCategories = new ArrayList<>();
     List<DropdownValueForClient> trsModels = new ArrayList<>();
-    List<DropdownValueForClient> keyboardLayouts = new ArrayList<>();
-    List<DropdownValueForClient> characterColors = new ArrayList<>();
   }
 
   @Override
@@ -65,8 +63,6 @@ public class GetAppFormDataRpcCall implements RpcCall<RpcParameters> {
     appFormData.appListingCategories =
         DropdownValueForClient.from(AppStoreItem.ListingCategory.values());
     appFormData.trsModels = DropdownValueForClient.from(AppStoreItem.Model.values());
-    appFormData.keyboardLayouts = DropdownValueForClient.from(AppStoreItem.KeyboardLayout.values());
-    appFormData.characterColors = DropdownValueForClient.from(AppStoreItem.CharacterColor.values());
 
     responder.respondJson(appFormData);
   }

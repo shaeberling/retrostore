@@ -42,7 +42,7 @@ import java.util.logging.Logger;
 /**
  * API call to list apps from the store.
  */
-public class ListAppsApiCall implements ApiCall<App> {
+public class ListAppsApiCall implements ApiCall {
   private static final Logger LOG = Logger.getLogger("ListAppsApiCall");
   private static final int SCREENSHOT_SIZE = 800;
   private final AppManagement mAppManagement;
@@ -59,7 +59,7 @@ public class ListAppsApiCall implements ApiCall<App> {
   }
 
   @Override
-  public Response call(RequestData data) {
+  public Response call(final RequestData data) {
     final ApiResponseApps responseApps = callInternal(data);
     return new Response() {
       @Override
@@ -98,7 +98,7 @@ public class ListAppsApiCall implements ApiCall<App> {
 
       // Set the TRS80 related parameters.
       Trs80Extension.Builder trsExtension = Trs80Extension.newBuilder();
-      switch (app.configuration.model) {
+      switch (app.trs80Extension.model) {
         default:
         case MODEL_I:
           trsExtension.setModel(Trs80Model.MODEL_I);
@@ -118,21 +118,21 @@ public class ListAppsApiCall implements ApiCall<App> {
         appBuilder.addScreenshotUrl(mImageService.getServingUrl(blobKey, SCREENSHOT_SIZE));
       }
 
-      // Create the list of media images for this app (disks and casettes).
-      for (AppStoreItem.MediaImage mediaImage : app.configuration.disk) {
-        if (mediaImage != null) {
-          trsExtension.addMediaImage(toClientType(mediaImage, MediaType.DISK));
-        }
-      }
-
-      AppStoreItem.MediaImage cassette = app.configuration.cassette;
-      if (cassette != null) {
-        trsExtension.addMediaImage(toClientType(cassette, MediaType.CASSETTE));
-      }
-      AppStoreItem.MediaImage command = app.configuration.command;
-      if (command != null) {
-        trsExtension.addMediaImage(toClientType(command, MediaType.COMMAND));
-      }
+//      // Create the list of media images for this app (disks and casettes).
+//      for (AppStoreItem.MediaImage mediaImage : app.trs80Extension.disk) {
+//        if (mediaImage != null) {
+//          trsExtension.addMediaImage(toClientType(mediaImage, MediaType.DISK));
+//        }
+//      }
+//
+//      AppStoreItem.MediaImage cassette = app.trs80Extension.cassette;
+//      if (cassette != null) {
+//        trsExtension.addMediaImage(toClientType(cassette, MediaType.CASSETTE));
+//      }
+//      AppStoreItem.MediaImage command = app.trs80Extension.command;
+//      if (command != null) {
+//        trsExtension.addMediaImage(toClientType(command, MediaType.COMMAND));
+//      }
       appBuilder.setExtTrs80(trsExtension);
       response.addApp(appBuilder);
     }

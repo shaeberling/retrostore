@@ -22,7 +22,7 @@ import org.retrostore.request.Response;
 /**
  * All API call subclasses implement this interface.
  */
-public interface ApiCall<T> {
+public interface ApiCall {
 
   /** The name of this API call. */
   String getName();

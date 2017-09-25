@@ -133,7 +133,7 @@ public class ImportRpkRequest implements Request {
     app.listing.categories.clear();
     app.listing.categories.add(AppStoreItem.ListingCategory.valueOf(data.app.categories));
     app.listing.authorId = mAppManagement.ensureAuthorExists(data.app.author);
-    app.configuration.model = AppStoreItem.Model.valueOf(data.trs.model);
+    app.trs80Extension.model = AppStoreItem.Model.valueOf(data.trs.model);
 
     // Handle publisher. If the user does not exist yet, add him to the database.
     Optional<RetroStoreUser> userByEmail = mUserManagement.getUserByEmail(data.publisher.email);
@@ -159,15 +159,15 @@ public class ImportRpkRequest implements Request {
       image.uploadTime = System.currentTimeMillis();
       image.data = content.get();
       image.filename = String.format("disk_%d.%s", i, rpkMedia.ext);
-      app.configuration.disk[i] = image;
+      app.trs80Extension.disk[i] = image;
     }
 
-    app.configuration.command = new AppStoreItem.MediaImage();
+    app.trs80Extension.command = new AppStoreItem.MediaImage();
     Optional<byte[]> content = Base64Util.decode(data.trs.image.cmd.content);
     if (content.isPresent()) {
-      app.configuration.command.uploadTime = System.currentTimeMillis();
-      app.configuration.command.data = content.get();
-      app.configuration.command.filename = String.format("command.%s", data.trs.image.cmd.ext);
+      app.trs80Extension.command.uploadTime = System.currentTimeMillis();
+      app.trs80Extension.command.data = content.get();
+      app.trs80Extension.command.filename = String.format("command.%s", data.trs.image.cmd.ext);
     }
 
     // Screenshots. If we are updating an existing item, delete the old screenshots first.

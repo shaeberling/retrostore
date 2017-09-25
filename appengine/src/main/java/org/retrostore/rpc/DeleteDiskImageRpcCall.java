@@ -77,18 +77,18 @@ public class DeleteDiskImageRpcCall implements RpcCall<RpcParameters> {
     }
 
     AppStoreItem app = appOpt.get();
-    if (app.configuration == null) {
+    if (app.trs80Extension == null) {
       return;
     }
 
     if (diskImageNo < 4) {
-      if (app.configuration.disk != null) {
-        app.configuration.disk[diskImageNo] = null;
+      if (app.trs80Extension.disk != null) {
+        app.trs80Extension.disk[diskImageNo] = null;
       }
     } else if (diskImageNo == 4) {
-      app.configuration.cassette = null;
+      app.trs80Extension.cassette = null;
     } else if (diskImageNo == 5) {
-      app.configuration.command = null;
+      app.trs80Extension.command = null;
     }
     mAppManagement.addOrChangeApp(app);
   }

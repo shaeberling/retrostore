@@ -22,8 +22,6 @@ import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.app.AppStoreItem;
-import org.retrostore.data.app.AppStoreItem.CharacterColor;
-import org.retrostore.data.app.AppStoreItem.KeyboardLayout;
 import org.retrostore.data.app.AppStoreItem.ListingCategory;
 import org.retrostore.data.app.AppStoreItem.Model;
 import org.retrostore.data.user.UserAccountType;
@@ -50,10 +48,6 @@ public class AddEditAppRpcCall implements RpcCall<RpcParameters> {
     public String newAuthor;
     public String category;
     public String model;
-    public String kbLayoutLand;
-    public String kbLayoutPort;
-    public String charColor;
-    public boolean soundMuted;
   }
 
   private static final Logger LOG = Logger.getLogger("AddEditAppRpcCall");
@@ -91,10 +85,7 @@ public class AddEditAppRpcCall implements RpcCall<RpcParameters> {
           checkNullEmpty(data.description, "Description missing", responder) ||
           checkNoValidInt(data.releaseYear, "Release yer invalid", responder, true) ||
           checkNullEmpty(data.category, "Category missing", responder) ||
-          checkNullEmpty(data.model, "Model missing", responder) ||
-          checkNullEmpty(data.kbLayoutLand, "Landscape Keyboard layout missing", responder) ||
-          checkNullEmpty(data.kbLayoutPort, "Portrait Keyboard layout missing", responder) ||
-          checkNullEmpty(data.charColor, "Character color missing", responder)) {
+          checkNullEmpty(data.model, "Model missing", responder)) {
         return;
       }
 
@@ -105,19 +96,10 @@ public class AddEditAppRpcCall implements RpcCall<RpcParameters> {
 
       Optional<Model> model =
           getEnumValue(Model.class, data.model, "Illegal TRS model '%s'", responder);
-      Optional<KeyboardLayout> kbLayoutLand =
-          getEnumValue(KeyboardLayout.class, data.kbLayoutLand, "Illegal KB layout '%s", responder);
-      Optional<KeyboardLayout> kbLayoutPort =
-          getEnumValue(KeyboardLayout.class, data.kbLayoutPort, "Illegal KB layout '%s", responder);
-      Optional<CharacterColor> charColor =
-          getEnumValue(CharacterColor.class, data.charColor, "Illegal char color'%s", responder);
       Optional<ListingCategory> category =
           getEnumValue(ListingCategory.class, data.category, "Illegal app category '%s'",
               responder);
       if (!model.isPresent() ||
-          !kbLayoutLand.isPresent() ||
-          !kbLayoutPort.isPresent() ||
-          !charColor.isPresent() ||
           !category.isPresent()) {
         return;
       }
@@ -146,11 +128,7 @@ public class AddEditAppRpcCall implements RpcCall<RpcParameters> {
       appStoreItem.listing.releaseYear = Integer.parseInt(data.releaseYear);
       appStoreItem.listing.categories.clear();
       appStoreItem.listing.categories.add(category.get());
-      appStoreItem.configuration.model = model.get();
-      appStoreItem.configuration.kbLayoutLandscape = kbLayoutLand.get();
-      appStoreItem.configuration.kbLayoutPortrait = kbLayoutPort.get();
-      appStoreItem.configuration.charColor = charColor.get();
-      appStoreItem.configuration.soundMuted = data.soundMuted;
+      appStoreItem.trs80Extension.model = model.get();
 
       // Set the publisher.
       if (Strings.isNullOrEmpty(appStoreItem.listing.publisherEmail)) {

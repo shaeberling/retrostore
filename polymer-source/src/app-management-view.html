@@ -152,28 +152,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             </template>
           </paper-listbox>
         </paper-dropdown-menu><br>
-        <paper-dropdown-menu name="kbLayoutLand" label="Landscape keyboard layout" required>
-          <paper-listbox slot="dropdown-content" selected="{{form_kbLayoutLand}}" attr-for-selected="value">
-            <template is="dom-repeat" items="{{formData.keyboardLayouts}}">
-              <paper-item value="{{item.value}}">{{item.name}}</paper-item>
-            </template>
-          </paper-listbox>
-        </paper-dropdown-menu><br>
-        <paper-dropdown-menu name="kbLayoutPort" label="Portrait keyboard layout" required>
-          <paper-listbox slot="dropdown-content" selected="{{form_kbLayoutPort}}" attr-for-selected="value">
-            <template is="dom-repeat" items="{{formData.keyboardLayouts}}">
-              <paper-item value="{{item.value}}">{{item.name}}</paper-item>
-            </template>
-          </paper-listbox>
-        </paper-dropdown-menu><br>
-        <paper-dropdown-menu name="charColor" label="Character color" required>
-          <paper-listbox slot="dropdown-content" selected="{{form_charColor}}" attr-for-selected="value">
-            <template is="dom-repeat" items="{{formData.characterColors}}">
-              <paper-item value="{{item.value}}">{{item.name}}</paper-item>
-            </template>
-          </paper-listbox>
-        </paper-dropdown-menu><br>
-        <paper-checkbox name="soundMuted" checked="{{form_soundMuted}}">Mute sound</paper-checkbox>
       </div>
 
       <div class="action-buttons">
@@ -417,11 +395,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.form_origAuthorId = e.model.get('item.listing.authorId');
         this.form_newAuthor = "";
         this.form_category = e.model.get('item.listing.categories')[0];
-        this.form_model = e.model.get('item.configuration.model');
-        this.form_kbLayoutLand = e.model.get('item.configuration.kbLayoutLandscape');
-        this.form_kbLayoutPort = e.model.get('item.configuration.kbLayoutPortrait');
-        this.form_charColor = e.model.get('item.configuration.charColor');
-        this.form_soundMuted = e.model.get('item.configuration.soundMuted');
+        this.form_model = e.model.get('item.trs80Extension.model');
 
         this.showMode = "addEdit";
       }
@@ -447,10 +421,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           newAuthor: this.form_newAuthor,
           category: this.form_category,
           model: this.form_model,
-          kbLayoutLand: this.form_kbLayoutLand,
-          kbLayoutPort: this.form_kbLayoutPort,
-          charColor: this.form_charColor,
-          soundMuted: this.form_soundMuted
         };
 
         this.$.xhrAddEditApp.body = JSON.stringify(data);
@@ -540,11 +510,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         if (!!this.formData) {
           this.form_category = this.formData.appListingCategories[0].value;
           this.form_model = this.formData.trsModels[0].value;
-          this.form_kbLayoutLand = this.formData.keyboardLayouts[0].value;
-          this.form_kbLayoutPort = this.formData.keyboardLayouts[0].value;
-          this.form_charColor = this.formData.characterColors[0].value;
         }
-        this.form_soundMuted = false;
       }
       _patchOverlay(e) {
         // See bug: https://github.com/PolymerElements/paper-dialog/issues/7

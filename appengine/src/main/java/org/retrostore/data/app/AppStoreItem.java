@@ -22,6 +22,7 @@ import com.googlecode.objectify.Key;
 import com.googlecode.objectify.annotation.Cache;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
+import com.googlecode.objectify.annotation.Index;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -71,48 +72,13 @@ public class AppStoreItem {
     }
   }
 
-  public enum KeyboardLayout {
-    ORIGINAL("Original"),
-    COMPACT("Compact"),
-    JOYSTICK("Joystick"),
-    GAME("Game"),
-    TILT("Tilt");
-
-    private final String readableName;
-
-    KeyboardLayout(String readableName) {
-      this.readableName = readableName;
-    }
-
-    @Override
-    public String toString() {
-      return readableName;
-    }
-
-  }
-
-  public enum CharacterColor {
-    GREEN("Green"), WHITE("White");
-
-    private final String readableName;
-
-    CharacterColor(String readableName) {
-      this.readableName = readableName;
-    }
-
-    @Override
-    public String toString() {
-      return readableName;
-    }
-  }
-
   // E.g. Cassette or disk image.
   public static class MediaImage {
     /** The timestamp of when this image was uploaded. */
     public long uploadTime;
     /**
-     * Type for TRS80 is a string of the file name, with which an emulator will determine how
-     * to read it.
+     * Type for TRS80 is a string of the file name, with which an emulator will determine how to
+     * read it.
      */
     public String filename;
     /** An optional note for this image to describe it. */
@@ -140,20 +106,15 @@ public class AppStoreItem {
   }
 
   /**
-   * Configuration data (for TRS-80 specifically).
+   * Trs80Extension data (for TRS-80 specifically).
    */
-  public static class Configuration {
+  public static class Trs80Extension {
     public Model model;
 
     // Disk 1-4 + cassette (type/extension + data)
     public MediaImage[] disk = new MediaImage[4];
     public MediaImage cassette;
     public MediaImage command;
-
-    public boolean soundMuted;
-    public KeyboardLayout kbLayoutLandscape;
-    public KeyboardLayout kbLayoutPortrait;
-    public CharacterColor charColor;
   }
 
   /**
@@ -182,6 +143,7 @@ public class AppStoreItem {
     // Generate a new ID for this app.
     id = UUID.randomUUID().toString();
   }
+
   public AppStoreItem(String newId) {
     Preconditions.checkArgument(!Strings.isNullOrEmpty(newId), "ID may not be empty.");
     id = newId;
@@ -190,14 +152,20 @@ public class AppStoreItem {
   @Id
   public String id;
 
-  // TODO: This configuration is platform-specific and should only be a link or somewhat
-  // generalized.
-  public Configuration configuration = new Configuration();
+  @Index
+  public Platform platform = Platform.TRS80;
+
+  /** Listing information, relevant for all apps. */
   public Listing listing = new Listing();
+
   /** The blobkeys of the screenshots to serve. */
   public List<String> screenshotsBlobKeys = new ArrayList<>();
 
-  public void setUpdateAndPublishTime() {
+  // Platform-specific extensions go here...
+  public Trs80Extension trs80Extension = new Trs80Extension();
+
+
+  void setUpdateAndPublishTime() {
     // Ensure the times are set correctly.
     final long now = System.currentTimeMillis();
     if (listing.firstPublishTime <= 0) {

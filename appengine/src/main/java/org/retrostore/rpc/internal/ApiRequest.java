@@ -25,6 +25,7 @@ import org.retrostore.request.Request;
 import org.retrostore.request.RequestData;
 import org.retrostore.request.Responder;
 import org.retrostore.resources.ImageServiceWrapper;
+import org.retrostore.rpc.api.GetMediaImagesApiCall;
 import org.retrostore.rpc.api.ListAppsApiCall;
 
 import java.util.HashMap;
@@ -43,7 +44,8 @@ public class ApiRequest implements Request {
 
   public ApiRequest(AppManagement mAppManagement, ImageServiceWrapper imageService) {
     List<ApiCall> calls = ImmutableList.<ApiCall>of(
-        new ListAppsApiCall(mAppManagement, imageService));
+        new ListAppsApiCall(mAppManagement, imageService),
+        new GetMediaImagesApiCall());
 
     Map<String, ApiCall> callsMapped = new HashMap<>();
     for (ApiCall call : calls) {

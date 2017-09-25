@@ -57,11 +57,7 @@ public class AppListRpcCall implements RpcCall<RpcParameters> {
       AppStoreItem listingApp = new AppStoreItem();
       listingApp.id = app.id;
       listingApp.listing = app.listing;
-      listingApp.configuration.model = app.configuration.model;
-      listingApp.configuration.soundMuted = app.configuration.soundMuted;
-      listingApp.configuration.kbLayoutLandscape = app.configuration.kbLayoutPortrait;
-      listingApp.configuration.kbLayoutPortrait = app.configuration.kbLayoutPortrait;
-      listingApp.configuration.charColor = app.configuration.charColor;
+      listingApp.trs80Extension.model = app.trs80Extension.model;
 
       listingApps.add(listingApp);
     }

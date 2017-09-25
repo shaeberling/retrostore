@@ -74,22 +74,22 @@ public class ListDiskImagesRpcCall implements RpcCall<RpcParameters> {
       return;
     }
 
-    AppStoreItem.Configuration configuration = appOpt.get().configuration;
-    if (configuration == null) {
-      responder.respondBadRequest("App has no configuration");
+    AppStoreItem.Trs80Extension trs80Extension = appOpt.get().trs80Extension;
+    if (trs80Extension == null) {
+      responder.respondBadRequest("App has no trs80Extension");
       return;
     }
 
     DiskImageInfo[] infos = new DiskImageInfo[6];
-    for (int i = 0; i < configuration.disk.length; ++i) {
+    for (int i = 0; i < trs80Extension.disk.length; ++i) {
       infos[i] = new DiskImageInfo();
       infos[i].id = i;
       infos[i].label = DISK_IMAGE_LABELS[i];
 
-      if (configuration.disk != null && configuration.disk[i] != null) {
-        infos[i].name = configuration.disk[i].filename;
-        infos[i].sizeInBytes = configuration.disk[i].data.length;
-        infos[i].uploadTime = configuration.disk[i].uploadTime;
+      if (trs80Extension.disk != null && trs80Extension.disk[i] != null) {
+        infos[i].name = trs80Extension.disk[i].filename;
+        infos[i].sizeInBytes = trs80Extension.disk[i].data.length;
+        infos[i].uploadTime = trs80Extension.disk[i].uploadTime;
       }
     }
 
@@ -97,20 +97,20 @@ public class ListDiskImagesRpcCall implements RpcCall<RpcParameters> {
     infos[4] = new DiskImageInfo();
     infos[4].id = 4;
     infos[4].label = DISK_IMAGE_LABELS[4];
-    if (configuration.cassette != null) {
-      infos[4].name = configuration.cassette.filename;
-      infos[4].sizeInBytes = configuration.cassette.data.length;
-      infos[4].uploadTime = configuration.cassette.uploadTime;
+    if (trs80Extension.cassette != null) {
+      infos[4].name = trs80Extension.cassette.filename;
+      infos[4].sizeInBytes = trs80Extension.cassette.data.length;
+      infos[4].uploadTime = trs80Extension.cassette.uploadTime;
     }
 
     // Command image.
     infos[5] = new DiskImageInfo();
     infos[5].id = 5;
     infos[5].label = DISK_IMAGE_LABELS[5];
-    if (configuration.command != null) {
-      infos[5].name = configuration.command.filename;
-      infos[5].sizeInBytes = configuration.command.data.length;
-      infos[5].uploadTime = configuration.command.uploadTime;
+    if (trs80Extension.command != null) {
+      infos[5].name = trs80Extension.command.filename;
+      infos[5].sizeInBytes = trs80Extension.command.data.length;
+      infos[5].uploadTime = trs80Extension.command.uploadTime;
     }
     responder.respondJson(infos);
   }
