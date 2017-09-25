@@ -23,7 +23,7 @@ final class ContentType {
   /** Return a content type depending on the filename. */
   static Responder.ContentType fromFilename(String filename) {
     filename = filename.toLowerCase();
-    if (filename.endsWith(".html")) {
+    if (filename.endsWith(".html") || filename.endsWith(".htm")) {
       return Responder.ContentType.HTML;
     } else if (filename.endsWith(".css")) {
       return Responder.ContentType.CSS;
@@ -31,7 +31,7 @@ final class ContentType {
       return Responder.ContentType.JS;
     } else if (filename.endsWith(".json")) {
       return Responder.ContentType.JSON;
-    } else if (filename.endsWith(".jpeg")) {
+    } else if (filename.endsWith(".jpeg") || filename.endsWith(".jpg")) {
       return Responder.ContentType.JPEG;
     } else if (filename.endsWith(".png")) {
       return Responder.ContentType.PNG;
