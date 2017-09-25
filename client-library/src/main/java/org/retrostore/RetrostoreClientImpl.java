@@ -57,7 +57,8 @@ public class RetrostoreClientImpl implements RetrostoreClient {
         UrlFetcherImpl(), Executors.newSingleThreadExecutor());
   }
 
-  static RetrostoreClientImpl get(String apiKey, String serverUrl, boolean enableGzip) {
+  @SuppressWarnings("WeakerAccess") // This is the public API.
+  public static RetrostoreClientImpl get(String apiKey, String serverUrl, boolean enableGzip) {
     // Use default URL fetcher and executor.
     return new RetrostoreClientImpl(apiKey, serverUrl, enableGzip, new UrlFetcherImpl(),
         Executors.newSingleThreadExecutor());
