@@ -76,6 +76,7 @@ public class AppStoreItem {
     GAME("Game"),
     GAME_ARCADE("Game/Arcade"),
     OFFICE("Office"),
+    OS("Operating System"),
     OTHER("Other");
 
     private final String readableName;
