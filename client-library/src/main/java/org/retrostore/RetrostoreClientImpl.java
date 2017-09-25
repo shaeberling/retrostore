@@ -16,19 +16,19 @@
 
 package org.retrostore;
 
-import com.google.common.util.concurrent.SettableFuture;
+import org.retrostore.client.common.FetchMediaImagesApiParams;
 import org.retrostore.client.common.ListAppsApiParams;
 import org.retrostore.client.common.proto.ApiResponseApps;
+import org.retrostore.client.common.proto.ApiResponseMediaImages;
 import org.retrostore.client.common.proto.App;
+import org.retrostore.client.common.proto.MediaImage;
 import org.retrostore.net.UrlFetcher;
 import org.retrostore.net.UrlFetcherImpl;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 public class RetrostoreClientImpl implements RetrostoreClient {
   private static final String DEFAULT_SERVER_URL = "https://retrostore.org/api/%s";
@@ -57,26 +57,10 @@ public class RetrostoreClientImpl implements RetrostoreClient {
         UrlFetcherImpl(), Executors.newSingleThreadExecutor());
   }
 
-  public static RetrostoreClientImpl get(String apiKey, String serverUrl, boolean enableGzip) {
+  static RetrostoreClientImpl get(String apiKey, String serverUrl, boolean enableGzip) {
     // Use default URL fetcher and executor.
     return new RetrostoreClientImpl(apiKey, serverUrl, enableGzip, new UrlFetcherImpl(),
         Executors.newSingleThreadExecutor());
-  }
-
-  @Override
-  public Future<List<App>> fetchAppsAsync(final int start, final int num) {
-    final SettableFuture<List<App>> future = SettableFuture.create();
-    mExecutor.execute(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          future.set(fetchApps(start, num));
-        } catch (Exception ex) {
-          future.setException(ex);
-        }
-      }
-    });
-    return future;
   }
 
   @Override
@@ -92,6 +76,24 @@ public class RetrostoreClientImpl implements RetrostoreClient {
             "Server reported error: '%s'", apiResponse.getMessage()));
       }
       return apiResponse.getAppList();
+    } catch (IOException e) {
+      throw new ApiException("Unable to make request to server.", e);
+    }
+  }
+
+  @Override
+  public List<MediaImage> fetchMediaImages(String appId) throws ApiException {
+    FetchMediaImagesApiParams params = new FetchMediaImagesApiParams(appId);
+    String url = String.format(mServerUrl, "fetchMediaImages");
+    try {
+      byte[] content = mUrlFetcher.fetchUrl(url, params);
+      ApiResponseMediaImages apiResponse = ApiResponseMediaImages.parseFrom(content);
+
+      if (!apiResponse.getSuccess()) {
+        throw new ApiException(String.format(
+            "Server reported error: '%s'", apiResponse.getMessage()));
+      }
+      return apiResponse.getMediaImageList();
     } catch (IOException e) {
       throw new ApiException("Unable to make request to server.", e);
     }

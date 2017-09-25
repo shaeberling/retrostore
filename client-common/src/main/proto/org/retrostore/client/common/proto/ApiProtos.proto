@@ -20,7 +20,7 @@ message ApiResponseMediaImages {
     // An optional (error) message, human-readable.
     string message = 2;
     // The media images returnes by this respone.
-    repeated MediaImage media_image = 3;
+    repeated MediaImage mediaImage = 3;
 }
 
 // A RetroStore app item.

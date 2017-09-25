@@ -19,11 +19,15 @@ package org.retrostore.resources;
 import com.google.appengine.api.blobstore.BlobKey;
 import com.google.appengine.api.images.ImagesService;
 import com.google.appengine.api.images.ServingUrlOptions;
+import com.google.common.base.Optional;
+
+import java.util.logging.Logger;
 
 /**
  * Functionality around the image service.
  */
 public class ImageServiceWrapper {
+  private static final Logger LOG = Logger.getLogger("ImageServiceWrapper");
   private final ImagesService mImagesService;
 
   public ImageServiceWrapper(ImagesService imagesService) {
@@ -37,11 +41,16 @@ public class ImageServiceWrapper {
    * @param imageSize the maximum size of the longest side.
    * @return The URL to serve the image in the given size.
    */
-  public String getServingUrl(String blobKey, int imageSize) {
+  public Optional<String> getServingUrl(String blobKey, int imageSize) {
     ServingUrlOptions options = ServingUrlOptions.Builder
         .withBlobKey(new BlobKey(blobKey))
         .secureUrl(true)
         .imageSize(imageSize);
-    return mImagesService.getServingUrl(options);
+    try {
+      return Optional.of(mImagesService.getServingUrl(options));
+    } catch (IllegalArgumentException ex) {
+      LOG.warning("Cannot get image serving URL: " + ex.getMessage());
+      return Optional.absent();
+    }
   }
 }

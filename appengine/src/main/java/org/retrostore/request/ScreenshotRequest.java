@@ -80,7 +80,11 @@ public class ScreenshotRequest implements Request {
       LOG.warning("No 'key' present for serving screenshot.");
       return;
     }
-    responder.respondRedirect(mImageService.getServingUrl(blobKeyOpt.get(), SCREENSHOT_SIZE));
+    Optional<String> servingUrl = mImageService.getServingUrl(blobKeyOpt.get(), SCREENSHOT_SIZE);
+    if (!servingUrl.isPresent()) {
+      return;
+    }
+    responder.respondRedirect(servingUrl.get());
   }
 
   private void uploadScreenshotUrl(RequestData requestData, Responder responder) {

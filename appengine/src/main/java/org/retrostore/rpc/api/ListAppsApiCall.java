@@ -112,15 +112,13 @@ public class ListAppsApiCall implements ApiCall {
       }
 
       for (String blobKey : app.screenshotsBlobKeys) {
-        appBuilder.addScreenshotUrl(mImageService.getServingUrl(blobKey, SCREENSHOT_SIZE));
+        appBuilder.addScreenshotUrl(mImageService.getServingUrl(blobKey, SCREENSHOT_SIZE).or(""));
       }
 
       appBuilder.setExtTrs80(trsExtension);
       response.addApp(appBuilder);
     }
-
-    response.setSuccess(true).setMessage("All good :-)");
-    return response.build();
+    return response.setSuccess(true).setMessage("All good :-)").build();
   }
 
   private ListAppsApiParams parseParams(String params) {

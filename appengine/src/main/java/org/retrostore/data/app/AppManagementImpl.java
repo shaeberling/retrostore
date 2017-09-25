@@ -126,21 +126,24 @@ public class AppManagementImpl implements AppManagement {
       return new long[0];
     }
 
+    LOG.info("About to delete all media for app ID: " + appId);
+
     AppStoreItem.Trs80Extension trs80 = appById.get().trs80Extension;
     List<Key<MediaImage>> toDelete = new ArrayList<>();
     // Note, add delete routines for other platforms here.
     for (long id : trs80.disk) {
-      if (id > 0) {
+      if (id != 0) {
         toDelete.add(MediaImage.key(id));
       }
     }
-    if (trs80.cassette > 0) {
+    if (trs80.cassette != 0) {
       toDelete.add(MediaImage.key(trs80.cassette));
     }
-    if (trs80.command > 0) {
+    if (trs80.command != 0) {
       toDelete.add(MediaImage.key(trs80.command));
     }
     ofy().delete().keys(toDelete).now();
+    LOG.info("Deleted " + toDelete.size() + " items.");
 
     long[] result = new long[toDelete.size()];
     for (int i = 0; i < result.length; ++i) {
@@ -156,9 +159,10 @@ public class AppManagementImpl implements AppManagement {
 
   @Override
   public void removeApp(String id) {
-    ofy().delete().key(AppStoreItem.key(id)).now();
+    // Note, call this before deleting the app. We need the app to get to its media IDs.
     deleteMediaImagesForApp(id);
     // FIXME: Delete screenshots.
+    ofy().delete().key(AppStoreItem.key(id)).now();
   }
 
   @Override
