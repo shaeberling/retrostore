@@ -16,7 +16,7 @@ apply plugin: 'com.google.protobuf'
 sourceCompatibility = JavaVersion.VERSION_1_7
 targetCompatibility = JavaVersion.VERSION_1_7
 
-version = '0.1.4'
+version = '0.1.5'
 group = 'org.retrostore'
 
 dependencies {
