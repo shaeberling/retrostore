@@ -14,10 +14,10 @@
     <!-- Custom styles for this template -->
     <link href="css/modern-business.css" rel="stylesheet">
     <style>
-      .navbar-dark .navbar-nav .nav-link {
+      .navbar-light .navbar-nav .nav-link {
          color: #222;
       }
-      .navbar-dark .navbar-nav .nav-link:hover {
+      .navbar-light .navbar-nav .nav-link:hover {
          color: #888;
       }
       .carousel-caption {
@@ -45,13 +45,20 @@
       .app-report-link {
         font-size: 0.9em;
       }
+      #loading-msg {
+        font-size: 2em;
+        font-weight: bold;
+        text-align: center;
+        width: 100%;
+        margin: 2em;
+      }
     </style>
   </head>
 
   <body>
 
     <!-- Navigation -->
-    <nav class="navbar fixed-top navbar-expand-lg navbar-dark bg-light fixed-top">
+    <nav class="navbar fixed-top navbar-expand-lg navbar-light bg-light fixed-top">
       <div class="container">
         <a class="navbar-brand" href="index.html"><img src="https://github.com/shaeberling/retrostore/raw/master/docs/retrostore_logo.png" style="height: 50px;"></a>
         <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
@@ -90,7 +97,7 @@
       </ol>
 
       <div style="font-size:0.9em">
-        Find here a list of all the apps that are currently available in the RetroStore.
+        Here is a list of all the apps that are currently available in the RetroStore.
         You can browse them all here and also contact us if you think there is an issue
         with one of the items in the RetroStore.<p>
         To install and play around with these apps you need to install one of the supported
@@ -99,6 +106,7 @@
 
       <!-- Marketing Icons Section -->
       <div id="app-list" class="row">
+        <div id="loading-msg">Loading, please wait.</div>
       </div>
       <!-- /.row -->
 
@@ -143,6 +151,7 @@
       }
 
       $.get("/rpc?m=pubapplist", function(apps) {
+        $("#app-list").empty();
         for (var i in apps) {
           addApp(apps[i]);
         }
