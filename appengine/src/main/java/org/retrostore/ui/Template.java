@@ -32,11 +32,11 @@ import java.util.Map;
  * A simple string/replace based templating mechanism.
  */
 public class Template {
-  private static final String KEY_FORMAT = "<!--TRS %s TRS-->";
+  private static final String KEY_FORMAT = "<!--RS %s RS-->";
   private final String content;
   private final Map<String, String> values = new HashMap<>();
 
-  private Template(String content) {
+  public Template(String content) {
     this.content = content;
   }
 
