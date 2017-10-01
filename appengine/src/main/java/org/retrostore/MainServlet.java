@@ -95,7 +95,7 @@ public class MainServlet extends RetroStoreServlet {
         new EnsureAdminExistsRequest(sUserManagement),
         new ImportRpkRequest((getResourceLoader()), sAppManagement, sUserManagement,
             sBlobstoreWrapper),
-        new RpcCallRequest(sUserManagement, sAppManagement),
+        new RpcCallRequest(sUserManagement, sAppManagement, sImgServWrapper),
         new ScreenshotRequest(sBlobstoreWrapper, sAppManagement, sImgServWrapper),
         new PolymerRequest(getResourceLoader()),
         new StaticFileRequest(sDefaultResourceLoader),

@@ -25,6 +25,7 @@ import org.retrostore.data.user.UserService;
 import org.retrostore.request.Request;
 import org.retrostore.request.RequestData;
 import org.retrostore.request.Responder;
+import org.retrostore.resources.ImageServiceWrapper;
 import org.retrostore.rpc.AddEditAppRpcCall;
 import org.retrostore.rpc.AddEditUserRpcCall;
 import org.retrostore.rpc.AdminUserListRpcCall;
@@ -37,6 +38,7 @@ import org.retrostore.rpc.GetAppFormDataRpcCall;
 import org.retrostore.rpc.GetSiteContextRpcCall;
 import org.retrostore.rpc.ListDiskImagesRpcCall;
 import org.retrostore.rpc.ListScreenshotsRpcCall;
+import org.retrostore.rpc.PublicAppListRpcCall;
 import org.retrostore.rpc.ReorderScreenshotsRpcCall;
 
 import java.util.HashMap;
@@ -56,7 +58,9 @@ public class RpcCallRequest implements Request {
   private final Map<String, RpcCall<RpcParameters>> mRpcCalls;
 
 
-  public RpcCallRequest(UserManagement userManagement, AppManagement appManagement) {
+  public RpcCallRequest(UserManagement userManagement,
+                        AppManagement appManagement,
+                        ImageServiceWrapper imageService) {
     // Note: Add new RPC calls here.
     List<RpcCall<RpcParameters>> calls = ImmutableList.of(
         new AdminUserListRpcCall(userManagement),
@@ -66,6 +70,7 @@ public class RpcCallRequest implements Request {
         new GetAppFormDataRpcCall(appManagement),
         new DeleteUserRpcCall(userManagement),
         new AppListRpcCall(appManagement),
+        new PublicAppListRpcCall(appManagement, imageService),
         new DeleteAppRpcCall(appManagement),
         new ListDiskImagesRpcCall(appManagement),
         new DeleteDiskImageRpcCall(appManagement),
