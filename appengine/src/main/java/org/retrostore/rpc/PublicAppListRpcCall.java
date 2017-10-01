@@ -70,8 +70,8 @@ public class PublicAppListRpcCall implements RpcCall<RpcParameters> {
       listingApp.author = getAuthorString(app.listing.authorId);
       listingApp.description = app.listing.description;
       listingApp.screenshots = getScreenshotUrls(app.screenshotsBlobKeys);
+      listingApp.reportUrl = "/reportapp?appId=" + app.id;
       listingApps.add(listingApp);
-      // TODO: reportUrl;
     }
 
     Collections.sort(listingApps, new Comparator<PubAppListItem>() {
