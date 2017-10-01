@@ -65,8 +65,6 @@ public class ImportRpkRequest implements Request {
       return false;
     }
 
-    LOG.info("Cookies: " + requestData.getCookieRaw());
-
     if (requestData.getType() == RequestData.Type.GET) {
       serveGet(responder);
     } else if (requestData.getType() == RequestData.Type.POST) {
