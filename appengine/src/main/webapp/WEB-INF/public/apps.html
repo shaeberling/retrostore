@@ -53,6 +53,7 @@
         margin: 2em;
       }
     </style>
+    <link href="/public/lightbox2/css/lightbox.css" rel="stylesheet">
   </head>
 
   <body>
@@ -127,13 +128,22 @@
     <script src="vendor/bootstrap/js/bootstrap.min.js"></script>
 
     <script>
-      function addApp(app) {
+      function addApp(app, idx) {
         var root = $("#app-list");
         var html = '<div class="col-lg-4 mb-4">';
         html += '<div class="card h-100">';
 
         html += '<h4 class="card-header">';
-        html += '<img class="app-icon" src="' + app.screenshots[0] + '"/>';
+        html += '<a href="' + app.screenshots[0] + '" data-lightbox="app-'+ idx + '" data-title="'+ app.name + '">'
+        html += '<img class="app-icon" src="' + app.screenshots[0] + '"/></a>';
+
+        for (var i in app.screenshots) {
+          if (i == 0) {
+            continue;
+          }
+          html += '<a href="' + app.screenshots[i] + '" data-lightbox="app-'+ idx + '" data-title="'+ app.name + '" style="display:none"></a>';
+        }
+
         html += '<div>' + app.name;
         html += '<div class="app-version">Version ' + app.version + '</div>';
         html += '<div class="app-author">' + app.author + '</div>';
@@ -153,11 +163,18 @@
       $.get("/rpc?m=pubapplist", function(apps) {
         $("#app-list").empty();
         for (var i in apps) {
-          addApp(apps[i]);
+          addApp(apps[i], i);
         }
       });
     </script>
-
+    <script src="/public/lightbox2/js/lightbox.js"></script>
+    <script>
+      lightbox.option({
+        'resizeDuration': 200,
+        'fadeDuration': 100,
+        'wrapAround': true
+      });
+    </script>
   </body>
 
 </html>
