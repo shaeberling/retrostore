@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <title>RetroStore - Apps</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="css/modern-business.css" rel="stylesheet">
+    <style>
+      .navbar-dark .navbar-nav .nav-link {
+         color: #222;
+      }
+      .navbar-dark .navbar-nav .nav-link:hover {
+         color: #888;
+      }
+      .carousel-caption {
+        text-shadow: 0 0 10px black;
+      }
+    </style>
+    <style>
+      h4 {
+        font-size: 1.2em;
+      }
+      .app-icon {
+        float: left;
+        width: 70px;
+        height: 70px;
+        margin-right: 7px;
+        border-radius: 0.5em;
+      }
+      .app-version, .app-author {
+        font-size:0.65em;
+      }
+      .app-author {
+        margin-top: 1em;
+        font-weight: 100;
+      }
+      .app-report-link {
+        font-size: 0.9em;
+      }
+    </style>
+  </head>
+
+  <body>
+
+    <!-- Navigation -->
+    <nav class="navbar fixed-top navbar-expand-lg navbar-dark bg-light fixed-top">
+      <div class="container">
+        <a class="navbar-brand" href="index.html"><img src="https://github.com/shaeberling/retrostore/raw/master/docs/retrostore_logo.png" style="height: 50px;"></a>
+        <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarResponsive">
+          <ul class="navbar-nav ml-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="index.html">Home</a>
+            </li>
+            <li class="nav-item" active>
+              <a class="nav-link" href="apps.html">Apps</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="contact.html">Contact</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="signup.html">Sign-up</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Page Content -->
+    <div class="container">
+
+      <!-- Page Heading/Breadcrumbs -->
+      <h1 class="mt-4 mb-3">Apps</h1>
+
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+          <a href="index.html">Home</a>
+        </li>
+        <li class="breadcrumb-item active">Apps</li>
+      </ol>
+
+      <div style="font-size:0.9em">
+        Find here a list of all the apps that are currently available in the RetroStore.
+        You can browse them all here and also contact us if you think there is an issue
+        with one of the items in the RetroStore.<p>
+        To install and play around with these apps you need to install one of the supported
+        clients, such as the <a target="_blank" href="https://play.google.com/store/apps/details?id=org.puder.trs80">TRS-80 emulator for Android</a>.
+      </div>
+
+      <!-- Marketing Icons Section -->
+      <div id="app-list" class="row">
+      </div>
+      <!-- /.row -->
+
+    </div>
+    <!-- /.container -->
+
+    <!-- Footer -->
+    <footer class="py-5 bg-dark">
+      <div class="container">
+        <p class="m-0 text-center text-white">Copyright &copy; RetroStore 2017</p>
+      </div>
+      <!-- /.container -->
+    </footer>
+
+    <!-- Bootstrap core JavaScript -->
+    <script src="vendor/jquery/jquery.min.js"></script>
+    <script src="vendor/popper/popper.min.js"></script>
+    <script src="vendor/bootstrap/js/bootstrap.min.js"></script>
+
+    <script>
+      function addApp(app) {
+        var root = $("#app-list");
+        var html = '<div class="col-lg-4 mb-4">';
+        html += '<div class="card h-100">';
+
+        html += '<h4 class="card-header">';
+        html += '<img class="app-icon" src="' + app.screenshots[0] + '"/>';
+        html += '<div>' + app.name;
+        html += '<div class="app-version">Version ' + app.version + '</div>';
+        html += '<div class="app-author">' + app.author + '</div>';
+        html += '</div></h4>';
+        
+        html += '<div class="card-body"  style="font-size:0.8em">';
+        html += '<p class="card-text">' + app.description + '</p></div>';
+
+        html += '<div class="card-footer">';
+        html += '<a href="' + app.reportUrl + '" class="app-report-link">Report</a></div>';
+
+        html += '</div>';
+        html += '</div>';
+        root.append(html);
+      }
+
+      $.get("/rpc?m=pubapplist", function(apps) {
+        for (var i in apps) {
+          addApp(apps[i]);
+        }
+      });
+    </script>
+
+  </body>
+
+</html>
