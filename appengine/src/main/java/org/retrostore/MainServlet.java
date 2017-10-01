@@ -37,6 +37,7 @@ import org.retrostore.request.EnsureAdminExistsRequest;
 import org.retrostore.request.ImportRpkRequest;
 import org.retrostore.request.LoginRequest;
 import org.retrostore.request.PolymerRequest;
+import org.retrostore.request.ReportAppRequest;
 import org.retrostore.request.Request;
 import org.retrostore.request.RequestData;
 import org.retrostore.request.RequestData.Type;
@@ -49,6 +50,8 @@ import org.retrostore.resources.CachingImageService;
 import org.retrostore.resources.DefaultResourceLoader;
 import org.retrostore.resources.ImageServiceWrapper;
 import org.retrostore.resources.ImageServiceWrapperImpl;
+import org.retrostore.resources.MailService;
+import org.retrostore.resources.MailServiceImpl;
 import org.retrostore.resources.MemcacheWrapper;
 import org.retrostore.resources.MemcacheWrapperImpl;
 import org.retrostore.resources.PolymerDebugLoader;
@@ -86,6 +89,7 @@ public class MainServlet extends RetroStoreServlet {
       new CachingImageService(new ImageServiceWrapperImpl(sImagesService), sMemcache);
   private static Cache sCache = new TwoLayerCacheImpl(sMemcache);
   private static DefaultResourceLoader sDefaultResourceLoader = new DefaultResourceLoader(sCache);
+  private static MailService sMailService = new MailServiceImpl();
 
   private static List<Request> sRequestServers;
 
@@ -93,6 +97,7 @@ public class MainServlet extends RetroStoreServlet {
     sRequestServers = ImmutableList.of(
         new LoginRequest(),
         new EnsureAdminExistsRequest(sUserManagement),
+        new ReportAppRequest(sDefaultResourceLoader, sAppManagement, sImgServWrapper, sMailService),
         new ImportRpkRequest((getResourceLoader()), sAppManagement, sUserManagement,
             sBlobstoreWrapper),
         new RpcCallRequest(sUserManagement, sAppManagement, sImgServWrapper),
