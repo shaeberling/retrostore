@@ -37,9 +37,11 @@
         	font-weight: bold;
         	font-size: 130%;
         }
-        #logo {
+        #logo img {
         	height: 50px;
-        	float: right
+		}
+        #logo {
+        	float: right;
         }
         #input-area {
         	margin-top: 3em;
@@ -54,7 +56,7 @@
 </head>
 <body>
 <div id="content">
-<h1><img id="logo" src="https://github.com/shaeberling/retrostore/raw/master/docs/retrostore_logo.png" />Report an app</h1>
+<h1><a id="logo" href="/"><img src="https://github.com/shaeberling/retrostore/raw/master/docs/retrostore_logo.png" /></a>Report an app</h1>
 <div id="inner-content">
 	<form action="/reportapp" method="post">
 		<p>Use this form to report an app. Please let us know why you are reporting it and we will look into it as quickly as we can.</p>

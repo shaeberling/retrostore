@@ -39,9 +39,11 @@
         	font-weight: bold;
         	font-size: 130%;
         }
-        #logo {
+        #logo img {
         	height: 50px;
-        	float: right
+		}
+        #logo {
+        	float: right;
         }
         #input-area {
         	margin-top: 3em;
@@ -56,7 +58,7 @@
 </head>
 <body>
 <div id="content">
-<h1><img id="logo" src="https://github.com/shaeberling/retrostore/raw/master/docs/retrostore_logo.png" />Upload RPKs</h1>
+<h1><a id="logo" href="/"><img src="https://github.com/shaeberling/retrostore/raw/master/docs/retrostore_logo.png" /></a>Report an app</h1>
 <div id="inner-content">
 	<p>
 		Try to keep the number of items to 5-10 since otherwise a timeout might occur.
