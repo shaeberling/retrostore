@@ -95,9 +95,11 @@ public class MainServlet extends RetroStoreServlet {
 
   static {
     sRequestServers = ImmutableList.of(
+        new ReportAppRequest(sDefaultResourceLoader, sAppManagement, sImgServWrapper, sMailService),
+
+        // Every request above this line does not require a logged in user.
         new LoginRequest(),
         new EnsureAdminExistsRequest(sUserManagement),
-        new ReportAppRequest(sDefaultResourceLoader, sAppManagement, sImgServWrapper, sMailService),
         new ImportRpkRequest((getResourceLoader()), sAppManagement, sUserManagement,
             sBlobstoreWrapper),
         new RpcCallRequest(sUserManagement, sAppManagement, sImgServWrapper),
