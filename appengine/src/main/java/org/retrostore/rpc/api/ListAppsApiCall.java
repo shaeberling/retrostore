@@ -16,16 +16,12 @@
 
 package org.retrostore.rpc.api;
 
-import com.google.common.base.Optional;
 import com.google.gson.Gson;
 import org.retrostore.client.common.ListAppsApiParams;
 import org.retrostore.client.common.proto.ApiResponseApps;
 import org.retrostore.client.common.proto.App;
-import org.retrostore.client.common.proto.Trs80Extension;
-import org.retrostore.client.common.proto.Trs80Extension.Trs80Model;
 import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.app.AppStoreItem;
-import org.retrostore.data.app.Author;
 import org.retrostore.request.RequestData;
 import org.retrostore.request.Responder;
 import org.retrostore.request.Response;
@@ -46,11 +42,11 @@ public class ListAppsApiCall implements ApiCall {
   private static final Logger LOG = Logger.getLogger("ListAppsApiCall");
   private static final int SCREENSHOT_SIZE = 800;
   private final AppManagement mAppManagement;
-  private final ImageServiceWrapper mImageService;
+  private final ApiHelper mApiHelper;
 
   public ListAppsApiCall(AppManagement appManagement, ImageServiceWrapper imageService) {
     mAppManagement = appManagement;
-    mImageService = imageService;
+    mApiHelper = new ApiHelper(appManagement, imageService);
   }
 
   @Override
@@ -87,42 +83,7 @@ public class ListAppsApiCall implements ApiCall {
     LOG.fine("[Perf] getAllApps: " + (tStart - tPreBuilding));
     List<App.Builder> apps = new ArrayList<>();
     for (int i = params.start; i < params.start + params.num && i < allApps.size(); ++i) {
-      AppStoreItem app = allApps.get(i);
-      App.Builder appBuilder = App.newBuilder();
-
-      appBuilder.setId(app.id);
-      appBuilder.setName(app.listing.name);
-      appBuilder.setVersion(app.listing.versionString);
-      appBuilder.setDescription(app.listing.description);
-      appBuilder.setReleaseYear(app.listing.releaseYear);
-      Optional<Author> author = mAppManagement.getAuthorById(app.listing.authorId);
-      if (author.isPresent()) {
-        appBuilder.setAuthor(author.get().name);
-      }
-
-      // Set the TRS80 related parameters.
-      Trs80Extension.Builder trsExtension = Trs80Extension.newBuilder();
-      switch (app.trs80Extension.model) {
-        default:
-        case MODEL_I:
-          trsExtension.setModel(Trs80Model.MODEL_I);
-          break;
-        case MODEL_III:
-          trsExtension.setModel(Trs80Model.MODEL_III);
-          break;
-        case MODEL_4:
-          trsExtension.setModel(Trs80Model.MODEL_4);
-          break;
-        case MODEL_4P:
-          trsExtension.setModel(Trs80Model.MODEL_4P);
-          break;
-      }
-
-      for (String blobKey : app.screenshotsBlobKeys) {
-        appBuilder.addScreenshotUrl(mImageService.getServingUrl(blobKey, SCREENSHOT_SIZE).or(""));
-      }
-      appBuilder.setExtTrs80(trsExtension);
-      apps.add(appBuilder);
+      apps.add(mApiHelper.convert(allApps.get(i)));
     }
     LOG.fine("[Perf] Building list: " + (tPreBuilding - System.currentTimeMillis()));
 
