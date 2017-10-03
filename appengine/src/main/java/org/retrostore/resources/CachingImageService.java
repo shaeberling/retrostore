@@ -59,6 +59,11 @@ public class CachingImageService implements ImageServiceWrapper {
     return servingUrl;
   }
 
+  @Override
+  public Optional<String> getServingUrl(String blobKey) {
+    return getServingUrl(blobKey, DEFAULT_SCREENSHOT_SIZE);
+  }
+
   private static String key(String blobKey, int imageSize) {
     return String.format(Locale.US, "screenshot_url_%s-%d", blobKey, imageSize);
   }
