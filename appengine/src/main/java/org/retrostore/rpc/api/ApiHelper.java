@@ -34,7 +34,7 @@ class ApiHelper {
   }
 
   App.Builder convert(AppStoreItem app) {
-    App.Builder appBuilder
+    App.Builder appBuilder = App.newBuilder();
     appBuilder.setId(app.id);
     appBuilder.setName(app.listing.name);
     appBuilder.setVersion(app.listing.versionString);
