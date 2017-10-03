@@ -22,6 +22,7 @@ import com.google.common.base.Optional;
  * Functionality around the image service.
  */
 public interface ImageServiceWrapper {
+  int DEFAULT_SCREENSHOT_SIZE = 800;
 
   /**
    * Returns a URL that serves the image with the given blob key.
@@ -31,4 +32,9 @@ public interface ImageServiceWrapper {
    * @return The URL to serve the image in the given size.
    */
   Optional<String> getServingUrl(String blobKey, int imageSize);
+
+  /**
+   * Like {@link #getServingUrl(String, int)} but with a default size.
+   */
+  Optional<String> getServingUrl(String blobKey);
 }

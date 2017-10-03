@@ -28,6 +28,7 @@ import java.util.logging.Logger;
  */
 public class ImageServiceWrapperImpl implements ImageServiceWrapper {
   private static final Logger LOG = Logger.getLogger("ImageServiceImpl");
+
   private final ImagesService mImagesService;
 
   public ImageServiceWrapperImpl(ImagesService imagesService) {
@@ -46,5 +47,10 @@ public class ImageServiceWrapperImpl implements ImageServiceWrapper {
       LOG.warning("Cannot get image serving URL: " + ex.getMessage());
       return Optional.absent();
     }
+  }
+
+  @Override
+  public Optional<String> getServingUrl(String blobKey) {
+    return getServingUrl(blobKey, DEFAULT_SCREENSHOT_SIZE);
   }
 }
