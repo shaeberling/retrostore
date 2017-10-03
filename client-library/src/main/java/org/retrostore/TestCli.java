@@ -32,16 +32,28 @@ public class TestCli {
     System.out.println("Testing the RetrostoreClient.");
 
     RetrostoreClientImpl retrostore =
-        RetrostoreClientImpl.get("n/a", "http://localhost:8888/api/%s", false);
-    List<App> items = retrostore.fetchApps(0, 1);
+        RetrostoreClientImpl.get("n/a", "https://www.retrostore.org/api/%s", false);
+    List<App> items = retrostore.fetchApps(0, 5);
     System.out.println(String.format("Got %d items.", items.size()));
 
+    String anAppId = null;
     for (App item : items) {
+      anAppId = item.getId();
       System.out.println(item.getName());
-      System.out.println("Num media images: " + item.getMediaImageCount());
-      for (MediaImage image : item.getMediaImageList()) {
-        System.out.println("Media image name: " + image.getFilename());
-        System.out.println("Media image size: " + image.getData().size());
+      List<MediaImage> mediaImages = retrostore.fetchMediaImages(item.getId());
+      for (MediaImage mediaImage : mediaImages) {
+        System.out.println(" -Media Image: " + mediaImage.getFilename());
+        System.out.println(" -Media Type : " + mediaImage.getType().name());
+        System.out.println(" -Media Size : " + mediaImage.getData().size());
+      }
+    }
+
+    if (anAppId != null) {
+      App app = retrostore.getApp(anAppId);
+      if (app != null) {
+        System.out.println("Yep, got the single app: " + app.getName());
+      } else {
+        System.out.println("Nope, could not get app");
       }
     }
   }
