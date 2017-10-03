@@ -16,7 +16,10 @@
 
 package org.retrostore;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import org.retrostore.client.common.FetchMediaImagesApiParams;
+import org.retrostore.client.common.GetAppApiParams;
 import org.retrostore.client.common.ListAppsApiParams;
 import org.retrostore.client.common.proto.ApiResponseApps;
 import org.retrostore.client.common.proto.ApiResponseMediaImages;
@@ -62,6 +65,29 @@ public class RetrostoreClientImpl implements RetrostoreClient {
     // Use default URL fetcher and executor.
     return new RetrostoreClientImpl(apiKey, serverUrl, enableGzip, new UrlFetcherImpl(),
         Executors.newSingleThreadExecutor());
+  }
+
+  @Override
+  public App getApp(String appId) throws ApiException {
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(appId), "appId missing.");
+    GetAppApiParams params = new GetAppApiParams(appId);
+    String url = String.format(mServerUrl, "getApp");
+    try {
+      byte[] content = mUrlFetcher.fetchUrl(url, params);
+      ApiResponseApps apiResponse = ApiResponseApps.parseFrom(content);
+
+      if (!apiResponse.getSuccess()) {
+        throw new ApiException(String.format(
+            "Server reported error: '%s'", apiResponse.getMessage()));
+      }
+      if (apiResponse.getAppList().size() > 0) {
+        return apiResponse.getAppList().get(0);
+      } else {
+        return null;
+      }
+    } catch (IOException e) {
+      throw new ApiException("Unable to make request to server.", e);
+    }
   }
 
   @Override

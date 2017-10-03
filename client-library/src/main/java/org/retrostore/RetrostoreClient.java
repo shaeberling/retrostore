@@ -27,7 +27,16 @@ import java.util.concurrent.Future;
  */
 public interface RetrostoreClient {
   /**
-   * Fetches a number of Retrostore app items. Blocks until results are received.
+   * Fetches data about the RetroStore app item with the given ID.
+   *
+   * @param appId the ID of the app
+   * @return the app data for the app if it exists, otherwise null.
+   * @throws ApiException
+   */
+  App getApp(String appId) throws ApiException;
+
+  /**
+   * Fetches a number of RetroStore app items. Blocks until results are received.
    *
    * @param start the index at which to start.
    * @param num   the number of app items to fetch (max).
