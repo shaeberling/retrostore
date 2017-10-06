@@ -39,7 +39,8 @@ public class Responder {
     JS("application/javascript"),
     JSON("application/json"),
     PNG("image/png"),
-    JPEG("image/jpeg");
+    JPEG("image/jpeg"),
+    SVG("image/svg+xml");
 
     public String str;
 

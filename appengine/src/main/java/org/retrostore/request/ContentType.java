@@ -35,6 +35,8 @@ final class ContentType {
       return Responder.ContentType.JPEG;
     } else if (filename.endsWith(".png")) {
       return Responder.ContentType.PNG;
+    } else if (filename.endsWith(".svg")) {
+      return Responder.ContentType.SVG;
     } else {
       return Responder.ContentType.PLAIN;
     }
