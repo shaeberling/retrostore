@@ -37,6 +37,7 @@ import org.retrostore.request.EnsureAdminExistsRequest;
 import org.retrostore.request.ImportRpkRequest;
 import org.retrostore.request.LoginRequest;
 import org.retrostore.request.PolymerRequest;
+import org.retrostore.request.PublicSiteRequest;
 import org.retrostore.request.ReportAppRequest;
 import org.retrostore.request.Request;
 import org.retrostore.request.RequestData;
@@ -95,6 +96,7 @@ public class MainServlet extends RetroStoreServlet {
 
   static {
     sRequestServers = ImmutableList.of(
+        new PublicSiteRequest(sDefaultResourceLoader),
         new ReportAppRequest(sDefaultResourceLoader, sAppManagement, sImgServWrapper, sMailService),
 
         // Every request above this line does not require a logged in user.
@@ -137,13 +139,6 @@ public class MainServlet extends RetroStoreServlet {
 
   private void serveMainHtml(HttpServletRequest req, HttpServletResponse resp, Type type)
       throws ServletException, IOException {
-    String url = req.getRequestURI().toLowerCase();
-    if (url.equals("/")) {
-      // Serve the public portion of the website where no login is required.
-      resp.getWriter().write("Welcome to RetroStore");
-      return;
-    }
-
     RequestData requestData = RequestDataImpl.create(req, type, sBlobstoreService);
     Responder responder = new Responder(resp, sBlobstoreService);
     for (Request server : sRequestServers) {
