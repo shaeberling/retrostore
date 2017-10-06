@@ -70,7 +70,7 @@ public class LoginRequest implements Request {
             .render();
         responder.respond(html, Responder.ContentType.HTML);
       } catch (IOException ex) {
-        responder.respondBadRequest("There was an internal error.");
+        responder.respondBadRequest("There was an internal error. " + ex.getMessage());
       }
       return true;
     }
