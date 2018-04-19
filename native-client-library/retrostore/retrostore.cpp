@@ -3,6 +3,10 @@
 #include "Arduino.h"
 #include <WiFi.h>
 
+#include "rs_proto_api.pb.h"
+#include "pb_decode.h"
+#include "pb_encode.h"
+
 namespace retrostore {
 
 using std::string;
@@ -26,7 +30,7 @@ RetroStore::RetroStore(const string& host, int port)
 }
 
 void RetroStore::PrintVersion() {
-  Serial.println("RetroStore v0.0.2");
+  Serial.println("RetroStore v0.0.3");
 }
 
 bool RetroStore::FetchApps(int start, int num) {
@@ -67,16 +71,29 @@ bool RetroStore::FetchUrl(const string& host_str,
   // Read response.
   const int BUFFER_SIZE = 4096;
   uint8_t buffer[BUFFER_SIZE];
-  int read = client.read(buffer, BUFFER_SIZE);
-  if (read >= BUFFER_SIZE) {
+  size_t message_length = client.read(buffer, BUFFER_SIZE);
+  if (message_length >= BUFFER_SIZE) {
     Serial.print("ERROR: Fetch buffer too small: " + String(BUFFER_SIZE));
     return false;
   }
-  Serial.print("SUCCESS: Read" + String(read) + " bytes.");
- 
-  Serial.println();
+  Serial.print("SUCCESS: Read" + String(message_length) + " bytes.");
   Serial.println("Closing connection");
   client.stop();
+
+  // Decode the protocol buffer message.
+  ApiResponseApps response = ApiResponseApps_init_zero;
+
+  // TODO: Extract response body from HTTP response.
+
+  pb_istream_t stream = pb_istream_from_buffer(buffer, message_length);
+  bool status = pb_decode_delimited(&stream, ApiResponseApps_fields, &response);
+
+  if (!status) {
+    Serial.println("ERROR: Decoding of message failed: " + String(PB_GET_ERROR(&stream)));
+    Serial.println("Message as string: " + String((const char*)buffer));
+    return false;
+  }
+  Serial.println("SUCCESS: Message decoded! :-)");
 
   return true;
 }
