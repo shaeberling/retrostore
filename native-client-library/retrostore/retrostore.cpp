@@ -47,6 +47,8 @@ int GetHttpResponseContentLength(uint8_t* http_response) {
   return atoi(content_length_str.c_str());
 }
 
+
+
 }  // namespace
 
 RetroStore::RetroStore()
@@ -58,7 +60,7 @@ RetroStore::RetroStore(const string& host, int port)
 }
 
 void RetroStore::PrintVersion() {
-  Serial.println("RetroStore v0.0.4");
+  Serial.println("RetroStore v0.0.5");
 }
 
 bool RetroStore::FetchApps(int start, int num) {
@@ -127,7 +129,7 @@ bool RetroStore::FetchUrl(const string& host_str,
   Serial.println("SUCCESS: Message decoded! :-)");
 
   if (!response.success) {
-    Serial.println("Server reporter an ERROR");
+    Serial.println("Server reported an ERROR: " + String(response.message));
     return false;
   }
 
