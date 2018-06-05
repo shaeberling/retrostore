@@ -58,7 +58,9 @@
 </head>
 <body>
 <div id="content">
-<h1><a id="logo" href="/"><img src="https://github.com/shaeberling/retrostore/raw/master/docs/retrostore_logo.png" /></a>Report an app</h1>
+<h1><a id="logo" href="/">
+      <img src="https://github.com/shaeberling/retrostore/raw/master/docs/retrostore_logo.png" />
+    </a>Upload RPK packages</h1>
 <div id="inner-content">
 	<p>
 		Try to keep the number of items to 5-10 since otherwise a timeout might occur.
