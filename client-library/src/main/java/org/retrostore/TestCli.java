@@ -19,7 +19,6 @@ package org.retrostore;
 import org.retrostore.client.common.proto.App;
 import org.retrostore.client.common.proto.MediaImage;
 
-import java.io.IOException;
 import java.util.List;
 
 /**
@@ -28,33 +27,78 @@ import java.util.List;
 public class TestCli {
   // https://test-dot-trs-80.appspot.com
 
-  public static void main(String[] args) throws ApiException, IOException {
+  private static RetroStoreApiTest[] tests = {new FetchMultipleTest(), new FetchSingleTest()};
+
+  public static void main(String[] args) throws ApiException {
     System.out.println("Testing the RetrostoreClient.");
 
     RetrostoreClientImpl retrostore =
         RetrostoreClientImpl.get("n/a", "https://www.retrostore.org/api/%s", false);
-    List<App> items = retrostore.fetchApps(0, 5);
-    System.out.println(String.format("Got %d items.", items.size()));
-
-    String anAppId = null;
-    for (App item : items) {
-      anAppId = item.getId();
-      System.out.println(item.getName());
-      List<MediaImage> mediaImages = retrostore.fetchMediaImages(item.getId());
-      for (MediaImage mediaImage : mediaImages) {
-        System.out.println(" -Media Image: " + mediaImage.getFilename());
-        System.out.println(" -Media Type : " + mediaImage.getType().name());
-        System.out.println(" -Media Size : " + mediaImage.getData().size());
-      }
-    }
-
-    if (anAppId != null) {
-      App app = retrostore.getApp(anAppId);
-      if (app != null) {
-        System.out.println("Yep, got the single app: " + app.getName());
+    int success = 0;
+    for (RetroStoreApiTest test : tests) {
+      if (test.runTest(retrostore)) {
+        success++;
+        System.out.println("TEST PASSED: " + test.getClass().getSimpleName());
+        System.out.println("=========================================");
       } else {
-        System.out.println("Nope, could not get app");
+        System.out.println("TEST FAILED: " + test.getClass().getSimpleName());
+        System.out.println("=========================================");
       }
     }
+    System.out.println("*****************************************");
+    System.out.println(String.format("%d out of %d tests passed.", success, tests.length));
+    System.out.println("*****************************************");
+  }
+
+  /** Test the basic fetch function. */
+  static class FetchMultipleTest implements RetroStoreApiTest {
+    @Override
+    public boolean runTest(RetrostoreClient retrostore) throws ApiException {
+      List<App> items = retrostore.fetchApps(0, 5);
+
+      for (App item : items) {
+        System.out.println(item.getName() + " - " + item.getId());
+        List<MediaImage> mediaImages = retrostore.fetchMediaImages(item.getId());
+        for (MediaImage mediaImage : mediaImages) {
+          System.out.println(String.format("- Media: %s, %s, %d", mediaImage.getFilename(),
+              mediaImage.getType().name(), mediaImage.getData().size()));
+        }
+      }
+
+      if (items.size() == 5) {
+        System.out.println(String.format("Got %d items.", items.size()));
+        return true;
+      } else {
+        System.err.println(String.format("Got %d but expected %d", items.size(), 5));
+        return false;
+      }
+    }
+  }
+
+  static class FetchSingleTest implements RetroStoreApiTest {
+
+    @Override
+    public boolean runTest(RetrostoreClient retrostore) throws ApiException {
+      final String DONKEY_KONG_ID = "a2729dec-96b3-11e7-9539-e7341c560175";
+      App app = retrostore.getApp(DONKEY_KONG_ID);
+
+      if (app == null) {
+        System.err.println("Cannot find any app with that key");
+        return false;
+      }
+      if (!app.getId().equals(DONKEY_KONG_ID)) {
+        System.err.println("Returned app has the wrong key.");
+        return false;
+      }
+      if (!app.getName().equals("Donkey Kong")) {
+        System.err.println("App's name does not match.");
+        return false;
+      }
+      return true;
+    }
+  }
+
+  interface RetroStoreApiTest {
+    boolean runTest(RetrostoreClient retrostore) throws ApiException;
   }
 }
