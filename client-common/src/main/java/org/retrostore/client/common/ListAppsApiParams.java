@@ -33,7 +33,7 @@ public class ListAppsApiParams {
   /** The maximum number of items to return/ */
   public final int num;
 
-  /** Results must have the given media types. */
+  /** Query filters for TRS80 items. */
   public final Trs80Params trs80 = new Trs80Params();
 
   /** Needed for GSON instantiation. */
@@ -55,7 +55,9 @@ public class ListAppsApiParams {
     }
   }
 
+  /** Query options for TRS80 items. */
   public static class Trs80Params {
+    /** Results must have the given media types. */
     public final List<String> mediaTypes = new ArrayList<>();
   }
 }
