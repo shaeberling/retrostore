@@ -16,8 +16,10 @@
 
 package org.retrostore;
 
+import com.google.common.collect.ImmutableSet;
 import org.retrostore.client.common.proto.App;
 import org.retrostore.client.common.proto.MediaImage;
+import org.retrostore.client.common.proto.MediaType;
 
 import java.util.List;
 
@@ -27,7 +29,8 @@ import java.util.List;
 public class TestCli {
   // https://test-dot-trs-80.appspot.com
 
-  private static RetroStoreApiTest[] tests = {new FetchMultipleTest(), new FetchSingleTest()};
+  private static RetroStoreApiTest[] tests = {new FetchMultipleTest(), new FetchSingleTest(),
+      new FilterByMediaTypeTest()};
 
   public static void main(String[] args) throws ApiException {
     System.out.println("Testing the RetrostoreClient.");
@@ -48,6 +51,54 @@ public class TestCli {
     System.out.println("*****************************************");
     System.out.println(String.format("%d out of %d tests passed.", success, tests.length));
     System.out.println("*****************************************");
+  }
+
+  /** Tests the has-media-type filter option. */
+  static class FilterByMediaTypeTest implements RetroStoreApiTest {
+    @Override
+    public boolean runTest(RetrostoreClient retrostore) throws ApiException {
+      if (!testForType(MediaType.COMMAND, retrostore)) {
+        System.err.println("Failed for media type COMMAND");
+        return false;
+      }
+      if (!testForType(MediaType.DISK, retrostore)) {
+        System.err.println("Failed for media type DISK");
+        return false;
+      }
+      if (!testForType(MediaType.CASSETTE, retrostore)) {
+        System.err.println("Failed for media type COMMAND");
+        return false;
+      }
+      return true;
+    }
+
+    private boolean testForType(MediaType type, RetrostoreClient retrostore) throws ApiException {
+      // TODO: We should use a non-existent test model to test these without interfering with real
+      // data.
+      ImmutableSet<MediaType> mediaTypes = ImmutableSet.of(type);
+      List<App> apps = retrostore.fetchApps(0, 50, mediaTypes);
+      for (App app : apps) {
+        System.out.println(String.format("App %s (%s) has image of type %s.", app.getName(), app
+            .getId(), type.name()));
+        boolean hasImage = hasImageOfType(retrostore.fetchMediaImages(app.getId()), type);
+        if (!hasImage) {
+          System.err.println(String.format(
+              "App '%s' with ID %s has no image of type %s", app.getName(), app.getId(), type
+                  .name()));
+          return false;
+        }
+      }
+      return true;
+    }
+
+    private boolean hasImageOfType(List<MediaImage> mediaImages, MediaType type) {
+      for (MediaImage mediaImage : mediaImages) {
+        if (mediaImage.getType() == type) {
+          return true;
+        }
+      }
+      return false;
+    }
   }
 
   /** Test the basic fetch function. */
@@ -76,7 +127,6 @@ public class TestCli {
   }
 
   static class FetchSingleTest implements RetroStoreApiTest {
-
     @Override
     public boolean runTest(RetrostoreClient retrostore) throws ApiException {
       final String DONKEY_KONG_ID = "a2729dec-96b3-11e7-9539-e7341c560175";

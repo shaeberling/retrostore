@@ -18,9 +18,10 @@ package org.retrostore;
 
 import org.retrostore.client.common.proto.App;
 import org.retrostore.client.common.proto.MediaImage;
+import org.retrostore.client.common.proto.MediaType;
 
 import java.util.List;
-import java.util.concurrent.Future;
+import java.util.Set;
 
 /**
  * Common Retrostore client interface.
@@ -44,6 +45,11 @@ public interface RetrostoreClient {
    * went wrong.
    */
   List<App> fetchApps(int start, int num) throws ApiException;
+
+  /**
+   * Like {@link #fetchApps(int, int)} but adds options.
+   */
+  List<App> fetchApps(int start, int num, Set<MediaType> hasMediaTypes) throws ApiException;
 
   /**
    * Fetches the media images for the app with the given ID.

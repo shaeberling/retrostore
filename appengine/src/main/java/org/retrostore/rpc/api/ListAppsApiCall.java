@@ -20,6 +20,7 @@ import com.google.gson.Gson;
 import org.retrostore.client.common.ListAppsApiParams;
 import org.retrostore.client.common.proto.ApiResponseApps;
 import org.retrostore.client.common.proto.App;
+import org.retrostore.client.common.proto.MediaType;
 import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.app.AppStoreItem;
 import org.retrostore.request.RequestData;
@@ -40,7 +41,6 @@ import java.util.logging.Logger;
  */
 public class ListAppsApiCall implements ApiCall {
   private static final Logger LOG = Logger.getLogger("ListAppsApiCall");
-  private static final int SCREENSHOT_SIZE = 800;
   private final AppManagement mAppManagement;
   private final ApiHelper mApiHelper;
 
@@ -73,19 +73,24 @@ public class ListAppsApiCall implements ApiCall {
       return response.setSuccess(false).setMessage("Cannot parse parameters.").build();
     }
 
-    // TODO: This is not efficient once we have a large number of apps.
+    // TODO: This is not efficient once we have a large number of apps. However, we currently
+    // cache them all, so the appManagement implementation used here should be the caching kind.
     List<AppStoreItem> allApps = mAppManagement.getAllApps();
     if (allApps.size() - 1 < params.start) {
       return response.setSuccess(false).setMessage("Parameter 'start' out of range").build();
     }
 
     long tPreBuilding = System.currentTimeMillis();
-    LOG.fine("[Perf] getAllApps: " + (tStart - tPreBuilding));
+    LOG.info(String.format("[Perf] getAllApps took %d ms. ", (tPreBuilding - tStart)));
     List<App.Builder> apps = new ArrayList<>();
     for (int i = params.start; i < params.start + params.num && i < allApps.size(); ++i) {
-      apps.add(mApiHelper.convert(allApps.get(i)));
+      AppStoreItem appStoreItem = allApps.get(i);
+      if (matchesTrs80Filter(params.trs80, appStoreItem)) {
+        apps.add(mApiHelper.convert(appStoreItem));
+      }
     }
-    LOG.fine("[Perf] Building list: " + (tPreBuilding - System.currentTimeMillis()));
+    LOG.info(String.format("[Perf] Building list took %d ms.", (System
+        .currentTimeMillis() - tPreBuilding)));
 
     // Sort the output alphabetically.
     Collections.sort(apps, new Comparator<App.Builder>() {
@@ -108,6 +113,56 @@ public class ListAppsApiCall implements ApiCall {
       return (new Gson()).fromJson(params, ListAppsApiParams.class);
     } catch (Exception ex) {
       LOG.log(Level.WARNING, "Cannot parse params", ex);
+      return null;
+    }
+  }
+
+  // TODO: This should become a filter on the data store some day.
+  private boolean matchesTrs80Filter(ListAppsApiParams.Trs80Params params, AppStoreItem item) {
+    if (params == null || params.mediaTypes == null || params.mediaTypes.isEmpty()) {
+      return true;
+    }
+    AppStoreItem.Trs80Extension trs80 = item.trs80Extension;
+    if (trs80 == null) {
+      // If there is no extension, then there cannot be a TRS80 media type.
+      return false;
+    }
+
+    for (String mediaTypeStr : params.mediaTypes) {
+      MediaType mediaType = parse(mediaTypeStr);
+      if (mediaType == null) {
+        // An non-existent type cannot match.
+        continue;
+      }
+
+      // Check whether this TRS80 extension has the asked-for media type.
+      switch (mediaType) {
+        case DISK:
+          for (long diskIds : trs80.disk) {
+            if (diskIds > 0) {
+              return true;
+            }
+          }
+          break;
+        case CASSETTE:
+          if (trs80.cassette > 0) {
+            return true;
+          }
+          break;
+        case COMMAND:
+          if (trs80.command > 0) {
+            return true;
+          }
+          break;
+      }
+    }
+    return false;
+  }
+
+  private static MediaType parse(String mediaTypeStr) {
+    try {
+      return MediaType.valueOf(mediaTypeStr);
+    } catch (IllegalArgumentException ignore) {
       return null;
     }
   }

@@ -26,6 +26,9 @@ import java.util.Map;
 
 /**
  * A caching layer for app management, with the same interface.
+ * <p>
+ * Note: At the moment this will cache ALL apps. This is fine for as long as we do not have a huge
+ * number of apps and allows us to do a lot of things in memory like special filtering.
  */
 public class AppManagementCached implements AppManagement {
   /** A real app management implementation. */

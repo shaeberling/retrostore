@@ -25,11 +25,14 @@ import org.retrostore.client.common.proto.ApiResponseApps;
 import org.retrostore.client.common.proto.ApiResponseMediaImages;
 import org.retrostore.client.common.proto.App;
 import org.retrostore.client.common.proto.MediaImage;
+import org.retrostore.client.common.proto.MediaType;
 import org.retrostore.net.UrlFetcher;
 import org.retrostore.net.UrlFetcherImpl;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -92,7 +95,19 @@ public class RetrostoreClientImpl implements RetrostoreClient {
 
   @Override
   public List<App> fetchApps(int start, int num) throws ApiException {
-    ListAppsApiParams params = new ListAppsApiParams(start, num);
+    return fetchApps(new ListAppsApiParams(start, num));
+  }
+
+  @Override
+  public List<App> fetchApps(int start, int num, Set<MediaType> hasMediaTypes) throws ApiException {
+    List<String> mediaTypes = new ArrayList<>(hasMediaTypes.size());
+    for (MediaType mediaType : hasMediaTypes) {
+      mediaTypes.add(mediaType.name());
+    }
+    return fetchApps(new ListAppsApiParams(start, num, mediaTypes));
+  }
+
+  private List<App> fetchApps(ListAppsApiParams params) throws ApiException {
     String url = String.format(mServerUrl, "listApps");
     try {
       byte[] content = mUrlFetcher.fetchUrl(url, params);

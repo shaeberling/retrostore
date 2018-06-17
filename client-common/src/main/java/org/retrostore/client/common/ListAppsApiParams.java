@@ -16,8 +16,15 @@
 
 package org.retrostore.client.common;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Parameters used for the ListApps API call.
+ * <p>
+ * IMPORTANT: The names of the members in this class make up the API. They need to be matched
+ * 100% in the JSON sent to the server. So change this with care. You might create
+ * incompatibilities with older clients.
  */
 public class ListAppsApiParams {
   /** Start index of the first item to return. */
@@ -25,6 +32,9 @@ public class ListAppsApiParams {
 
   /** The maximum number of items to return/ */
   public final int num;
+
+  /** Results must have the given media types. */
+  public final Trs80Params trs80 = new Trs80Params();
 
   /** Needed for GSON instantiation. */
   public ListAppsApiParams() {
@@ -35,5 +45,17 @@ public class ListAppsApiParams {
   public ListAppsApiParams(int start, int num) {
     this.start = start;
     this.num = num;
+  }
+
+  public ListAppsApiParams(int start, int num, List<String> trs80MediaTypes) {
+    this.start = start;
+    this.num = num;
+    if (trs80MediaTypes != null) {
+      this.trs80.mediaTypes.addAll(trs80MediaTypes);
+    }
+  }
+
+  public static class Trs80Params {
+    public final List<String> mediaTypes = new ArrayList<>();
   }
 }
