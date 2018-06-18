@@ -49,7 +49,8 @@ public interface RetrostoreClient {
   /**
    * Like {@link #fetchApps(int, int)} but adds options.
    */
-  List<App> fetchApps(int start, int num, Set<MediaType> hasMediaTypes) throws ApiException;
+  List<App> fetchApps(int start, int num, String searchQuery, Set<MediaType> hasMediaTypes)
+      throws ApiException;
 
   /**
    * Fetches the media images for the app with the given ID.

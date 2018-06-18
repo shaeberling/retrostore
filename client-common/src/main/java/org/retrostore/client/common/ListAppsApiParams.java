@@ -33,6 +33,9 @@ public class ListAppsApiParams {
   /** The maximum number of items to return/ */
   public final int num;
 
+  /** Search query looking through title, description etc. */
+  public final String query;
+
   /** Query filters for TRS80 items. */
   public final Trs80Params trs80 = new Trs80Params();
 
@@ -40,16 +43,19 @@ public class ListAppsApiParams {
   public ListAppsApiParams() {
     this.start = 0;
     this.num = 0;
+    this.query = "";
   }
 
   public ListAppsApiParams(int start, int num) {
     this.start = start;
     this.num = num;
+    this.query = "";
   }
 
-  public ListAppsApiParams(int start, int num, List<String> trs80MediaTypes) {
+  public ListAppsApiParams(int start, int num, String query, List<String> trs80MediaTypes) {
     this.start = start;
     this.num = num;
+    this.query = query;
     if (trs80MediaTypes != null) {
       this.trs80.mediaTypes.addAll(trs80MediaTypes);
     }

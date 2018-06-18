@@ -16,6 +16,7 @@
 
 package org.retrostore.rpc.api;
 
+import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 import org.retrostore.client.common.ListAppsApiParams;
 import org.retrostore.client.common.proto.ApiResponseApps;
@@ -33,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -82,12 +84,12 @@ public class ListAppsApiCall implements ApiCall {
 
     long tPreBuilding = System.currentTimeMillis();
     LOG.info(String.format("[Perf] getAllApps took %d ms. ", (tPreBuilding - tStart)));
+    List<AppStoreItem> filteredApps = filterApps(allApps, params);
+
     List<App.Builder> apps = new ArrayList<>();
-    for (int i = params.start; i < params.start + params.num && i < allApps.size(); ++i) {
-      AppStoreItem appStoreItem = allApps.get(i);
-      if (matchesTrs80Filter(params.trs80, appStoreItem)) {
-        apps.add(mApiHelper.convert(appStoreItem));
-      }
+    for (int i = params.start; i < params.start + params.num && i < filteredApps.size(); ++i) {
+      AppStoreItem appStoreItem = filteredApps.get(i);
+      apps.add(mApiHelper.convert(appStoreItem));
     }
     LOG.info(String.format("[Perf] Building list took %d ms.", (System
         .currentTimeMillis() - tPreBuilding)));
@@ -106,6 +108,28 @@ public class ListAppsApiCall implements ApiCall {
       response.addApp(app.build());
     }
     return response.setSuccess(true).setMessage("All good :-)").build();
+  }
+
+  private List<AppStoreItem> filterApps(List<AppStoreItem> apps, ListAppsApiParams params) {
+    // Get all IDs that match the search query. Keep the set null if no search query was given.
+    Set<String> appIdsFromSearch = null;
+    if (params.query != null && !params.query.trim().isEmpty()) {
+      appIdsFromSearch = Sets.newHashSet(mAppManagement.searchApps(params.query));
+    }
+
+    // Filter the apps, ensure they match the search or other options.
+    List<AppStoreItem> filtered = new ArrayList<>();
+    for (AppStoreItem app : apps) {
+      if (appIdsFromSearch != null && !appIdsFromSearch.contains(app.id)) {
+        continue;
+      }
+      if (!matchesTrs80Filter(params.trs80, app)) {
+        continue;
+      }
+      // The app passed all the tests and is therefore added to the list.
+      filtered.add(app);
+    }
+    return filtered;
   }
 
   private ListAppsApiParams parseParams(String params) {
