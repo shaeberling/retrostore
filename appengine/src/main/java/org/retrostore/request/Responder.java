@@ -101,21 +101,24 @@ public class Responder {
 
   /** Respond with a bad request and a plain text error message. */
   public void respondBadRequest(String content) {
-    try {
-      mResponse.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-      mResponse.setContentType(ContentType.PLAIN.str);
-      mResponse.getWriter().write(content);
-    } catch (IOException ex) {
-      LOG.log(Level.SEVERE, "Cannot serve data", ex);
-    }
+    respond(content, ContentType.PLAIN, HttpServletResponse.SC_BAD_REQUEST);
+  }
+
+  /** Respond with a bad request and a plain text error message. */
+  public void respondForbidden(String content) {
+    respond(content, ContentType.PLAIN, HttpServletResponse.SC_FORBIDDEN);
   }
 
   /** Respond with not-found error code and no content. */
   public void respondNotFound() {
+    respond("", ContentType.PLAIN, HttpServletResponse.SC_NOT_FOUND);
+  }
+
+  private void respond(String content, ContentType contentType, int statusCode) {
     try {
-      mResponse.setStatus(HttpServletResponse.SC_NOT_FOUND);
-      mResponse.setContentType(ContentType.PLAIN.str);
-      mResponse.getWriter().write("");
+      mResponse.setStatus(statusCode);
+      mResponse.setContentType(contentType.str);
+      mResponse.getWriter().write(content);
     } catch (IOException ex) {
       LOG.log(Level.SEVERE, "Cannot serve data", ex);
     }
