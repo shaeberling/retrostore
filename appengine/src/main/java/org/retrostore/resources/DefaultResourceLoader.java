@@ -59,7 +59,7 @@ public class DefaultResourceLoader implements ResourceLoader {
       LOG.info("Loading file: " + file.getAbsolutePath());
       return toBytes(new FileInputStream(file));
     } catch (IOException ignore) {
-      LOG.log(Level.INFO, "Cannot load file as resource '%s'.", filename);
+      LOG.log(Level.INFO, String.format("Cannot load file as resource '%s'.", filename));
     }
     return null;
   }
