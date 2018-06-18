@@ -12,8 +12,6 @@ apply plugin: 'java'
 apply plugin: 'war'
 apply plugin: 'com.google.cloud.tools.appengine'
 
-def appengineVersion = "1.9.64"
-
 dependencies {
   compile 'com.google.appengine:appengine-api-1.0-sdk:+'  // Latest App Engine Api's
   providedCompile 'javax.servlet:javax.servlet-api:3.1.0'
