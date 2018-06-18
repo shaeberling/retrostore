@@ -33,10 +33,18 @@ public class TestCli {
       new FilterByMediaTypeTest()};
 
   public static void main(String[] args) throws ApiException {
-    System.out.println("Testing the RetrostoreClient.");
-
     RetrostoreClientImpl retrostore =
         RetrostoreClientImpl.get("n/a", "https://www.retrostore.org/api/%s", false);
+    if (args.length > 1 && args[0].toLowerCase().equals("--search")) {
+      StringBuilder query = new StringBuilder();
+      for (int i = 1; i < args.length; ++i) {
+        query.append(args[i]).append(" ");
+      }
+      searchApps(retrostore, query.toString().trim());
+      return;
+    }
+
+    System.out.println("Testing the RetroStoreClient.");
     int success = 0;
     for (RetroStoreApiTest test : tests) {
       if (test.runTest(retrostore)) {
@@ -51,6 +59,14 @@ public class TestCli {
     System.out.println("*****************************************");
     System.out.println(String.format("%d out of %d tests passed.", success, tests.length));
     System.out.println("*****************************************");
+  }
+
+  static void searchApps(RetrostoreClientImpl retrostore, String query) throws ApiException {
+    System.out.println(String.format("Searching RetroStore for '%s'.", query));
+    List<App> apps = retrostore.fetchApps(1, 1, query, null);
+    for (App app : apps) {
+      System.out.println(String.format("Result: [%s] %s", app.getId(), app.getName()));
+    }
   }
 
   /** Tests the has-media-type filter option. */
@@ -76,7 +92,7 @@ public class TestCli {
       // TODO: We should use a non-existent test model to test these without interfering with real
       // data.
       ImmutableSet<MediaType> mediaTypes = ImmutableSet.of(type);
-      List<App> apps = retrostore.fetchApps(0, 50, mediaTypes);
+      List<App> apps = retrostore.fetchApps(0, 50, null, mediaTypes);
       for (App app : apps) {
         System.out.println(String.format("App %s (%s) has image of type %s.", app.getName(), app
             .getId(), type.name()));
