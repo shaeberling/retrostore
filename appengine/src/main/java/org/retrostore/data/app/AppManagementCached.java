@@ -118,6 +118,11 @@ public class AppManagementCached implements AppManagement {
   }
 
   @Override
+  public List<String> searchApps(String query) {
+    return mAppManagement.searchApps(query);
+  }
+
+  @Override
   public void removeApp(String id) {
     mAppManagement.removeApp(id);
     mAppCacheById.remove(id);

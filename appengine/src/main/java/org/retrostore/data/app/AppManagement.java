@@ -98,6 +98,14 @@ public interface AppManagement {
   List<AppStoreItem> getAllApps();
 
   /**
+   * Searches app with the following query.
+   *
+   * @param query to use for searching apps.
+   * @return A list of app IDs matching the query.
+   */
+  List<String> searchApps(String query);
+
+  /**
    * Deletes the app with the given ID an all the data associated with it, like disk images and
    * screenshots.
    */

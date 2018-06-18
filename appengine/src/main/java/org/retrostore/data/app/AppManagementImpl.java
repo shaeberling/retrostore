@@ -38,15 +38,18 @@ import static com.googlecode.objectify.ObjectifyService.ofy;
 public class AppManagementImpl implements AppManagement {
   private static final Logger LOG = Logger.getLogger("AppManagementImpl");
   private final BlobstoreWrapper mBlobstore;
+  private final AppSearch mAppSearch;
 
-  public AppManagementImpl(BlobstoreWrapper blobstore) {
+  public AppManagementImpl(BlobstoreWrapper blobstore, AppSearch appSearch) {
     mBlobstore = blobstore;
+    mAppSearch = appSearch;
   }
 
   @Override
   public void addOrChangeApp(AppStoreItem app) {
     app.setUpdateAndPublishTime();
     ofy().save().entity(app).now();
+    mAppSearch.addOrUpdate(app);
   }
 
   @Override
@@ -125,7 +128,6 @@ public class AppManagementImpl implements AppManagement {
     if (!appById.isPresent()) {
       return new long[0];
     }
-
     LOG.info("About to delete all media for app ID: " + appId);
 
     AppStoreItem.Trs80Extension trs80 = appById.get().trs80Extension;
@@ -158,11 +160,17 @@ public class AppManagementImpl implements AppManagement {
   }
 
   @Override
+  public List<String> searchApps(String query) {
+    return mAppSearch.search(query);
+  }
+
+  @Override
   public void removeApp(String id) {
     // Note, call this before deleting the app. We need the app to get to its media IDs.
     deleteMediaImagesForApp(id);
     // FIXME: Delete screenshots.
     ofy().delete().key(AppStoreItem.key(id)).now();
+    mAppSearch.remove(id);
   }
 
   @Override

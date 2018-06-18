@@ -21,6 +21,8 @@ import com.google.appengine.api.blobstore.BlobstoreServiceFactory;
 import com.google.appengine.api.images.ImagesService;
 import com.google.appengine.api.images.ImagesServiceFactory;
 import com.google.appengine.api.memcache.MemcacheServiceFactory;
+import com.google.appengine.api.search.SearchService;
+import com.google.appengine.api.search.SearchServiceFactory;
 import com.google.appengine.api.users.UserServiceFactory;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -29,6 +31,8 @@ import org.retrostore.data.BlobstoreWrapperImpl;
 import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.app.AppManagementCached;
 import org.retrostore.data.app.AppManagementImpl;
+import org.retrostore.data.app.AppSearch;
+import org.retrostore.data.app.AppSearchImpl;
 import org.retrostore.data.user.UserManagement;
 import org.retrostore.data.user.UserService;
 import org.retrostore.data.user.UserServiceImpl;
@@ -47,6 +51,7 @@ import org.retrostore.request.Responder;
 import org.retrostore.request.ScreenshotRequest;
 import org.retrostore.request.StaticFileRequest;
 import org.retrostore.request.TwoLayerCacheImpl;
+import org.retrostore.request.UpdateDataRequest;
 import org.retrostore.resources.CachingImageService;
 import org.retrostore.resources.DefaultResourceLoader;
 import org.retrostore.resources.ImageServiceWrapper;
@@ -79,8 +84,10 @@ public class MainServlet extends RetroStoreServlet {
   private static BlobstoreService sBlobstoreService = BlobstoreServiceFactory.getBlobstoreService();
   private static BlobstoreWrapper sBlobstoreWrapper = new BlobstoreWrapperImpl(sBlobstoreService);
   private static UserManagement sUserManagement = new UserManagement(sUserService);
+  private static SearchService sSearchService = SearchServiceFactory.getSearchService();
+  private static AppSearch sAppSearch = new AppSearchImpl(sSearchService);
   private static AppManagement sAppManagement = new AppManagementCached(
-      new AppManagementImpl(sBlobstoreWrapper));
+      new AppManagementImpl(sBlobstoreWrapper, sAppSearch));
   private static UserService sAccountTypeProvider =
       new UserServiceImpl(sUserManagement, sUserService);
   private static ImagesService sImagesService = ImagesServiceFactory.getImagesService();
@@ -109,7 +116,8 @@ public class MainServlet extends RetroStoreServlet {
         new PolymerRequest(getResourceLoader()),
         new StaticFileRequest(sDefaultResourceLoader),
         new PostUploadRequest(sAppManagement),
-        new ApiRequest(sAppManagement, sImgServWrapper)
+        new ApiRequest(sAppManagement, sImgServWrapper),
+        new UpdateDataRequest(sAppSearch, sAppManagement)
     );
     // Note: Add more request servers here. Keep in mind that this is in priority-order.
   }
