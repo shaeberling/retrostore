@@ -3,7 +3,7 @@
 **RetroStore** aims to be an app store that is home to often long forgotten games and apps on platforms from our past.
 
 Take e.g. a system like the [TRS-80](https://en.wikipedia.org/wiki/TRS-80). There are many games and apps that have been
-developped for it but are hard to come by nowadays. Often there is no commercial interest anymore from the original
+developed for it but are hard to come by nowadays. Often there is no commercial interest anymore from the original
 authors. 
 
 However, there are often vibrant communities about these old platforms and emulators that try to keep the history alive.
