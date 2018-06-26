@@ -54,11 +54,6 @@ public class StaticFileRequest implements Request {
       url = "/index.html";
     }
 
-    // Re-write the favicon path in case the browser is requesting it.
-    if (url.equals("/favicon.ico")) {
-      url = "/favicon/favicon.ico";
-    }
-
     for (String path : FILTER) {
       if (url.startsWith(path)) {
         Optional<byte[]> content = mResourceLoader.load(WEB_ROOT + url);

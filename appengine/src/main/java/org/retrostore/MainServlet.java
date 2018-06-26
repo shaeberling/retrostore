@@ -38,6 +38,7 @@ import org.retrostore.data.user.UserService;
 import org.retrostore.data.user.UserServiceImpl;
 import org.retrostore.request.Cache;
 import org.retrostore.request.EnsureAdminExistsRequest;
+import org.retrostore.request.FaviconRequest;
 import org.retrostore.request.ImportRpkRequest;
 import org.retrostore.request.LoginRequest;
 import org.retrostore.request.PolymerRequest;
@@ -103,6 +104,7 @@ public class MainServlet extends RetroStoreServlet {
 
   static {
     sRequestServers = ImmutableList.of(
+        new FaviconRequest(sDefaultResourceLoader),
         new PublicSiteRequest(sDefaultResourceLoader),
         new ReportAppRequest(sDefaultResourceLoader, sAppManagement, sImgServWrapper, sMailService),
 
