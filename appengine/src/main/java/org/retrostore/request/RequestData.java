@@ -64,10 +64,13 @@ public interface RequestData {
   }
 
   class UploadFile {
+    /** The original reuest field name of this file. */
+    public final String fieldname;
     public final String filename;
     public final byte[] content;
 
-    UploadFile(String filename, byte[] content) {
+    UploadFile(String fieldname, String filename, byte[] content) {
+      this.fieldname = fieldname;
       this.filename = filename;
       this.content = content;
     }

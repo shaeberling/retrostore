@@ -20,6 +20,7 @@ import com.google.appengine.api.blobstore.BlobInfo;
 import com.google.appengine.api.blobstore.BlobstoreService;
 import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.CharStreams;
@@ -33,6 +34,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -50,6 +52,8 @@ public class RequestDataImpl implements RequestData {
   private final HttpServletRequest mRequest;
   private final Type mType;
   private final BlobProvider mBlobInfos;
+  private final List<UploadFile> mFileItems;
+  private final Map<String, String> mFormParams;
 
   public static RequestData create(final HttpServletRequest request,
                                    Type type,
@@ -63,13 +67,15 @@ public class RequestDataImpl implements RequestData {
       }
     };
     return new RequestDataImpl(request, type, blobProvider);
-
   }
 
   private RequestDataImpl(HttpServletRequest request, Type type, BlobProvider blobInfos) {
     mRequest = checkNotNull(request);
     mType = checkNotNull(type);
     mBlobInfos = blobInfos;
+    mFileItems = new ArrayList<>();
+    mFormParams = new HashMap<>();
+    parseMultipartContent(request, mFormParams, mFileItems);
   }
 
   @Override
@@ -139,26 +145,7 @@ public class RequestDataImpl implements RequestData {
 
   @Override
   public List<UploadFile> getFiles() {
-    if (!ServletFileUpload.isMultipartContent(mRequest)) {
-      LOG.warning("This is not a multipart content request.");
-      return new ArrayList<>();
-    }
-
-    ServletFileUpload upload = new ServletFileUpload();
-    try {
-      List<UploadFile> files = new ArrayList<>();
-      FileItemIterator itemIterator = upload.getItemIterator(mRequest);
-      while (itemIterator.hasNext()) {
-        FileItemStream file = itemIterator.next();
-        ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
-        ByteStreams.copy(file.openStream(), bytesOut);
-        files.add(new UploadFile(file.getName(), bytesOut.toByteArray()));
-      }
-      return files;
-    } catch (FileUploadException | IOException e) {
-      LOG.log(Level.WARNING, "Cannot parse request for filename.", e);
-      return new ArrayList<>();
-    }
+    return mFileItems;
   }
 
   @Override
@@ -174,8 +161,48 @@ public class RequestDataImpl implements RequestData {
     return ImmutableMap.copyOf(blobKeys);
   }
 
+  // FIXME: We could probably roll the riles in here. Files need field name, too.
   private String getParameter(String name) {
+    // If this was a multi-part request, the parameter will be hidden as a 'file'. So check that
+    // first.
+    if (mFormParams.containsKey(name)) {
+      return mFormParams.get(name);
+    }
+    // A regular request.
     return mRequest.getParameter(name);
+  }
+
+  /**
+   * Parses a multipart request and gets its files and parameters.
+   */
+  private static void parseMultipartContent(HttpServletRequest request,
+                                            Map<String, String> formParams,
+                                            List<UploadFile> uploadFiles) {
+    if (!ServletFileUpload.isMultipartContent(request)) {
+      return;
+    }
+
+    ServletFileUpload upload = new ServletFileUpload();
+    try {
+      FileItemIterator itemIterator = upload.getItemIterator(request);
+      while (itemIterator.hasNext()) {
+        FileItemStream file = itemIterator.next();
+        ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
+        ByteStreams.copy(file.openStream(), bytesOut);
+        byte[] bytes = bytesOut.toByteArray();
+
+        // If an item has a name, we think it's a file, otherwise we treat it as a regular string
+        // parameter.
+        if (!Strings.isNullOrEmpty(file.getName())) {
+          uploadFiles.add(new UploadFile(file.getFieldName(), file.getName(), bytes));
+        } else {
+          String str = new String(bytes, StandardCharsets.UTF_8);
+          formParams.put(file.getFieldName(), str);
+        }
+      }
+    } catch (FileUploadException | IOException e) {
+      LOG.log(Level.WARNING, "Cannot parse request for filename.", e);
+    }
   }
 
   interface BlobProvider {
