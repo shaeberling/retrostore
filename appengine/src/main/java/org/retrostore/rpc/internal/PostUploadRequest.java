@@ -42,7 +42,7 @@ public class PostUploadRequest implements Request {
 
   public PostUploadRequest(AppManagement appManagement) {
     List<RpcCall<RequestData>> calls =
-        ImmutableList.of((RpcCall<RequestData>) new UploadDiskImageRpcCall(appManagement));
+        ImmutableList.of(new UploadDiskImageRpcCall(appManagement));
     Map<String, RpcCall> callsMapped = new HashMap<>();
     for (RpcCall call : calls) {
       if (callsMapped.containsKey(call.getName())) {

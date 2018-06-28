@@ -16,11 +16,10 @@
 
 package org.retrostore.resources;
 
-import com.google.common.base.Optional;
-
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Image service caching layer around an actual image service.
@@ -52,7 +51,7 @@ public class CachingImageService implements ImageServiceWrapper {
     // It's not in any cache.
     Optional<String> servingUrl = mImageService.getServingUrl(blobKey, imageSize);
     if (!servingUrl.isPresent()) {
-      return Optional.absent();
+      return Optional.empty();
     }
     mMemcacheService.put(key, servingUrl.get());
     mMemoryCache.put(key, servingUrl.get());

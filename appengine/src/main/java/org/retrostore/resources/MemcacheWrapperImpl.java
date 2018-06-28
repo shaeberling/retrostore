@@ -17,8 +17,9 @@
 package org.retrostore.resources;
 
 import com.google.appengine.api.memcache.MemcacheService;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+
+import java.util.Optional;
 
 /**
  * Default implementation using the actual memcache.
@@ -32,7 +33,7 @@ public class MemcacheWrapperImpl implements MemcacheWrapper {
 
   @Override
   public Optional<byte[]> get(String key) {
-    return Optional.fromNullable((byte[]) mMemcacheService.get(key));
+    return Optional.ofNullable((byte[]) mMemcacheService.get(key));
   }
 
   @Override
@@ -42,6 +43,6 @@ public class MemcacheWrapperImpl implements MemcacheWrapper {
 
   @Override
   public Optional<String> getString(String key) {
-    return Optional.fromNullable((String) mMemcacheService.get(key));
+    return Optional.ofNullable((String) mMemcacheService.get(key));
   }
 }

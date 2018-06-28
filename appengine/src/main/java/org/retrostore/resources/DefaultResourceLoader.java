@@ -16,7 +16,6 @@
 
 package org.retrostore.resources;
 
-import com.google.common.base.Optional;
 import com.google.common.io.ByteStreams;
 import org.retrostore.request.Cache;
 
@@ -27,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -44,12 +44,7 @@ public class DefaultResourceLoader implements ResourceLoader {
 
   @Override
   public Optional<byte[]> load(final String filename) {
-    return mCache.get(filename, new Cache.DataProvider() {
-      @Override
-      public byte[] provide() {
-        return loadFile(filename);
-      }
-    });
+    return mCache.get(filename, () -> loadFile(filename));
   }
 
   private byte[] loadFile(String filename) {
@@ -75,7 +70,7 @@ public class DefaultResourceLoader implements ResourceLoader {
     } catch (IOException e) {
       LOG.log(Level.SEVERE, "Cannot read URL", e);
     }
-    return Optional.absent();
+    return Optional.empty();
   }
 
   private byte[] toBytes(InputStream input) throws IOException {

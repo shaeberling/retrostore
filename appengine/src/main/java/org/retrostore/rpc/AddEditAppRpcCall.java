@@ -16,7 +16,6 @@
 
 package org.retrostore.rpc;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
@@ -31,6 +30,7 @@ import org.retrostore.rpc.internal.RpcCall;
 import org.retrostore.rpc.internal.RpcParameters;
 import org.retrostore.rpc.internal.RpcResponse;
 
+import java.util.Optional;
 import java.util.logging.Logger;
 
 /**
@@ -144,12 +144,10 @@ public class AddEditAppRpcCall implements RpcCall<RpcParameters> {
       // If the author ID was not set, a new author needs to be created.
       if ("-1".equals(data.origAuthorId)) {
         String authorName = data.newAuthor.trim();
-        long authorId = mAppManagement.ensureAuthorExists(authorName);
-        appStoreItem.listing.authorId = authorId;
+        appStoreItem.listing.authorId = mAppManagement.ensureAuthorExists(authorName);
       } else {
         try {
-          long authorId = Long.parseLong(data.origAuthorId);
-          appStoreItem.listing.authorId = authorId;
+          appStoreItem.listing.authorId = Long.parseLong(data.origAuthorId);
         } catch (IllegalArgumentException ex) {
           String errorMessage = String.format("Bad original author ID '%s'", data.origAuthorId);
           LOG.severe(errorMessage);
@@ -198,7 +196,7 @@ public class AddEditAppRpcCall implements RpcCall<RpcParameters> {
       errorMessage = String.format(errorMessage, value);
       LOG.severe(errorMessage);
       RpcResponse.respond(false, errorMessage, responder);
-      return Optional.absent();
+      return Optional.empty();
     }
   }
 }

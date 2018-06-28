@@ -16,10 +16,9 @@
 
 package org.retrostore.data.app;
 
-import com.google.common.base.Optional;
-
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Functionality to manage apps.

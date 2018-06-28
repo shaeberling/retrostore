@@ -64,15 +64,12 @@ public class AppListRpcCall implements RpcCall<RpcParameters> {
       listingApps.add(listingApp);
     }
 
-    Collections.sort(listingApps, new Comparator<AppStoreItem>() {
-      @Override
-      public int compare(AppStoreItem o1, AppStoreItem o2) {
-        if (o1 == null || o1.listing == null || o1.listing.name == null ||
-            o2 == null || o2.listing == null) {
-          return 0;
-        }
-        return o1.listing.name.compareTo(o2.listing.name);
+    listingApps.sort((o1, o2) -> {
+      if (o1 == null || o1.listing == null || o1.listing.name == null ||
+          o2 == null || o2.listing == null) {
+        return 0;
       }
+      return o1.listing.name.compareTo(o2.listing.name);
     });
     responder.respondJson(listingApps);
   }

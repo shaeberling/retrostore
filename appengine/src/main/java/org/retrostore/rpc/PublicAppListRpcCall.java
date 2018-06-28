@@ -16,7 +16,6 @@
 
 package org.retrostore.rpc;
 
-import com.google.common.base.Optional;
 import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.app.AppStoreItem;
 import org.retrostore.data.app.Author;
@@ -27,9 +26,8 @@ import org.retrostore.rpc.internal.RpcCall;
 import org.retrostore.rpc.internal.RpcParameters;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Returns a list of apps from the datastore that is used to show on the public website.
@@ -74,14 +72,11 @@ public class PublicAppListRpcCall implements RpcCall<RpcParameters> {
       listingApps.add(listingApp);
     }
 
-    Collections.sort(listingApps, new Comparator<PubAppListItem>() {
-      @Override
-      public int compare(PubAppListItem o1, PubAppListItem o2) {
-        if (o1 == null || o1.name == null || o2 == null) {
-          return 0;
-        }
-        return o1.name.compareTo(o2.name);
+    listingApps.sort((o1, o2) -> {
+      if (o1 == null || o1.name == null || o2 == null) {
+        return 0;
       }
+      return o1.name.compareTo(o2.name);
     });
     responder.respondJson(listingApps);
   }
@@ -98,7 +93,7 @@ public class PublicAppListRpcCall implements RpcCall<RpcParameters> {
     String[] urls = new String[blobkeys.size()];
     for (int i = 0; i < blobkeys.size(); ++i) {
       Optional<String> servingUrl = mImageService.getServingUrl(blobkeys.get(i), SCREENSHOT_SIZE);
-      urls[i] = servingUrl.or(FALLBACK_SCREENSHOT_URL);
+      urls[i] = servingUrl.orElse(FALLBACK_SCREENSHOT_URL);
     }
     return urls;
   }

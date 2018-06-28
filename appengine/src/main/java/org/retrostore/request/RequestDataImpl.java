@@ -19,7 +19,6 @@ package org.retrostore.request;
 import com.google.appengine.api.blobstore.BlobInfo;
 import com.google.appengine.api.blobstore.BlobstoreService;
 import com.google.common.base.Charsets;
-import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteStreams;
@@ -39,6 +38,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -58,13 +58,10 @@ public class RequestDataImpl implements RequestData {
   public static RequestData create(final HttpServletRequest request,
                                    Type type,
                                    final BlobstoreService blobstoreService) {
-    BlobProvider blobProvider = new BlobProvider() {
-      @Override
-      public Map<String, List<BlobInfo>> getBlobs() {
-        Map<String, List<BlobInfo>> blobInfos = blobstoreService.getBlobInfos(request);
-        blobInfos = blobInfos != null ? blobInfos : new HashMap<String, List<BlobInfo>>();
-        return ImmutableMap.copyOf(blobInfos);
-      }
+    BlobProvider blobProvider = () -> {
+      Map<String, List<BlobInfo>> blobInfos = blobstoreService.getBlobInfos(request);
+      blobInfos = blobInfos != null ? blobInfos : new HashMap<>();
+      return ImmutableMap.copyOf(blobInfos);
     };
     return new RequestDataImpl(request, type, blobProvider);
   }
@@ -98,7 +95,7 @@ public class RequestDataImpl implements RequestData {
   public Optional<Integer> getInt(String name) {
     String value = getParameter(name);
     if (value == null) {
-      return Optional.absent();
+      return Optional.empty();
     }
     return NumUtil.parseInteger(value);
   }
@@ -107,14 +104,14 @@ public class RequestDataImpl implements RequestData {
   public Optional<Long> getLong(String name) {
     String value = getParameter(name);
     if (value == null) {
-      return Optional.absent();
+      return Optional.empty();
     }
     return NumUtil.parseLong(value);
   }
 
   @Override
   public Optional<String> getString(String name) {
-    return Optional.fromNullable(getParameter(name));
+    return Optional.ofNullable(getParameter(name));
   }
 
   @Override

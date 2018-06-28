@@ -16,7 +16,6 @@
 
 package org.retrostore.request;
 
-import com.google.common.base.Optional;
 import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.app.AppStoreItem;
 import org.retrostore.data.user.UserService;
@@ -25,6 +24,7 @@ import org.retrostore.resources.MailService;
 import org.retrostore.resources.ResourceLoader;
 import org.retrostore.ui.Template;
 
+import java.util.Optional;
 import java.util.logging.Logger;
 
 /**
@@ -97,11 +97,11 @@ public class ReportAppRequest implements Request {
       return;
     }
 
-    String emailMessage = " AppId            : " + appid.or("n/a") + "\n";
+    String emailMessage = " AppId            : " + appid.orElse("n/a") + "\n";
     emailMessage += " App Name         : " + appOpt.get().listing.name + "\n";
-    emailMessage += " Reporter Name    : " + reporterName.or("n/a") + "\n";
-    emailMessage += " Reporter Email   : " + reporterEmail.or("n/a") + "\n";
-    emailMessage += " Message:\n" + message.or("n/a") + "\n";
+    emailMessage += " Reporter Name    : " + reporterName.orElse("n/a") + "\n";
+    emailMessage += " Reporter Email   : " + reporterEmail.orElse("n/a") + "\n";
+    emailMessage += " Message:\n" + message.orElse("n/a") + "\n";
     boolean success = mMailService.sendEmail(MAIL_TO, "New app report received", emailMessage);
     if (!success) {
       responder.respond("There was an error sending your message. Try again later.",
@@ -124,7 +124,7 @@ public class ReportAppRequest implements Request {
     if (app.screenshotsBlobKeys.size() > 0) {
       Optional<String> servingUrl =
           mImageService.getServingUrl(app.screenshotsBlobKeys.get(0), SCREENSHOT_SIZE);
-      screenshotUrl = servingUrl.or("");
+      screenshotUrl = servingUrl.orElse("");
     }
 
     Optional<byte[]> html = mResourceLoader.load("WEB-INF/html/report_app.html.inc");

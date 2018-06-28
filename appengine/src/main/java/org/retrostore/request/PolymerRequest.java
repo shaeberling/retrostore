@@ -16,11 +16,11 @@
 
 package org.retrostore.request;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
 import org.retrostore.data.user.UserService;
 import org.retrostore.resources.ResourceLoader;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Logger;
 

@@ -16,12 +16,12 @@
 
 package org.retrostore.request;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import org.retrostore.resources.MemcacheWrapper;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 /**
@@ -66,7 +66,7 @@ public class TwoLayerCacheImpl implements Cache {
       sFirstLevel.put(resourceName, data);
       mMemcache.put(resourceName, data);
     }
-    return Optional.fromNullable(data);
+    return Optional.ofNullable(data);
   }
 
   @Override

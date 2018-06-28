@@ -16,13 +16,13 @@
 
 package org.retrostore.data.app;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * A caching layer for app management, with the same interface.
@@ -34,7 +34,7 @@ public class AppManagementCached implements AppManagement {
   /** A real app management implementation. */
   private final AppManagement mAppManagement;
 
-  /** TODO: Handle sorting. */
+  // TODO: Handle sorting.
   /** Important: These items are not immutable and a client might change them. */
   private final Map<String, AppStoreItem> mAppCacheById;
   private final Map<Long, MediaImage> mMediaCacheById;
@@ -62,13 +62,11 @@ public class AppManagementCached implements AppManagement {
   @Override
   public Optional<AppStoreItem> getAppById(String id) {
     if (mAppCacheById.containsKey(id)) {
-      return Optional.of(mAppCacheById.get(id));
+      return java.util.Optional.of(mAppCacheById.get(id));
     }
 
     Optional<AppStoreItem> appOpt = mAppManagement.getAppById(id);
-    if (appOpt.isPresent()) {
-      mAppCacheById.put(appOpt.get().id, appOpt.get());
-    }
+    appOpt.ifPresent(appStoreItem -> mAppCacheById.put(appStoreItem.id, appStoreItem));
     return appOpt;
   }
 
@@ -148,7 +146,7 @@ public class AppManagementCached implements AppManagement {
     if (mAuthorCacheById.isEmpty()) {
       updateAuthorCache();
     }
-    return Optional.fromNullable(mAuthorCacheById.get(id));
+    return Optional.ofNullable(mAuthorCacheById.get(id));
   }
 
   private void updateAppCacheItem(String id) {

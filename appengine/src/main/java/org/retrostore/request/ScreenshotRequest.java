@@ -18,7 +18,6 @@ package org.retrostore.request;
 
 import com.google.appengine.api.images.Image;
 import com.google.appengine.api.images.ImagesServiceFactory;
-import com.google.common.base.Optional;
 import org.retrostore.data.BlobstoreWrapper;
 import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.user.UserService;
@@ -26,6 +25,7 @@ import org.retrostore.resources.ImageServiceWrapper;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -146,44 +146,4 @@ public class ScreenshotRequest implements Request {
     }
     return true;
   }
-
-//  private Optional<String> compressScreenshot(String blobKeyStr) {
-//    // FIXME: Hide this behind an interface.
-//    byte[] imageData = mBlobStore.loadBlob(blobKeyStr);
-//    LOG.info("Image data loaded: " + imageData.length);
-//    if (imageData.length == 0) {
-//      return Optional.absent();
-//    }
-//
-//    Image image = ImagesServiceFactory.makeImage(imageData);
-//    if (image == null || image.getWidth() == 0 || image.getHeight() == 0) {
-//      LOG.warning("No image found for blob key: " + blobKeyStr);
-//      return Optional.absent();
-//    }
-//
-//    // Set up resize and compression params.
-//    int width = image.getWidth();
-//    int height = image.getHeight();
-//    if (width > height && width > MAX_IMG_SIZE) {
-//      height = (int) (height * (MAX_IMG_SIZE / (double) width));
-//      width = MAX_IMG_SIZE;
-//    } else if (height > width && height > MAX_IMG_SIZE) {
-//      width = (int) (width * (MAX_IMG_SIZE / (double) height));
-//      height = MAX_IMG_SIZE;
-//    }
-//    Transform transform = ImagesServiceFactory.makeResize(width, height);
-//    OutputSettings settings = new OutputSettings(ImagesService.OutputEncoding.JPEG);
-//    settings.setQuality(JPEG_QUALITY);
-//    try {
-//      // Attempt to resize and compress the image.
-//      Image newImage = ImagesServiceFactory.getImagesService().applyTransform(
-//          transform, image, settings);
-//
-//      // Store the new image data in blobstore and return the blob key.
-//      return mBlobStore.storeJpegInBlobstore(newImage.getImageData());
-//    } catch (IllegalArgumentException | ImagesServiceFailureException ex) {
-//      LOG.log(Level.SEVERE, "Unable to compress/resize image.", ex);
-//      return Optional.absent();
-//    }
-//  }
 }

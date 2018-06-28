@@ -16,7 +16,6 @@
 
 package org.retrostore.rpc;
 
-import com.google.common.base.Optional;
 import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.app.AppStoreItem;
 import org.retrostore.data.app.MediaImage;
@@ -26,6 +25,7 @@ import org.retrostore.rpc.internal.RpcCall;
 import org.retrostore.rpc.internal.RpcParameters;
 
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Lists data about the disk images of an app.

@@ -16,13 +16,14 @@
 
 package org.retrostore.rpc;
 
-import com.google.common.base.Optional;
 import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.app.AppStoreItem;
 import org.retrostore.data.user.UserAccountType;
 import org.retrostore.request.Responder;
 import org.retrostore.rpc.internal.RpcCall;
 import org.retrostore.rpc.internal.RpcParameters;
+
+import java.util.Optional;
 
 /**
  * Serves a list of screenshots for a given app.

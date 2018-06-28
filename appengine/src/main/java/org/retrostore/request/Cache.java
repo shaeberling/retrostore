@@ -16,7 +16,7 @@
 
 package org.retrostore.request;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 /**
  * A simple cache interface.

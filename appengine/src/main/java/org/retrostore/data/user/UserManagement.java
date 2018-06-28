@@ -18,9 +18,9 @@ package org.retrostore.data.user;
 
 import com.google.appengine.api.users.User;
 import com.google.appengine.api.users.UserService;
-import com.google.common.base.Optional;
 
 import java.util.List;
+import java.util.Optional;
 
 import static com.googlecode.objectify.ObjectifyService.ofy;
 
@@ -44,10 +44,7 @@ public class UserManagement {
       return false;
     }
     Optional<RetroStoreUser> user = getUserByEmail(loggedInEmail.get());
-    if (!user.isPresent()) {
-      return false;
-    }
-    return user.get().type == UserAccountType.ADMIN;
+    return user.filter(retroStoreUser -> retroStoreUser.type == UserAccountType.ADMIN).isPresent();
   }
 
   /**
@@ -56,9 +53,9 @@ public class UserManagement {
   public Optional<String> getLoggedInEmail() {
     User currentUser = userService.getCurrentUser();
     if (currentUser == null) {
-      return Optional.absent();
+      return Optional.empty();
     }
-    return Optional.fromNullable(currentUser.getEmail());
+    return Optional.ofNullable(currentUser.getEmail());
   }
 
   /**
@@ -75,7 +72,8 @@ public class UserManagement {
   }
 
   /**
-   * Adds a new user if one with the given ID does not exist yet, otherwise changes the existing user with the given ID.
+   * Adds a new user if one with the given ID does not exist yet, otherwise changes the existing
+   * user with the given ID.
    */
   public void addOrChangeUser(RetroStoreUser user) {
     ofy().save().entity(user).now();
@@ -101,13 +99,13 @@ public class UserManagement {
    * If it exists in the system, returns the user with the given email address.
    */
   public Optional<RetroStoreUser> getUserByEmail(String email) {
-    return Optional.fromNullable(ofy().load().key(RetroStoreUser.key(email)).now());
+    return Optional.ofNullable(ofy().load().key(RetroStoreUser.key(email)).now());
   }
 
   public Optional<RetroStoreUser> getCurrentUser() {
     User systemUser = userService.getCurrentUser();
     if (systemUser == null) {
-      return Optional.absent();
+      return Optional.empty();
     }
     return getUserByEmail(systemUser.getEmail());
   }

@@ -16,7 +16,6 @@
 
 package org.retrostore.request;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
@@ -33,6 +32,7 @@ import org.retrostore.util.Base64Util;
 
 import java.io.UnsupportedEncodingException;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 

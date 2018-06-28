@@ -16,13 +16,14 @@
 
 package org.retrostore.rpc.api;
 
-import com.google.common.base.Optional;
 import org.retrostore.client.common.proto.App;
 import org.retrostore.client.common.proto.Trs80Extension;
 import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.app.AppStoreItem;
 import org.retrostore.data.app.Author;
 import org.retrostore.resources.ImageServiceWrapper;
+
+import java.util.Optional;
 
 class ApiHelper {
   private final AppManagement mAppManagement;
@@ -40,10 +41,8 @@ class ApiHelper {
     appBuilder.setVersion(app.listing.versionString);
     appBuilder.setDescription(app.listing.description);
     appBuilder.setReleaseYear(app.listing.releaseYear);
-    Optional<Author> author = mAppManagement.getAuthorById(app.listing.authorId);
-    if (author.isPresent()) {
-      appBuilder.setAuthor(author.get().name);
-    }
+    Optional<Author> authorOpt = mAppManagement.getAuthorById(app.listing.authorId);
+    authorOpt.ifPresent(author -> appBuilder.setAuthor(author.name));
 
     // Set the TRS80 related parameters.
     Trs80Extension.Builder trsExtension = Trs80Extension.newBuilder();
@@ -64,7 +63,7 @@ class ApiHelper {
     }
 
     for (String blobKey : app.screenshotsBlobKeys) {
-      appBuilder.addScreenshotUrl(mImageService.getServingUrl(blobKey).or(""));
+      appBuilder.addScreenshotUrl(mImageService.getServingUrl(blobKey).orElse(""));
     }
     appBuilder.setExtTrs80(trsExtension);
     return appBuilder;

@@ -16,7 +16,7 @@
 
 package org.retrostore.rpc.internal;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 /**
  * Parameters for am RPC call.

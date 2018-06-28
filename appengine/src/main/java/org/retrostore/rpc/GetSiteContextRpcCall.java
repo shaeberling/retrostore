@@ -16,13 +16,14 @@
 
 package org.retrostore.rpc;
 
-import com.google.common.base.Optional;
 import org.retrostore.data.user.RetroStoreUser;
 import org.retrostore.data.user.UserAccountType;
 import org.retrostore.data.user.UserManagement;
 import org.retrostore.request.Responder;
 import org.retrostore.rpc.internal.RpcCall;
 import org.retrostore.rpc.internal.RpcParameters;
+
+import java.util.Optional;
 
 /**
  * Responds with a context object that is requested from the site when loaded.
@@ -53,9 +54,7 @@ public class GetSiteContextRpcCall implements RpcCall<RpcParameters> {
   public void call(RpcParameters params, Responder responder) {
     SiteContext context = new SiteContext();
     Optional<RetroStoreUser> currentUser = mUserManagement.getCurrentUser();
-    if (currentUser.isPresent()) {
-      context.firstName = currentUser.get().firstName;
-    }
+    currentUser.ifPresent(retroStoreUser -> context.firstName = retroStoreUser.firstName);
     responder.respondJson(context);
   }
 }

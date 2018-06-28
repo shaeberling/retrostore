@@ -16,18 +16,17 @@
 
 package org.retrostore.data.app;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.googlecode.objectify.Key;
 import org.retrostore.data.BlobstoreWrapper;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 import static com.googlecode.objectify.ObjectifyService.ofy;
@@ -54,7 +53,7 @@ public class AppManagementImpl implements AppManagement {
 
   @Override
   public Optional<AppStoreItem> getAppById(String id) {
-    return Optional.fromNullable(ofy().load().key(AppStoreItem.key(id)).now());
+    return Optional.ofNullable(ofy().load().key(AppStoreItem.key(id)).now());
   }
 
   @Override
@@ -192,18 +191,12 @@ public class AppManagementImpl implements AppManagement {
   @Override
   public List<Author> listAuthors() {
     List<Author> authors = ofy().load().type(Author.class).list();
-    Collections.sort(authors, new Comparator<Author>() {
-      @Override
-      public int compare(Author o1, Author o2) {
-        // Sort authors by name.
-        return o1.name.compareTo(o2.name);
-      }
-    });
+    authors.sort(Comparator.comparing(o -> o.name));
     return authors;
   }
 
   @Override
   public Optional<Author> getAuthorById(long id) {
-    return Optional.fromNullable(ofy().load().key(Author.key(id)).now());
+    return Optional.ofNullable(ofy().load().key(Author.key(id)).now());
   }
 }

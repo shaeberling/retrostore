@@ -59,12 +59,7 @@ public class ListAppsApiCall implements ApiCall {
   @Override
   public Response call(final RequestData data) {
     final ApiResponseApps responseApps = callInternal(data);
-    return new Response() {
-      @Override
-      public void respond(Responder responder) {
-        responder.respondProto(responseApps);
-      }
-    };
+    return responder -> responder.respondProto(responseApps);
   }
 
   private ApiResponseApps callInternal(RequestData data) {
@@ -95,14 +90,11 @@ public class ListAppsApiCall implements ApiCall {
         .currentTimeMillis() - tPreBuilding)));
 
     // Sort the output alphabetically.
-    Collections.sort(apps, new Comparator<App.Builder>() {
-      @Override
-      public int compare(App.Builder o1, App.Builder o2) {
-        if (o1 == null || o2 == null) {
-          return 0;
-        }
-        return o1.getName().compareTo(o2.getName());
+    apps.sort((o1, o2) -> {
+      if (o1 == null || o2 == null) {
+        return 0;
       }
+      return o1.getName().compareTo(o2.getName());
     });
     for (App.Builder app : apps) {
       response.addApp(app.build());

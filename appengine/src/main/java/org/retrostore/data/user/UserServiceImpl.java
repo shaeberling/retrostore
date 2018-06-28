@@ -16,7 +16,7 @@
 
 package org.retrostore.data.user;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

@@ -16,13 +16,13 @@
 
 package org.retrostore.data.user;
 
-import com.google.common.base.Optional;
 import org.retrostore.ui.Template;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 /**

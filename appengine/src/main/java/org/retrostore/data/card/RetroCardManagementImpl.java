@@ -60,12 +60,12 @@ public class RetroCardManagementImpl implements RetroCardManagement {
   }
 
   @Override
-  public Optional<byte[]> getFirmware(int revision, int version) {
+  public java.util.Optional<byte[]> getFirmware(int revision, int version) {
     Optional<RetroCardFirmware> firmware = Optional.fromNullable(ofy().load()
         .key(RetroCardFirmware.key(revision, version)).now());
     if (firmware.isPresent()) {
-      return Optional.fromNullable(firmware.get().data);
+      return java.util.Optional.ofNullable(firmware.get().data);
     }
-    return Optional.absent();
+    return java.util.Optional.empty();
   }
 }

@@ -17,12 +17,12 @@
 
 package org.retrostore.request;
 
-import com.google.common.base.Optional;
 import org.retrostore.data.user.RetroStoreUser;
 import org.retrostore.data.user.UserAccountType;
 import org.retrostore.data.user.UserManagement;
 import org.retrostore.data.user.UserService;
 
+import java.util.Optional;
 import java.util.logging.Logger;
 
 /**

@@ -52,12 +52,7 @@ public class FetchMediaImagesApiCall implements ApiCall {
   @Override
   public Response call(RequestData data) {
     final ApiResponseMediaImages response = callInternal(data);
-    return new Response() {
-      @Override
-      public void respond(Responder responder) {
-        responder.respondProto(response);
-      }
-    };
+    return responder -> responder.respondProto(response);
   }
 
   private ApiResponseMediaImages callInternal(RequestData data) {
@@ -72,7 +67,7 @@ public class FetchMediaImagesApiCall implements ApiCall {
       return response.setSuccess(false).setMessage("No appId given.").build();
     }
 
-    Optional<AppStoreItem> appById = mAppManagement.getAppById(appId);
+    java.util.Optional<AppStoreItem> appById = mAppManagement.getAppById(appId);
     if (!appById.isPresent()) {
       return response.setSuccess(false)
           .setMessage(String.format("Cannot find app with ID '%s'.", appId))

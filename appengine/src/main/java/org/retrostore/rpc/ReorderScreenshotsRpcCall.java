@@ -16,7 +16,6 @@
 
 package org.retrostore.rpc;
 
-import com.google.common.base.Optional;
 import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.app.AppStoreItem;
 import org.retrostore.data.user.UserAccountType;
@@ -26,6 +25,7 @@ import org.retrostore.rpc.internal.RpcParameters;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 /**

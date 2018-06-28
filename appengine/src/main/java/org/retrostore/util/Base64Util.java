@@ -16,20 +16,20 @@
 
 package org.retrostore.util;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 
 import java.util.Base64;
+import java.util.Optional;
 
 public class Base64Util {
   public static Optional<byte[]> decode(String base64Str) {
     if (Strings.isNullOrEmpty(base64Str)) {
-      return Optional.absent();
+      return Optional.empty();
     }
     try {
-      return Optional.fromNullable(Base64.getDecoder().decode(base64Str));
+      return Optional.ofNullable(Base64.getDecoder().decode(base64Str));
     } catch (IllegalArgumentException e) {
-      return Optional.absent();
+      return Optional.empty();
     }
   }
 }

@@ -16,11 +16,9 @@
 
 package org.retrostore.rpc.internal;
 
-import com.google.common.base.Optional;
 import org.retrostore.request.RequestData;
-import org.retrostore.util.NumUtil;
 
-import java.util.logging.Logger;
+import java.util.Optional;
 
 /**
  * Maps Requests to RpcParameters.

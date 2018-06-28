@@ -16,7 +16,7 @@
 
 package org.retrostore.resources;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 /**
  * Simple mockable memcache wrapper.

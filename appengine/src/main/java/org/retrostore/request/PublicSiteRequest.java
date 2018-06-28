@@ -16,10 +16,10 @@
 
 package org.retrostore.request;
 
-import com.google.common.base.Optional;
 import org.retrostore.data.user.UserService;
 import org.retrostore.resources.ResourceLoader;
 
+import java.util.Optional;
 import java.util.logging.Logger;
 
 public class PublicSiteRequest implements Request {

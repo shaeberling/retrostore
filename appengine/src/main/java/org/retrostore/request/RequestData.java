@@ -16,10 +16,9 @@
 
 package org.retrostore.request;
 
-import com.google.common.base.Optional;
-
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Interface for the request data.

@@ -16,7 +16,7 @@
 
 package org.retrostore.data.card;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 /**
  * Manages RetorCard data such as firmware.

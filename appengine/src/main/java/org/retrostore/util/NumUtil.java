@@ -16,9 +16,9 @@
 
 package org.retrostore.util;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -36,19 +36,19 @@ public class NumUtil {
    */
   public static Optional<Long> parseLong(String longStr) {
     if (Strings.isNullOrEmpty(longStr)) {
-      return Optional.absent();
+      return Optional.empty();
     }
     try {
       return Optional.of(Long.parseLong(longStr));
     } catch (NumberFormatException ex) {
       LOG.log(Level.SEVERE, "Cannot parse integer", ex);
-      return Optional.absent();
+      return Optional.empty();
     }
   }
 
   public static Optional<Long> parseLong(Optional<String> longStr) {
     if (!longStr.isPresent()) {
-      return Optional.absent();
+      return Optional.empty();
     }
     return parseLong(longStr.get());
   }
@@ -61,13 +61,13 @@ public class NumUtil {
    */
   public static Optional<Integer> parseInteger(String intStr) {
     if (Strings.isNullOrEmpty(intStr)) {
-      return Optional.absent();
+      return Optional.empty();
     }
     try {
       return Optional.of(Integer.parseInt(intStr));
     } catch (NumberFormatException ex) {
       LOG.log(Level.SEVERE, "Cannot parse integer", ex);
-      return Optional.absent();
+      return Optional.empty();
     }
   }
 }

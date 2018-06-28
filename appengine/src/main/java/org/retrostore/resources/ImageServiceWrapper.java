@@ -16,7 +16,7 @@
 
 package org.retrostore.resources;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 /**
  * Functionality around the image service.

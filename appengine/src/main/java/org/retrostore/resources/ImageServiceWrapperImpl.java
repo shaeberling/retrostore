@@ -19,8 +19,8 @@ package org.retrostore.resources;
 import com.google.appengine.api.blobstore.BlobKey;
 import com.google.appengine.api.images.ImagesService;
 import com.google.appengine.api.images.ServingUrlOptions;
-import com.google.common.base.Optional;
 
+import java.util.Optional;
 import java.util.logging.Logger;
 
 /**
@@ -45,7 +45,7 @@ public class ImageServiceWrapperImpl implements ImageServiceWrapper {
       return Optional.of(mImagesService.getServingUrl(options));
     } catch (IllegalArgumentException ex) {
       LOG.warning("Cannot get image serving URL: " + ex.getMessage());
-      return Optional.absent();
+      return Optional.empty();
     }
   }
 

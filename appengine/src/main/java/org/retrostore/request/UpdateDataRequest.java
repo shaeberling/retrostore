@@ -16,11 +16,11 @@
 
 package org.retrostore.request;
 
-import com.google.common.base.Optional;
 import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.app.AppSearch;
 import org.retrostore.data.user.UserService;
 
+import java.util.Optional;
 import java.util.logging.Logger;
 
 import static org.retrostore.data.user.UserAccountType.ADMIN;

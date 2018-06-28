@@ -16,13 +16,13 @@
 
 package org.retrostore.rpc;
 
-import com.google.common.base.Optional;
 import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.user.UserAccountType;
 import org.retrostore.request.Responder;
 import org.retrostore.rpc.internal.RpcCall;
 import org.retrostore.rpc.internal.RpcParameters;
 
+import java.util.Optional;
 import java.util.logging.Logger;
 
 /**
@@ -71,7 +71,7 @@ public class DeleteScreenshotRpcCall implements RpcCall<RpcParameters> {
     String blobKey = blobKeyOpt.get();
     if (!mAppManagement.removeScreenshot(appId, blobKey)) {
       String msg = String.format(
-          "Something went wrong deleting screenshot. appId '%d' and blobKey '%s'", appId, blobKey);
+          "Something went wrong deleting screenshot. appId '%s' and blobKey '%s'", appId, blobKey);
       responder.respondBadRequest(msg);
       LOG.warning(msg);
     }

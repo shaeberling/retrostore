@@ -16,9 +16,10 @@
 
 package org.retrostore.request;
 
-import com.google.common.base.Optional;
 import org.retrostore.data.user.UserService;
 import org.retrostore.resources.ResourceLoader;
+
+import java.util.Optional;
 
 /**
  * Handles loading favicon related files. We make this its own request so that no matter which

@@ -54,12 +54,7 @@ public class GetAppApiCall implements ApiCall {
   @Override
   public Response call(RequestData params) {
     final ApiResponseApps responseApp = callInternal(params);
-    return new Response() {
-      @Override
-      public void respond(Responder responder) {
-        responder.respondProto(responseApp);
-      }
-    };
+    return responder -> responder.respondProto(responseApp);
   }
 
   private ApiResponseApps callInternal(RequestData params) {
@@ -69,7 +64,7 @@ public class GetAppApiCall implements ApiCall {
       return response.setSuccess(false).setMessage("Invalid request, appId missing.").build();
     }
 
-    Optional<AppStoreItem> appById = mAppManagement.getAppById(getAppApiParams.appId);
+    java.util.Optional<AppStoreItem> appById = mAppManagement.getAppById(getAppApiParams.appId);
     if (!appById.isPresent()) {
       return response.setSuccess(false).setMessage("App not found.").build();
     }
