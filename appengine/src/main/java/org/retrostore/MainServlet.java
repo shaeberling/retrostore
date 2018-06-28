@@ -33,6 +33,8 @@ import org.retrostore.data.app.AppManagementCached;
 import org.retrostore.data.app.AppManagementImpl;
 import org.retrostore.data.app.AppSearch;
 import org.retrostore.data.app.AppSearchImpl;
+import org.retrostore.data.card.RetroCardManagement;
+import org.retrostore.data.card.RetroCardManagementImpl;
 import org.retrostore.data.user.UserManagement;
 import org.retrostore.data.user.UserService;
 import org.retrostore.data.user.UserServiceImpl;
@@ -49,6 +51,7 @@ import org.retrostore.request.RequestData;
 import org.retrostore.request.RequestData.Type;
 import org.retrostore.request.RequestDataImpl;
 import org.retrostore.request.Responder;
+import org.retrostore.request.RetroCardRequest;
 import org.retrostore.request.ScreenshotRequest;
 import org.retrostore.request.StaticFileRequest;
 import org.retrostore.request.TwoLayerCacheImpl;
@@ -99,6 +102,7 @@ public class MainServlet extends RetroStoreServlet {
   private static Cache sCache = new TwoLayerCacheImpl(sMemcache);
   private static DefaultResourceLoader sDefaultResourceLoader = new DefaultResourceLoader(sCache);
   private static MailService sMailService = new MailServiceImpl();
+  private static RetroCardManagement sRetroCardManagement = new RetroCardManagementImpl();
 
   private static List<Request> sRequestServers;
 
@@ -113,6 +117,7 @@ public class MainServlet extends RetroStoreServlet {
         new EnsureAdminExistsRequest(sUserManagement),
         new ImportRpkRequest((getResourceLoader()), sAppManagement, sUserManagement,
             sBlobstoreWrapper),
+        new RetroCardRequest(getResourceLoader(), sRetroCardManagement),
         new RpcCallRequest(sUserManagement, sAppManagement, sImgServWrapper),
         new ScreenshotRequest(sBlobstoreWrapper, sAppManagement, sImgServWrapper),
         new PolymerRequest(getResourceLoader()),
