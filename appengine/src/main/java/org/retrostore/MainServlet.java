@@ -51,7 +51,7 @@ import org.retrostore.request.RequestData;
 import org.retrostore.request.RequestData.Type;
 import org.retrostore.request.RequestDataImpl;
 import org.retrostore.request.Responder;
-import org.retrostore.request.RetroCardRequest;
+import org.retrostore.request.RetroCardRequests;
 import org.retrostore.request.ScreenshotRequest;
 import org.retrostore.request.StaticFileRequest;
 import org.retrostore.request.TwoLayerCacheImpl;
@@ -111,13 +111,14 @@ public class MainServlet extends RetroStoreServlet {
         new FaviconRequest(sDefaultResourceLoader),
         new PublicSiteRequest(sDefaultResourceLoader),
         new ReportAppRequest(sDefaultResourceLoader, sAppManagement, sImgServWrapper, sMailService),
+        new RetroCardRequests.ApiRequest(sRetroCardManagement),
 
         // Every request above this line does not require a logged in user.
         new LoginRequest(),
         new EnsureAdminExistsRequest(sUserManagement),
+        new RetroCardRequests.AdminFrontendRequest(getResourceLoader(), sRetroCardManagement),
         new ImportRpkRequest((getResourceLoader()), sAppManagement, sUserManagement,
             sBlobstoreWrapper),
-        new RetroCardRequest(getResourceLoader(), sRetroCardManagement),
         new RpcCallRequest(sUserManagement, sAppManagement, sImgServWrapper),
         new ScreenshotRequest(sBlobstoreWrapper, sAppManagement, sImgServWrapper),
         new PolymerRequest(getResourceLoader()),
