@@ -42,6 +42,10 @@ appengine {
     jvmFlags = ['-Ddatastore.backing_store=$rootDir/local_db.bin',
                 '-Dretrostore.debug.polymer=http://127.0.0.1:8081']
   }
+  deploy {
+    stopPreviousVersion = false
+    promote = false
+  }
 }
 
 sourceCompatibility = JavaVersion.VERSION_1_7
