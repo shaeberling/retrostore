@@ -19,13 +19,17 @@ package org.retrostore.util;
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 
-import javax.xml.bind.DatatypeConverter;
+import java.util.Base64;
 
 public class Base64Util {
   public static Optional<byte[]> decode(String base64Str) {
     if (Strings.isNullOrEmpty(base64Str)) {
       return Optional.absent();
     }
-    return Optional.of(DatatypeConverter.parseBase64Binary(base64Str));
+    try {
+      return Optional.fromNullable(Base64.getDecoder().decode(base64Str));
+    } catch (IllegalArgumentException e) {
+      return Optional.absent();
+    }
   }
 }

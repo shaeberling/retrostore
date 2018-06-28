@@ -70,7 +70,6 @@ import org.retrostore.rpc.internal.ApiRequest;
 import org.retrostore.rpc.internal.PostUploadRequest;
 import org.retrostore.rpc.internal.RpcCallRequest;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -83,82 +82,96 @@ import java.util.logging.Logger;
 public class MainServlet extends RetroStoreServlet {
   private static final Logger LOG = Logger.getLogger("MainServlet");
 
-  private static com.google.appengine.api.users.UserService sUserService =
-      UserServiceFactory.getUserService();
-  private static BlobstoreService sBlobstoreService = BlobstoreServiceFactory.getBlobstoreService();
-  private static BlobstoreWrapper sBlobstoreWrapper = new BlobstoreWrapperImpl(sBlobstoreService);
-  private static UserManagement sUserManagement = new UserManagement(sUserService);
-  private static SearchService sSearchService = SearchServiceFactory.getSearchService();
-  private static AppSearch sAppSearch = new AppSearchImpl(sSearchService);
-  private static AppManagement sAppManagement = new AppManagementCached(
-      new AppManagementImpl(sBlobstoreWrapper, sAppSearch));
-  private static UserService sAccountTypeProvider =
-      new UserServiceImpl(sUserManagement, sUserService);
-  private static ImagesService sImagesService = ImagesServiceFactory.getImagesService();
-  private static MemcacheWrapper sMemcache =
-      new MemcacheWrapperImpl(MemcacheServiceFactory.getMemcacheService());
-  private static ImageServiceWrapper sImgServWrapper =
-      new CachingImageService(new ImageServiceWrapperImpl(sImagesService), sMemcache);
-  private static Cache sCache = new TwoLayerCacheImpl(sMemcache);
-  private static DefaultResourceLoader sDefaultResourceLoader = new DefaultResourceLoader(sCache);
-  private static MailService sMailService = new MailServiceImpl();
-  private static RetroCardManagement sRetroCardManagement = new RetroCardManagementImpl();
-
+  private static final Object sModuleLock = new Object();
+  private static Modules sModules;
   private static List<Request> sRequestServers;
 
-  static {
-    sRequestServers = ImmutableList.of(
-        new FaviconRequest(sDefaultResourceLoader),
-        new PublicSiteRequest(sDefaultResourceLoader),
-        new ReportAppRequest(sDefaultResourceLoader, sAppManagement, sImgServWrapper, sMailService),
-        new RetroCardRequests.ApiRequest(sRetroCardManagement),
+  /**
+   * All global modules needed throughout the application.
+   */
+  static class Modules {
+    com.google.appengine.api.users.UserService userService =
+        UserServiceFactory.getUserService();
+    BlobstoreService blobstoreService = BlobstoreServiceFactory.getBlobstoreService();
+    BlobstoreWrapper blobstoreWrapper = new BlobstoreWrapperImpl(blobstoreService);
+    UserManagement userManagement = new UserManagement(userService);
+    SearchService searchService = SearchServiceFactory.getSearchService();
+    AppSearch appSearch = new AppSearchImpl(searchService);
+    AppManagement appManagement = new AppManagementCached(
+        new AppManagementImpl(blobstoreWrapper, appSearch));
+    UserService accountTypeProvider =
+        new UserServiceImpl(userManagement, userService);
+    ImagesService imagesService = ImagesServiceFactory.getImagesService();
+    MemcacheWrapper memcache =
+        new MemcacheWrapperImpl(MemcacheServiceFactory.getMemcacheService());
+    ImageServiceWrapper imgServWrapper =
+        new CachingImageService(new ImageServiceWrapperImpl(imagesService), memcache);
+    Cache cache = new TwoLayerCacheImpl(memcache);
+    DefaultResourceLoader defaultResourceLoader = new DefaultResourceLoader(cache);
+    MailService mailService = new MailServiceImpl();
+    RetroCardManagement retroCardManagement = new RetroCardManagementImpl();
+  }
+
+  private static List<Request> createRequests(Modules m) {
+    return ImmutableList.of(new FaviconRequest(m.defaultResourceLoader),
+        new PublicSiteRequest(m.defaultResourceLoader),
+        new ReportAppRequest(m.defaultResourceLoader, m.appManagement, m.imgServWrapper,
+            m.mailService),
+        new RetroCardRequests.ApiRequest(m.retroCardManagement),
 
         // Every request above this line does not require a logged in user.
         new LoginRequest(),
-        new EnsureAdminExistsRequest(sUserManagement),
-        new RetroCardRequests.AdminFrontendRequest(getResourceLoader(), sRetroCardManagement),
-        new ImportRpkRequest((getResourceLoader()), sAppManagement, sUserManagement,
-            sBlobstoreWrapper),
-        new RpcCallRequest(sUserManagement, sAppManagement, sImgServWrapper),
-        new ScreenshotRequest(sBlobstoreWrapper, sAppManagement, sImgServWrapper),
-        new PolymerRequest(getResourceLoader()),
-        new StaticFileRequest(sDefaultResourceLoader),
-        new PostUploadRequest(sAppManagement),
-        new ApiRequest(sAppManagement, sImgServWrapper),
-        new UpdateDataRequest(sAppSearch, sAppManagement)
+        new EnsureAdminExistsRequest(m.userManagement),
+        new RetroCardRequests.AdminFrontendRequest(getResourceLoader(m), m.retroCardManagement),
+        new ImportRpkRequest((getResourceLoader(m)), m.appManagement, m.userManagement,
+            m.blobstoreWrapper),
+        new RpcCallRequest(m.userManagement, m.appManagement, m.imgServWrapper),
+        new ScreenshotRequest(m.blobstoreWrapper, m.appManagement, m.imgServWrapper),
+        new PolymerRequest(getResourceLoader(m)),
+        new StaticFileRequest(m.defaultResourceLoader),
+        new PostUploadRequest(m.appManagement),
+        new ApiRequest(m.appManagement, m.imgServWrapper),
+        new UpdateDataRequest(m.appSearch, m.appManagement)
+        // Note: Add more request servers here. Keep in mind that this is in priority-order.
     );
-    // Note: Add more request servers here. Keep in mind that this is in priority-order.
   }
 
-  private static ResourceLoader getResourceLoader() {
+  private static ResourceLoader getResourceLoader(Modules m) {
     String polymerDebugServer = System.getProperty("retrostore.debug.polymer");
     if (Strings.isNullOrEmpty(polymerDebugServer)) {
-      return sDefaultResourceLoader;
+      return m.defaultResourceLoader;
     } else {
       LOG.info(
           String.format("Initializing Polymer debug loader with URL: '%s'", polymerDebugServer));
-      return new PolymerDebugLoader(polymerDebugServer, sDefaultResourceLoader);
+      return new PolymerDebugLoader(polymerDebugServer, m.defaultResourceLoader);
     }
   }
 
   @Override
-  protected void doGet(HttpServletRequest req, HttpServletResponse resp)
-      throws ServletException, IOException {
+  protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
     serveMainHtml(req, resp, Type.GET);
   }
 
   @Override
-  protected void doPost(HttpServletRequest req, HttpServletResponse resp)
-      throws ServletException, IOException {
+  protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
     serveMainHtml(req, resp, Type.POST);
   }
 
   private void serveMainHtml(HttpServletRequest req, HttpServletResponse resp, Type type)
-      throws ServletException, IOException {
-    RequestData requestData = RequestDataImpl.create(req, type, sBlobstoreService);
-    Responder responder = new Responder(resp, sBlobstoreService);
+      throws IOException {
+    synchronized (sModuleLock) {
+      if (sModules == null) {
+        sModules = new Modules();
+      }
+      if (sRequestServers == null) {
+        sRequestServers = createRequests(sModules);
+      }
+    }
+
+    RequestData requestData = RequestDataImpl.create(req, type, sModules.blobstoreService);
+    Responder responder = new Responder(resp, sModules.blobstoreService);
     for (Request server : sRequestServers) {
-      if (server.serveUrl(requestData, responder, sAccountTypeProvider)) {
+      if (server.serveUrl(requestData, responder, sModules.accountTypeProvider)) {
         return;
       }
     }
