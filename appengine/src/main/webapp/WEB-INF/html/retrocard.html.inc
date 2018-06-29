@@ -18,7 +18,7 @@
 
 <html>
 <head>
-    <title>RetroStore - RetroCard Management</title>
+    <title>RetroStore Card Management</title>
     <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
     <style>
         body {
@@ -76,10 +76,10 @@
 <div id="content">
     <h1><a id="logo" href="/">
         <img src="https://github.com/shaeberling/retrostore/raw/master/docs/retrostore_logo.png" />
-    </a>RetroCard Firmware</h1>
+    </a>RetroStore Card Firmware</h1>
     <div id="inner-content">
         <p>
-            Choose a revision for which to upload new firmware. Versions will automatically be incremented.
+            Choose a RetroStore Card revision for which to upload new firmware. Versions will automatically be incremented.
         </p>
         <form action="/card" method="post" enctype="multipart/form-data">
             <p>Revision:
