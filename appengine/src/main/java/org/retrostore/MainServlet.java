@@ -41,6 +41,7 @@ import org.retrostore.data.user.UserServiceImpl;
 import org.retrostore.request.Cache;
 import org.retrostore.request.EnsureAdminExistsRequest;
 import org.retrostore.request.FaviconRequest;
+import org.retrostore.request.ForwardingRequest;
 import org.retrostore.request.ImportRpkRequest;
 import org.retrostore.request.LoginRequest;
 import org.retrostore.request.PingRequest;
@@ -116,6 +117,7 @@ public class MainServlet extends RetroStoreServlet {
   private static List<Request> createRequests(Modules m) {
     return ImmutableList.of(new FaviconRequest(m.defaultResourceLoader),
         new PingRequest(),
+        new ForwardingRequest(),
         new PublicSiteRequest(m.defaultResourceLoader),
         new ReportAppRequest(m.defaultResourceLoader, m.appManagement, m.imgServWrapper,
             m.mailService),
