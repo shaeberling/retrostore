@@ -31,6 +31,7 @@ public class ForwardingRequest implements Request {
       new HashMap<String, String>() {
         {
           put("/rsc", "https://github.com/apuder/RetroStoreCard");
+          put("/rsc/", "https://github.com/apuder/RetroStoreCard");
         }
       });
 
