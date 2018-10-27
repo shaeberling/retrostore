@@ -32,6 +32,8 @@ public class ForwardingRequest implements Request {
         {
           put("/rsc", "https://github.com/apuder/RetroStoreCard");
           put("/rsc/", "https://github.com/apuder/RetroStoreCard");
+          put("/app", "https://play.google.com/store/apps/details?id=org.puder.trs80");
+          put("/app/", "https://play.google.com/store/apps/details?id=org.puder.trs80");
         }
       });
 
