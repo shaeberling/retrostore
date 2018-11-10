@@ -69,6 +69,7 @@ public class PublicAppListRpcCall implements RpcCall<RpcParameters> {
       listingApp.description = app.listing.description;
       listingApp.screenshots = getScreenshotUrls(app.screenshotsBlobKeys);
       listingApp.reportUrl = "/reportapp?appId=" + app.id;
+      listingApp.downloadUrl = "/downloadapp?appId=" + app.id;
       listingApps.add(listingApp);
     }
 
@@ -105,5 +106,6 @@ public class PublicAppListRpcCall implements RpcCall<RpcParameters> {
     public String description;
     public String[] screenshots;
     public String reportUrl;
+    public String downloadUrl;
   }
 }

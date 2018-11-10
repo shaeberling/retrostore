@@ -40,7 +40,8 @@ public class Responder {
     JSON("application/json"),
     PNG("image/png"),
     JPEG("image/jpeg"),
-    SVG("image/svg+xml");
+    SVG("image/svg+xml"),
+    ZIP("application/zip");
 
     public String str;
 
@@ -77,6 +78,21 @@ public class Responder {
       LOG.log(Level.SEVERE, "Cannot serve data", ex);
     }
   }
+
+  /** Respond with the given content text and type. */
+  public void respondDownload(byte[] content, String filename, ContentType contentType) {
+    try {
+      mResponse.setContentType(contentType.str);
+      mResponse.setHeader("Content-Disposition",
+          String.format("attachment; filename=\"%s\"",
+              filename));
+      mResponse.getOutputStream().write(content);
+    } catch (IOException ex) {
+      LOG.log(Level.SEVERE, "Cannot serve data", ex);
+    }
+  }
+
+  // Content-Disposition: attachment; filename="fname.ext"
 
   /** Converts the given object into JSON and sends it. */
   public void respondJson(Object object) {

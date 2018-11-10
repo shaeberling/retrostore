@@ -39,6 +39,7 @@ import org.retrostore.data.user.UserManagement;
 import org.retrostore.data.user.UserService;
 import org.retrostore.data.user.UserServiceImpl;
 import org.retrostore.request.Cache;
+import org.retrostore.request.DownloadAppRequest;
 import org.retrostore.request.EnsureAdminExistsRequest;
 import org.retrostore.request.FaviconRequest;
 import org.retrostore.request.ForwardingRequest;
@@ -121,6 +122,7 @@ public class MainServlet extends RetroStoreServlet {
         new PublicSiteRequest(m.defaultResourceLoader),
         new ReportAppRequest(m.defaultResourceLoader, m.appManagement, m.imgServWrapper,
             m.mailService),
+        new DownloadAppRequest(m.appManagement),
         new RetroCardRequests.ApiRequest(m.retroCardManagement),
 
         // Every request above this line does not require a logged in user.
