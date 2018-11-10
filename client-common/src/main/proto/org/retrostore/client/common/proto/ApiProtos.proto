@@ -19,7 +19,7 @@ message ApiResponseMediaImages {
     bool success = 1;
     // An optional (error) message, human-readable.
     string message = 2;
-    // The media images returnes by this respone.
+    // The media images returned by this respone.
     repeated MediaImage mediaImage = 3;
 }
 
