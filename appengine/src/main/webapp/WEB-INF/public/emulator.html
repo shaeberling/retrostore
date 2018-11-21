@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+          background: black;
+        }
+    </style>
+    <script type="text/javascript" src="js/trsemu-1.5.js"></script>
+    <script>
+        function onload() {
+          trsEmu.screen('scrn').focus();
+          setTimeout(resetAndStart, 500);
+        }
+
+        function resetAndStart() {
+          trsEmu.run('reset');
+          var url = new URL(location.href);
+          var appId = url.searchParams.get("appId");
+          trsEmu.run('/downloadapp?appId=' + appId + '&type=dmk');
+        }
+    </script>
+</head>
+
+<body onload="onload();">
+<div id="scrn">
+    <canvas width="512" height="384" style="background:black">
+    </canvas>
+</div>
+</body>
+</html>

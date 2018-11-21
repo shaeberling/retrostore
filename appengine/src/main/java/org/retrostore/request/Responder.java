@@ -73,6 +73,7 @@ public class Responder {
   public void respond(byte[] content, ContentType contentType) {
     try {
       mResponse.setContentType(contentType.str);
+      mResponse.addHeader("Access-Control-Allow-Origin", "*");
       mResponse.getOutputStream().write(content);
     } catch (IOException ex) {
       LOG.log(Level.SEVERE, "Cannot serve data", ex);

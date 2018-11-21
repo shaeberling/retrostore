@@ -19,6 +19,7 @@ package org.retrostore.rpc;
 import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.app.AppStoreItem;
 import org.retrostore.data.app.Author;
+import org.retrostore.data.app.MediaImage;
 import org.retrostore.data.user.UserAccountType;
 import org.retrostore.request.Responder;
 import org.retrostore.resources.ImageServiceWrapper;
@@ -27,6 +28,7 @@ import org.retrostore.rpc.internal.RpcParameters;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -70,6 +72,12 @@ public class PublicAppListRpcCall implements RpcCall<RpcParameters> {
       listingApp.screenshots = getScreenshotUrls(app.screenshotsBlobKeys);
       listingApp.reportUrl = "/reportapp?appId=" + app.id;
       listingApp.downloadUrl = "/downloadapp?appId=" + app.id;
+
+      // Only set this if the app contains an image in a format which JS-TRS supports.
+      // Note: CMD is supported, but some apps which then access a disk fail.
+      if (hasDmkImage(app.id)) {
+        listingApp.emulatorAppId = app.id;
+      }
       listingApps.add(listingApp);
     }
 
@@ -107,5 +115,17 @@ public class PublicAppListRpcCall implements RpcCall<RpcParameters> {
     public String[] screenshots;
     public String reportUrl;
     public String downloadUrl;
+    /** Sets to the appId if supported by the JS-TRS emulator. */
+    public String emulatorAppId;
+  }
+
+  private boolean hasDmkImage(String appId) {
+    Map<Long, MediaImage> mediaImages = mAppManagement.getMediaImagesForApp(appId);
+    for (MediaImage media : mediaImages.values()) {
+      if (media.filename.toLowerCase().endsWith(".dmk")) {
+        return true;
+      }
+    }
+    return false;
   }
 }
