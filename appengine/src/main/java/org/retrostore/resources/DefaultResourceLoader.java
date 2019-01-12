@@ -66,9 +66,9 @@ public class DefaultResourceLoader implements ResourceLoader {
       InputStream is = url.openStream();
       return Optional.of(toBytes(is));
     } catch (MalformedURLException e) {
-      LOG.log(Level.SEVERE, "Invalid URL", e);
+      LOG.log(Level.SEVERE, String.format("Invalid URL: %s", e.getMessage()));
     } catch (IOException e) {
-      LOG.log(Level.SEVERE, "Cannot read URL", e);
+      LOG.log(Level.SEVERE, String.format("Cannot read URL: %s", e.getMessage()));
     }
     return Optional.empty();
   }
