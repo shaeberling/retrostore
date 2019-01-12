@@ -161,12 +161,31 @@ public class ImportRpkRequest implements Request {
 
     // TODO: No cassette support right now.
 
-    Optional<byte[]> content = Base64Util.decode(data.trs.image.cmd.content);
-    if (content.isPresent()) {
-      mAppManagement.deleteMediaImage(app.trs80Extension.command);
-      app.trs80Extension.command =  mAppManagement.addMediaImage(
-          app.id, String.format("command.%s", data.trs.image.cmd.ext), content.get());
+    {
+      Optional<byte[]> content = Base64Util.decode(data.trs.image.cmd.content);
+      if (content.isPresent()) {
+        mAppManagement.deleteMediaImage(app.trs80Extension.command);
+        app.trs80Extension.command = mAppManagement.addMediaImage(
+            app.id, String.format("command.%s", data.trs.image.cmd.ext), content.get());
+      }
     }
+    {
+      Optional<byte[]> content = Base64Util.decode(data.trs.image.cas.content);
+      if (content.isPresent()) {
+        mAppManagement.deleteMediaImage(app.trs80Extension.cassette);
+        app.trs80Extension.cassette = mAppManagement.addMediaImage(
+            app.id, String.format("casette.%s", data.trs.image.cas.ext), content.get());
+      }
+    }
+    {
+      Optional<byte[]> content = Base64Util.decode(data.trs.image.bas.content);
+      if (content.isPresent()) {
+        mAppManagement.deleteMediaImage(app.trs80Extension.basic);
+        app.trs80Extension.basic = mAppManagement.addMediaImage(
+            app.id, String.format("basic.%s", data.trs.image.bas.ext), content.get());
+      }
+    }
+
 
     // Screenshots. If we are updating an existing item, delete the old screenshots first.
     for (String blobKey : app.screenshotsBlobKeys) {

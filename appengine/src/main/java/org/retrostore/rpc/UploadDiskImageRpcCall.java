@@ -95,7 +95,6 @@ public class UploadDiskImageRpcCall implements RpcCall<RequestData> {
       return;
     }
     int diskNo = (int) (long) diskImageOpt.get();
-    final long now = System.currentTimeMillis();
     AppStoreItem app = appOpt.get();
 
     // Add the media image to the store.
@@ -119,6 +118,12 @@ public class UploadDiskImageRpcCall implements RpcCall<RequestData> {
         mAppManagement.deleteMediaImage(app.trs80Extension.command);
       }
       app.trs80Extension.command = mediaId;
+    } else if (diskNo == 6) {
+      if (app.trs80Extension.basic != 0) {
+        // Delete the old media image.
+        mAppManagement.deleteMediaImage(app.trs80Extension.basic);
+      }
+      app.trs80Extension.basic = mediaId;
     } else {
       responder.respondBadRequest(String.format("Illegal disk image number '%d'.", diskNo));
       return;

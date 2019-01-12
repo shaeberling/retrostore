@@ -16,6 +16,7 @@
 
 package org.retrostore;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import org.retrostore.client.common.proto.App;
 import org.retrostore.client.common.proto.MediaImage;
@@ -29,12 +30,14 @@ import java.util.List;
 public class TestCli {
   // https://test-dot-trs-80.appspot.com
 
-  private static RetroStoreApiTest[] tests = {new FetchMultipleTest(), new FetchSingleTest(),
-      new FilterByMediaTypeTest()};
+  //  private static RetroStoreApiTest[] tests = {new FetchMultipleTest(), new FetchSingleTest(),
+//      new FilterByMediaTypeTest()};
+  private static RetroStoreApiTest[] tests = {new BasicFileTypeTest()};
 
   public static void main(String[] args) throws ApiException {
     RetrostoreClientImpl retrostore =
-        RetrostoreClientImpl.get("n/a", "https://www.retrostore.org/api/%s", false);
+        RetrostoreClientImpl.get("n/a", "https://retrostore.org/api/%s",
+            false);
     if (args.length > 1 && args[0].toLowerCase().equals("--search")) {
       StringBuilder query = new StringBuilder();
       for (int i = 1; i < args.length; ++i) {
@@ -161,6 +164,44 @@ public class TestCli {
         return false;
       }
       return true;
+    }
+  }
+
+  static class BasicFileTypeTest implements RetroStoreApiTest {
+
+    @Override
+    public boolean runTest(RetrostoreClient retrostore) throws ApiException {
+      final String DANCING_DEMON_ID = "faf29c58-f05b-11e8-81f8-fbefaef24896";
+      List<MediaImage> mediaImages = retrostore.fetchMediaImages(DANCING_DEMON_ID);
+
+      if (mediaImages.isEmpty()) {
+        System.err.println("No media images found for Dancing Demon");
+        return false;
+      }
+      MediaImage basicImage = getImageOfType(mediaImages, MediaType.BASIC);
+      if (basicImage == null) {
+        System.err.println("No BASIC image found for Dancing Demon.");
+        return false;
+      }
+
+      if (Strings.isNullOrEmpty(basicImage.getFilename())) {
+        System.err.println("BASIC image has no filename.");
+        return false;
+      }
+      if (basicImage.getData().isEmpty()) {
+        System.err.println("BASIC image has no data.");
+        return false;
+      }
+      return true;
+    }
+
+    private MediaImage getImageOfType(List<MediaImage> mediaImages, MediaType type) {
+      for (MediaImage mediaImage : mediaImages) {
+        if (mediaImage.getType() == type) {
+          return mediaImage;
+        }
+      }
+      return null;
     }
   }
 

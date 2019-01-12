@@ -104,6 +104,13 @@ public class FetchMediaImagesApiCall implements ApiCall {
       }
       response.addMediaImage(mediaImageBld);
     }
+    {
+      MediaImage.Builder mediaImageBld = MediaImage.newBuilder();
+      if (trs80Ext.basic != 0 && mediaImagesForApp.containsKey(trs80Ext.basic)) {
+        convert(mediaImagesForApp.get(trs80Ext.basic), mediaImageBld, MediaType.BASIC);
+      }
+      response.addMediaImage(mediaImageBld);
+    }
     return response.setSuccess(true).setMessage("All good :-)").build();
   }
 

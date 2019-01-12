@@ -143,6 +143,9 @@ public class AppManagementImpl implements AppManagement {
     if (trs80.command != 0) {
       toDelete.add(MediaImage.key(trs80.command));
     }
+    if (trs80.basic != 0) {
+      toDelete.add(MediaImage.key(trs80.basic));
+    }
     ofy().delete().keys(toDelete).now();
     LOG.info("Deleted " + toDelete.size() + " items.");
 

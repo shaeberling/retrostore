@@ -102,6 +102,7 @@ public class AppStoreItem {
     public long[] disk = new long[4];
     public long cassette;
     public long command;
+    public long basic;
   }
 
   /**

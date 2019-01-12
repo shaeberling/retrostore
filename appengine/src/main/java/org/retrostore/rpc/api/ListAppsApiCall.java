@@ -170,6 +170,11 @@ public class ListAppsApiCall implements ApiCall {
             return true;
           }
           break;
+        case BASIC:
+          if (trs80.basic > 0) {
+            return true;
+          }
+          break;
       }
     }
     return false;

@@ -45,7 +45,8 @@ public class ListDiskImagesRpcCall implements RpcCall<RpcParameters> {
       "Disk Image #3",
       "Disk Image #4",
       "Cassette image",
-      "Command image"};
+      "Command image",
+      "BASIC image"};
   private final AppManagement mAppManagement;
 
   public ListDiskImagesRpcCall(AppManagement appManagement) {
@@ -84,7 +85,7 @@ public class ListDiskImagesRpcCall implements RpcCall<RpcParameters> {
     }
     Map<Long, MediaImage> mediaImages = mAppManagement.getMediaImagesForApp(appIdOpt.get());
 
-    DiskImageInfo[] infos = new DiskImageInfo[6];
+    DiskImageInfo[] infos = new DiskImageInfo[7];
     for (int i = 0; i < trs80Extension.disk.length; ++i) {
       infos[i] = new DiskImageInfo();
       infos[i].id = i;
@@ -103,6 +104,12 @@ public class ListDiskImagesRpcCall implements RpcCall<RpcParameters> {
     infos[5].id = 5;
     infos[5].label = DISK_IMAGE_LABELS[5];
     fillInfo(mediaImages.get(trs80Extension.command), infos[5]);
+
+    // BASIC image.
+    infos[6] = new DiskImageInfo();
+    infos[6].id = 6;
+    infos[6].label = DISK_IMAGE_LABELS[6];
+    fillInfo(mediaImages.get(trs80Extension.basic), infos[6]);
     responder.respondJson(infos);
   }
 

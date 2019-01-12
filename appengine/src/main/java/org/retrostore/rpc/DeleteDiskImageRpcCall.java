@@ -69,7 +69,7 @@ public class DeleteDiskImageRpcCall implements RpcCall<RpcParameters> {
     }
 
     int diskImageNo = diskImageOpt.get();
-    if (diskImageNo < 0 || diskImageNo > 5) {
+    if (diskImageNo < 0 || diskImageNo > 6) {
       String msg = String.format("Invalid diskImageNo: '%d'.", diskImageNo);
       responder.respondBadRequest(msg);
       LOG.warning(msg);
@@ -95,6 +95,10 @@ public class DeleteDiskImageRpcCall implements RpcCall<RpcParameters> {
       long mediaId = app.trs80Extension.command;
       mAppManagement.deleteMediaImage(mediaId);
       app.trs80Extension.command = 0;
+    } else if (diskImageNo == 6) {
+      long mediaId = app.trs80Extension.basic;
+      mAppManagement.deleteMediaImage(mediaId);
+      app.trs80Extension.basic = 0;
     }
     mAppManagement.addOrChangeApp(app);
   }
