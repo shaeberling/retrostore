@@ -15,7 +15,6 @@
 
 const gulp = require('gulp');
 const sourcemaps = require('gulp-sourcemaps');
-const buffer = require('vinyl-buffer');
 const rename = require('gulp-rename');
 const rollup = require('rollup-stream');
 const source = require('vinyl-source-stream');
@@ -23,6 +22,7 @@ const del = require('del');
 const runseq = require('run-sequence');
 const closure = require('google-closure-compiler').gulp();
 const babel = require('rollup-plugin-babel');
+const license = require('rollup-plugin-license');
 
 function debugify(sourceName, fileName, extraRollupOptions) {
   if (!fileName)
@@ -48,15 +48,18 @@ function closurify(sourceName, fileName) {
   }
 
   const closureOptions = {
-    new_type_inf: true,
     compilation_level: 'ADVANCED',
     language_in: 'ES6_STRICT',
     language_out: 'ES5_STRICT',
-    isolation_mode: 'IIFE',
+    isolation_mode: 'NONE',
+    output_wrapper_file: 'closure-output.txt',
     assume_function_wrapper: true,
     js_output_file: `${fileName}.js`,
     warning_level: 'VERBOSE',
     rewrite_polyfills: false,
+    module_resolution: 'NODE',
+    entry_point: `entrypoints/${sourceName}-index.js`,
+    dependency_mode: 'STRICT',
     externs: [
       'externs/webcomponents.js',
       'node_modules/@webcomponents/custom-elements/externs/custom-elements.js',
@@ -66,18 +69,16 @@ function closurify(sourceName, fileName) {
     ]
   };
 
-  const rollupOptions = {
-    entry: `entrypoints/${sourceName}-index.js`,
-    format: 'iife',
-    moduleName: 'webcomponents',
-    sourceMap: true,
-    context: 'window'
-  };
-
-  return rollup(rollupOptions)
-  .pipe(source(`${sourceName}-index.js`, 'entrypoints'))
-  .pipe(buffer())
-  .pipe(sourcemaps.init({loadMaps: true}))
+  return gulp.src([
+      'entrypoints/*.js',
+      'src/*.js',
+      'node_modules/promise-polyfill/src/*.js',
+      'node_modules/@webcomponents/**/*.js',
+      '!node_modules/@webcomponents/*/externs/*.js',
+      '!node_modules/@webcomponents/*/node_modules/**',
+      '!**/bower_components/**'
+    ], {base: './', follow: true})
+  .pipe(sourcemaps.init())
   .pipe(closure(closureOptions))
   .pipe(sourcemaps.write('.'))
   .pipe(gulp.dest('.'));
@@ -106,6 +107,18 @@ gulp.task('debugify-sd-ce', () => {
   return debugify('webcomponents-sd-ce')
 });
 
+gulp.task('debugify-ce', () => {
+  return debugify('webcomponents-ce')
+});
+
+gulp.task('debugify-sd', () => {
+  return debugify('webcomponents-sd')
+});
+
+gulp.task('debugify-hi-sd', () => {
+  return debugify('webcomponents-hi-sd')
+});
+
 gulp.task('closurify-hi', () => {
   return closurify('webcomponents-hi')
 });
@@ -126,23 +139,34 @@ gulp.task('closurify-sd-ce', () => {
   return closurify('webcomponents-sd-ce')
 });
 
-function singleLicenseComment() {
-  let hasLicense = false;
-  return (comment) => {
-    if (hasLicense) {
-      return false;
-    }
-    return hasLicense = /@license/.test(comment);
-  }
-}
+gulp.task('closurify-hi-sd', () => {
+  return closurify('webcomponents-hi-sd')
+});
+
+gulp.task('closurify-ce', () => {
+  return closurify('webcomponents-ce')
+})
+
+gulp.task('closurify-sd', () => {
+  return closurify('webcomponents-sd')
+})
 
 const babelOptions = {
-  presets: 'minify',
-  shouldPrintComment: singleLicenseComment()
+  presets: [
+    ['minify', {'keepFnName': true}],
+  ],
 };
 
 gulp.task('debugify-ce-es5-adapter', () => {
-  return debugify('custom-elements-es5-adapter', '', {plugins: [babel(babelOptions)]});
+  return debugify('custom-elements-es5-adapter', '', {
+    plugins: [
+      babel(babelOptions),
+      license({
+        banner: {
+          file: './license-header.txt'
+        }
+      })
+    ]});
 });
 
 gulp.task('default', ['closure']);
@@ -153,10 +177,13 @@ gulp.task('clean-builds', () => {
 
 gulp.task('debug', (cb) => {
   const tasks = [
+    'debugify-ce',
     'debugify-hi',
     'debugify-hi-ce',
+    'debugify-hi-sd',
     'debugify-hi-sd-ce',
     'debugify-hi-sd-ce-pf',
+    'debugify-sd',
     'debugify-sd-ce',
     'debugify-ce-es5-adapter'
   ];
@@ -165,10 +192,13 @@ gulp.task('debug', (cb) => {
 
 gulp.task('closure', (cb) => {
   const tasks = [
+    'closurify-ce',
     'closurify-hi',
     'closurify-hi-ce',
+    'closurify-hi-sd',
     'closurify-hi-sd-ce',
     'closurify-hi-sd-ce-pf',
+    'closurify-sd',
     'closurify-sd-ce',
     'debugify-ce-es5-adapter'
   ];
