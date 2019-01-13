@@ -30,9 +30,8 @@ import java.util.List;
 public class TestCli {
   // https://test-dot-trs-80.appspot.com
 
-  //  private static RetroStoreApiTest[] tests = {new FetchMultipleTest(), new FetchSingleTest(),
-//      new FilterByMediaTypeTest()};
-  private static RetroStoreApiTest[] tests = {new BasicFileTypeTest()};
+    private static RetroStoreApiTest[] tests = {new FetchMultipleTest(), new FetchSingleTest(),
+      new FilterByMediaTypeTest(), new BasicFileTypeTest()};
 
   public static void main(String[] args) throws ApiException {
     RetrostoreClientImpl retrostore =
