@@ -22,11 +22,14 @@ out so we can expand support.
 
 Contact: info@retrostore.org
 
+# RetroStore SDK
+
+If you are looking to integrate RetroStore into your client (be it a software emulator or a hardware project), then you should head over to the [RetroStore SDK repository](https://github.com/shaeberling/retrostore-sdk).
 
 
-# Developer Notes
+# Contributor Notes
 
-The following instructions are for developers
+The following instructions are for developers that want to contribute to the RetroStore codebase.
 
 ## Install tools
 
