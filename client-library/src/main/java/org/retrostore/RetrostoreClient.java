@@ -41,7 +41,7 @@ public interface RetrostoreClient {
    *
    * @param start the index at which to start.
    * @param num   the number of app items to fetch (max).
-   * @return A future which will provide a list of the items requested or an error, if something
+   * @return A list of the items requested or an error, if something
    * went wrong.
    */
   List<App> fetchApps(int start, int num) throws ApiException;
