@@ -16,12 +16,14 @@
 
 package org.retrostore;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import org.retrostore.client.common.proto.App;
 import org.retrostore.client.common.proto.MediaImage;
 import org.retrostore.client.common.proto.MediaType;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -30,8 +32,8 @@ import java.util.List;
 public class TestCli {
   // https://test-dot-trs-80.appspot.com
 
-    private static RetroStoreApiTest[] tests = {new FetchMultipleTest(), new FetchSingleTest(),
-      new FilterByMediaTypeTest(), new BasicFileTypeTest()};
+  private static RetroStoreApiTest[] tests = {new FetchMultipleTest(), new FetchSingleTest(),
+      new FilterByMediaTypeTest(), new BasicFileTypeTest(), new SortTest()};
 
   public static void main(String[] args) throws ApiException {
     RetrostoreClientImpl retrostore =
@@ -201,6 +203,37 @@ public class TestCli {
         }
       }
       return null;
+    }
+  }
+
+  static class SortTest implements RetroStoreApiTest {
+
+    @Override
+    public boolean runTest(RetrostoreClient retrostore) throws ApiException {
+      // Fetch apps through paging and add their names in order to this list.
+      List<String> appNames = new ArrayList<>();
+      System.out.print("Fetching apps through paging..");
+      try {
+        while (true) {
+          System.out.print(".");
+          retrostore.fetchApps(appNames.size(), 2).forEach(a -> appNames.add(a.getName()));
+        }
+      } catch (ApiException ignore) {
+        // Thrown when start is out of range.
+      }
+      System.out.println(". Done");
+
+      // Ensure that the order is correct throughout the whole list.
+      for (int i = 1; i < appNames.size(); ++i) {
+        String name1 = appNames.get(i - 1);
+        String name2 = appNames.get(i);
+        if (name1.compareTo(name2) > 0) {
+          System.err.println(String.format("Order is not correct: %s > %s\n[%s]", name1, name2,
+              Joiner.on(",").join(appNames)));
+          return false;
+        }
+      }
+      return true;
     }
   }
 

@@ -77,6 +77,15 @@ public class ListAppsApiCall implements ApiCall {
       return response.setSuccess(false).setMessage("Parameter 'start' out of range").build();
     }
 
+    // Sort apps alphabetically by name. We need to do it at this point and not at the
+    // end to ensure that sorting will be maintained after partitioning.
+    allApps.sort((o1, o2) -> {
+      if (o1 == null || o2 == null) {
+        return 0;
+      }
+      return o1.listing.name.compareTo(o2.listing.name);
+    });
+
     long tPreBuilding = System.currentTimeMillis();
     LOG.info(String.format("[Perf] getAllApps took %d ms. ", (tPreBuilding - tStart)));
     List<AppStoreItem> filteredApps = filterApps(allApps, params);
@@ -89,13 +98,6 @@ public class ListAppsApiCall implements ApiCall {
     LOG.info(String.format("[Perf] Building list took %d ms.", (System
         .currentTimeMillis() - tPreBuilding)));
 
-    // Sort the output alphabetically.
-    apps.sort((o1, o2) -> {
-      if (o1 == null || o2 == null) {
-        return 0;
-      }
-      return o1.getName().compareTo(o2.getName());
-    });
     for (App.Builder app : apps) {
       response.addApp(app.build());
     }
