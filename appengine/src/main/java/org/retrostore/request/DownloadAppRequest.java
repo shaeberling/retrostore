@@ -75,7 +75,7 @@ public class DownloadAppRequest implements Request {
         zipOs.close();
         return Optional.of(out.toByteArray());
       } catch (IOException ex) {
-        LOG.severe("Error trying to create ZIP file.");
+        LOG.severe("Error trying to creator ZIP file.");
         return Optional.empty();
       }
     } else {

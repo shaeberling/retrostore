@@ -33,8 +33,8 @@ import org.retrostore.data.app.AppManagementCached;
 import org.retrostore.data.app.AppManagementImpl;
 import org.retrostore.data.app.AppSearch;
 import org.retrostore.data.app.AppSearchImpl;
-import org.retrostore.data.card.RetroCardManagement;
-import org.retrostore.data.card.RetroCardManagementImpl;
+import org.retrostore.data.card.FirmwareManagement;
+import org.retrostore.data.card.FirmwareManagementImpl;
 import org.retrostore.data.user.UserManagement;
 import org.retrostore.data.user.UserService;
 import org.retrostore.data.user.UserServiceImpl;
@@ -79,9 +79,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.logging.Logger;
 
-/**
- * Enables adding/removing of users.
- */
+/** Enables adding/removing of users. */
 public class MainServlet extends RetroStoreServlet {
   private static final Logger LOG = Logger.getLogger("MainServlet");
 
@@ -89,48 +87,46 @@ public class MainServlet extends RetroStoreServlet {
   private static Modules sModules;
   private static List<Request> sRequestServers;
 
-  /**
-   * All global modules needed throughout the application.
-   */
+  /** All global modules needed throughout the application. */
   static class Modules {
-    com.google.appengine.api.users.UserService userService =
-        UserServiceFactory.getUserService();
+    com.google.appengine.api.users.UserService userService = UserServiceFactory.getUserService();
     BlobstoreService blobstoreService = BlobstoreServiceFactory.getBlobstoreService();
     BlobstoreWrapper blobstoreWrapper = new BlobstoreWrapperImpl(blobstoreService);
     UserManagement userManagement = new UserManagement(userService);
     SearchService searchService = SearchServiceFactory.getSearchService();
     AppSearch appSearch = new AppSearchImpl(searchService);
-    AppManagement appManagement = new AppManagementCached(
-        new AppManagementImpl(blobstoreWrapper, appSearch));
-    UserService accountTypeProvider =
-        new UserServiceImpl(userManagement, userService);
+    AppManagement appManagement =
+        new AppManagementCached(new AppManagementImpl(blobstoreWrapper, appSearch));
+    UserService accountTypeProvider = new UserServiceImpl(userManagement, userService);
     ImagesService imagesService = ImagesServiceFactory.getImagesService();
-    MemcacheWrapper memcache =
-        new MemcacheWrapperImpl(MemcacheServiceFactory.getMemcacheService());
+    MemcacheWrapper memcache = new MemcacheWrapperImpl(MemcacheServiceFactory.getMemcacheService());
     ImageServiceWrapper imgServWrapper =
         new CachingImageService(new ImageServiceWrapperImpl(imagesService), memcache);
     Cache cache = new TwoLayerCacheImpl(memcache);
     DefaultResourceLoader defaultResourceLoader = new DefaultResourceLoader(cache);
     MailService mailService = new MailServiceImpl();
-    RetroCardManagement retroCardManagement = new RetroCardManagementImpl();
+    FirmwareManagement.Creator firmwareManagementCreator =
+        new FirmwareManagementImpl.FirmwareManagementCreator();
   }
 
   private static List<Request> createRequests(Modules m) {
-    return ImmutableList.of(new FaviconRequest(m.defaultResourceLoader),
+    return ImmutableList.of(
+        new FaviconRequest(m.defaultResourceLoader),
         new PingRequest(),
         new ForwardingRequest(),
         new PublicSiteRequest(m.defaultResourceLoader),
-        new ReportAppRequest(m.defaultResourceLoader, m.appManagement, m.imgServWrapper,
-            m.mailService),
+        new ReportAppRequest(
+            m.defaultResourceLoader, m.appManagement, m.imgServWrapper, m.mailService),
         new DownloadAppRequest(m.appManagement),
-        new RetroCardRequests.ApiRequest(m.retroCardManagement),
+        new RetroCardRequests.ApiRequest(m.firmwareManagementCreator),
 
         // Every request above this line does not require a logged in user.
         new LoginRequest(),
         new EnsureAdminExistsRequest(m.userManagement),
-        new RetroCardRequests.AdminFrontendRequest(getResourceLoader(m), m.retroCardManagement),
-        new ImportRpkRequest((getResourceLoader(m)), m.appManagement, m.userManagement,
-            m.blobstoreWrapper),
+        new RetroCardRequests.AdminFrontendRequest(
+            getResourceLoader(m), m.firmwareManagementCreator),
+        new ImportRpkRequest(
+            (getResourceLoader(m)), m.appManagement, m.userManagement, m.blobstoreWrapper),
         new RpcCallRequest(m.userManagement, m.appManagement, m.imgServWrapper),
         new ScreenshotRequest(m.blobstoreWrapper, m.appManagement, m.imgServWrapper),
         new PolymerRequest(getResourceLoader(m)),
@@ -139,7 +135,7 @@ public class MainServlet extends RetroStoreServlet {
         new ApiRequest(m.appManagement, m.imgServWrapper),
         new UpdateDataRequest(m.appSearch, m.appManagement)
         // Note: Add more request servers here. Keep in mind that this is in priority-order.
-    );
+        );
   }
 
   private static ResourceLoader getResourceLoader(Modules m) {
@@ -184,4 +180,3 @@ public class MainServlet extends RetroStoreServlet {
     resp.sendError(HttpServletResponse.SC_NOT_FOUND);
   }
 }
-

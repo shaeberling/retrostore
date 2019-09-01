@@ -22,9 +22,10 @@ import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
 import com.googlecode.objectify.annotation.Index;
 
+/** Is stores firmware for TRS-IO (and not RetroCard). */
 @Entity
 @Cache
-public class RetroCardFirmware implements Firmware {
+public class TrsIoFirmware implements Firmware {
 
   @Id public String id;
 
@@ -35,9 +36,9 @@ public class RetroCardFirmware implements Firmware {
   /** Will become a GAE blob structure. */
   public byte[] data;
 
-  RetroCardFirmware() {}
+  TrsIoFirmware() {}
 
-  public RetroCardFirmware(int revision, int version, byte[] data) {
+  public TrsIoFirmware(int revision, int version, byte[] data) {
     this.id = createId(revision, version);
     this.revision = revision;
     this.version = version;
@@ -64,21 +65,21 @@ public class RetroCardFirmware implements Firmware {
     return data;
   }
 
-  public static Creator<RetroCardFirmware> creator() {
-    return new Creator<RetroCardFirmware>() {
+  public static Creator<TrsIoFirmware> creator() {
+    return new Creator<TrsIoFirmware>() {
       @Override
-      public RetroCardFirmware create(int revision, int version, byte[] data) {
-        return new RetroCardFirmware(revision, version, data);
+      public TrsIoFirmware create(int revision, int version, byte[] data) {
+        return new TrsIoFirmware(revision, version, data);
       }
 
       @Override
-      public Key<RetroCardFirmware> createKey(int revision, int version) {
-        return Key.create(RetroCardFirmware.class, createId(revision, version));
+      public Key<TrsIoFirmware> createKey(int revision, int version) {
+        return Key.create(TrsIoFirmware.class, createId(revision, version));
       }
 
       @Override
-      public Class<RetroCardFirmware> getDataClass() {
-        return RetroCardFirmware.class;
+      public Class<TrsIoFirmware> getDataClass() {
+        return TrsIoFirmware.class;
       }
     };
   }

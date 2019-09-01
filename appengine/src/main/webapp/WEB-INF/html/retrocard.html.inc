@@ -18,11 +18,12 @@
 
 <html>
 <head>
-    <title>RetroStore Card Management</title>
+    <title>Firmware Management</title>
     <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
     <style>
         body {
-         background: #f2f1ec;
+         background:#eee;
+         background: radial-gradient(circle, rgba(151,104,184,1) 0%, rgba(255,143,143,1) 50%, rgba(255,181,78,1) 100%);
          font-family: 'Roboto', sans-serif;
         }
         h1 {
@@ -76,7 +77,7 @@
 <div id="content">
     <h1><a id="logo" href="/">
         <img src="https://github.com/shaeberling/retrostore/raw/master/docs/retrostore_logo.png" />
-    </a>RetroStore Card Firmware</h1>
+    </a><!--PRODUCT--> Firmware</h1>
     <div id="inner-content">
         <p>
             Choose a RetroStore Card revision for which to upload new firmware. Versions will automatically be incremented.

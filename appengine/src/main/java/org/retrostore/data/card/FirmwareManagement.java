@@ -21,7 +21,7 @@ import java.util.Optional;
 /**
  * Manages RetorCard data such as firmware.
  */
-public interface RetroCardManagement {
+public interface FirmwareManagement {
 
   /** Returns the latest version of the card with the given revision. */
   int getLatestVersionOf(int revision);
@@ -45,5 +45,15 @@ public interface RetroCardManagement {
    */
   Optional<byte[]> getFirmware(int revision, int version);
 
+  /**
+   * @return the name of the product this firmware is for, e.g. "TRS-IO" or "RetroStore Card".
+   */
+  String getProductName();
+
   // TODO: Do we need delete sometime?
+
+  interface Creator {
+    FirmwareManagement createTrsIoManagement();
+    FirmwareManagement createRetrocardManagement();
+  }
 }

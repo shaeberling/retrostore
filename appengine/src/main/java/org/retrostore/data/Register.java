@@ -21,6 +21,7 @@ import org.retrostore.data.app.AppStoreItem;
 import org.retrostore.data.app.Author;
 import org.retrostore.data.app.MediaImage;
 import org.retrostore.data.card.RetroCardFirmware;
+import org.retrostore.data.card.TrsIoFirmware;
 import org.retrostore.data.user.RetroStoreUser;
 
 /**
@@ -36,6 +37,7 @@ public class Register {
       ObjectifyService.register(MediaImage.class);
       ObjectifyService.register(RetroCardFirmware.class);
       ObjectifyService.register(RetroStoreUser.class);
+      ObjectifyService.register(TrsIoFirmware.class);
       isRegistered = true;
     }
   }
