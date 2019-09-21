@@ -80,9 +80,9 @@
     </a><!--PRODUCT--> Firmware</h1>
     <div id="inner-content">
         <p>
-            Choose a RetroStore Card revision for which to upload new firmware. Versions will automatically be incremented.
+            Choose a <!--PRODUCT--> revision for which to upload new firmware. Versions will automatically be incremented.
         </p>
-        <form action="/card" method="post" enctype="multipart/form-data">
+        <form method="post" enctype="multipart/form-data">
             <p>Revision:
             <select name="revision">
                 <option value="1" selected>1</option>
