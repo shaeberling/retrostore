@@ -20,4 +20,8 @@
         <property name="revision" direction="asc"/>
         <property name="version" direction="desc"/>
     </datastore-index>
+    <datastore-index kind="TrsIoFirmware" ancestor="false" source="manual">
+        <property name="revision" direction="asc"/>
+        <property name="version" direction="desc"/>
+    </datastore-index>
 </datastore-indexes>
