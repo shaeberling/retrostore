@@ -19,21 +19,28 @@ package org.retrostore;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
+import com.google.protobuf.ByteString;
 import org.retrostore.client.common.proto.App;
 import org.retrostore.client.common.proto.MediaImage;
 import org.retrostore.client.common.proto.MediaType;
+import org.retrostore.client.common.proto.SystemState;
+import org.retrostore.client.common.proto.Trs80Model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
-/**
- * A CLI to test the retrostore API.
- */
+/** A CLI to test the RetroStore API. */
 public class TestCli {
-  // https://test-dot-trs-80.appspot.com
 
-  private static RetroStoreApiTest[] tests = {new FetchMultipleTest(), new FetchSingleTest(),
-      new FilterByMediaTypeTest(), new BasicFileTypeTest(), new SortTest()};
+  private static final RetroStoreApiTest[] tests = {
+    new FetchMultipleTest(),
+    new FetchSingleTest(),
+    new FilterByMediaTypeTest(),
+    new BasicFileTypeTest(),
+    new SortTest(),
+    new UploadAndDownloadStateTest()
+  };
 
   public static void main(String[] args) throws ApiException {
     RetrostoreClientImpl retrostore =
@@ -98,13 +105,15 @@ public class TestCli {
       ImmutableSet<MediaType> mediaTypes = ImmutableSet.of(type);
       List<App> apps = retrostore.fetchApps(0, 50, null, mediaTypes);
       for (App app : apps) {
-        System.out.println(String.format("App %s (%s) has image of type %s.", app.getName(), app
-            .getId(), type.name()));
+        System.out.println(
+            String.format(
+                "App %s (%s) has image of type %s.", app.getName(), app.getId(), type.name()));
         boolean hasImage = hasImageOfType(retrostore.fetchMediaImages(app.getId()), type);
         if (!hasImage) {
-          System.err.println(String.format(
-              "App '%s' with ID %s has no image of type %s", app.getName(), app.getId(), type
-                  .name()));
+          System.err.println(
+              String.format(
+                  "App '%s' with ID %s has no image of type %s",
+                  app.getName(), app.getId(), type.name()));
           return false;
         }
       }
@@ -131,8 +140,12 @@ public class TestCli {
         System.out.println(item.getName() + " - " + item.getId());
         List<MediaImage> mediaImages = retrostore.fetchMediaImages(item.getId());
         for (MediaImage mediaImage : mediaImages) {
-          System.out.println(String.format("- Media: %s, %s, %d", mediaImage.getFilename(),
-              mediaImage.getType().name(), mediaImage.getData().size()));
+          System.out.println(
+              String.format(
+                  "- Media: %s, %s, %d",
+                  mediaImage.getFilename(),
+                  mediaImage.getType().name(),
+                  mediaImage.getData().size()));
         }
       }
 
@@ -228,10 +241,69 @@ public class TestCli {
         String name1 = appNames.get(i - 1);
         String name2 = appNames.get(i);
         if (name1.compareTo(name2) > 0) {
-          System.err.println(String.format("Order is not correct: %s > %s\n[%s]", name1, name2,
-              Joiner.on(",").join(appNames)));
+          System.err.printf(
+              "Order is not correct: %s > %s\n[%s]%n", name1, name2, Joiner.on(",").join(appNames));
           return false;
         }
+      }
+      return true;
+    }
+  }
+
+  static class UploadAndDownloadStateTest implements RetroStoreApiTest {
+
+    private void addRandomTestData(SystemState.Builder state) {
+
+      int[] froms = (new Random()).ints(10).toArray();
+      for (int from : froms) {
+        byte[] data = new byte[32000];
+        (new Random()).nextBytes(data);
+        SystemState.MemoryRegion.Builder region = SystemState.MemoryRegion.newBuilder();
+        region.setStart(from);
+        region.setData(ByteString.copyFrom(data));
+        state.addMemoryRegions(region);
+      }
+    }
+
+    @Override
+    public boolean runTest(RetrostoreClient retrostore) throws ApiException {
+      // First, upload a test SystemState.
+      SystemState.Builder state = SystemState.newBuilder();
+
+      state.setModel(Trs80Model.MODEL_III);
+      SystemState.Registers.Builder regs = SystemState.Registers.newBuilder();
+      regs.setIx(9);
+      regs.setIy(7);
+      regs.setPc(5);
+      regs.setSp(3);
+      regs.setAf(1);
+      regs.setBc(2);
+      regs.setDe(4);
+      regs.setHl(6);
+      regs.setAfPrime(100);
+      regs.setBcPrime(80);
+      regs.setDePrime(42);
+      regs.setHlPrime(23);
+      regs.setI(11);
+      regs.setR1(22);
+      regs.setR2(200);
+      state.setRegisters(regs);
+
+      addRandomTestData(state);
+
+      SystemState buildState = state.build();
+      long token = retrostore.uploadState(buildState);
+      System.out.printf("Uploaded test state and got token '%d'\n", token);
+
+      if (token <= 0) {
+        System.err.printf("Got non-positive token %d\n", token);
+        return false;
+      }
+
+      SystemState downloadedState = retrostore.downloadState(token);
+      if (!downloadedState.equals(buildState)) {
+        System.err.println("Downloaded state does not match sent state.");
+        return false;
       }
       return true;
     }

@@ -18,14 +18,18 @@ package org.retrostore;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import org.retrostore.client.common.DownloadSystemStateApiParams;
 import org.retrostore.client.common.FetchMediaImagesApiParams;
 import org.retrostore.client.common.GetAppApiParams;
 import org.retrostore.client.common.ListAppsApiParams;
 import org.retrostore.client.common.proto.ApiResponseApps;
+import org.retrostore.client.common.proto.ApiResponseDownloadSystemState;
 import org.retrostore.client.common.proto.ApiResponseMediaImages;
+import org.retrostore.client.common.proto.ApiResponseUploadSystemState;
 import org.retrostore.client.common.proto.App;
 import org.retrostore.client.common.proto.MediaImage;
 import org.retrostore.client.common.proto.MediaType;
+import org.retrostore.client.common.proto.SystemState;
 import org.retrostore.net.UrlFetcher;
 import org.retrostore.net.UrlFetcherImpl;
 
@@ -43,7 +47,6 @@ public class RetrostoreClientImpl implements RetrostoreClient {
 
   private final String mApiKey;
   private final String mServerUrl;
-  private final boolean mEnableGzip;
   private final UrlFetcher mUrlFetcher;
   private final Executor mExecutor;
 
@@ -54,7 +57,6 @@ public class RetrostoreClientImpl implements RetrostoreClient {
                        Executor executor) {
     mApiKey = apiKey;
     mServerUrl = serverUrl;
-    mEnableGzip = enableGzip;
     mUrlFetcher = urlFetcher;
     mExecutor = executor;
   }
@@ -145,4 +147,41 @@ public class RetrostoreClientImpl implements RetrostoreClient {
       throw new ApiException("Unable to make request to server.", e);
     }
   }
+
+  @Override
+  public long uploadState(SystemState state) throws ApiException {
+    String url = String.format(mServerUrl, "uploadState");
+
+    try {
+      byte[] content = mUrlFetcher.fetchUrl(url, state.toByteArray());
+      ApiResponseUploadSystemState apiResponse = ApiResponseUploadSystemState.parseFrom(content);
+      if (!apiResponse.getSuccess()) {
+        throw new ApiException(String.format(
+            "Server reported error: '%s'", apiResponse.getMessage()));
+      }
+      return apiResponse.getToken();
+    } catch (IOException e) {
+      throw new ApiException("Unable to make request to server.", e);
+    }
+  }
+
+  @Override
+  public SystemState downloadState(long token) throws ApiException {
+    DownloadSystemStateApiParams params = new DownloadSystemStateApiParams(token);
+    String url = String.format(mServerUrl, "downloadState");
+
+    try {
+      byte[] content = mUrlFetcher.fetchUrl(url, params);
+      ApiResponseDownloadSystemState apiResponse = ApiResponseDownloadSystemState.parseFrom(content);
+
+      if (!apiResponse.getSuccess()) {
+        throw new ApiException(String.format(
+            "Server reported error: '%s'", apiResponse.getMessage()));
+      }
+      return apiResponse.getSystemState();
+    } catch (IOException e) {
+      throw new ApiException("Unable to make request to server.", e);
+    }
+  }
+
 }

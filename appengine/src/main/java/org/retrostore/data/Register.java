@@ -23,6 +23,7 @@ import org.retrostore.data.app.MediaImage;
 import org.retrostore.data.card.RetroCardFirmware;
 import org.retrostore.data.card.TrsIoFirmware;
 import org.retrostore.data.user.RetroStoreUser;
+import org.retrostore.data.xray.SystemState;
 
 /**
  * Call this to ensure all data classes are registered.
@@ -38,6 +39,7 @@ public class Register {
       ObjectifyService.register(RetroCardFirmware.class);
       ObjectifyService.register(RetroStoreUser.class);
       ObjectifyService.register(TrsIoFirmware.class);
+      ObjectifyService.register(SystemState.class);
       isRegistered = true;
     }
   }

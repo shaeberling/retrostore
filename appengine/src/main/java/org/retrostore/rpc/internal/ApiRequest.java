@@ -21,13 +21,16 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.user.UserService;
+import org.retrostore.data.xray.StateManagement;
 import org.retrostore.request.Request;
 import org.retrostore.request.RequestData;
 import org.retrostore.request.Responder;
 import org.retrostore.resources.ImageServiceWrapper;
+import org.retrostore.rpc.api.DownloadStateApiCall;
 import org.retrostore.rpc.api.FetchMediaImagesApiCall;
 import org.retrostore.rpc.api.GetAppApiCall;
 import org.retrostore.rpc.api.ListAppsApiCall;
+import org.retrostore.rpc.api.UploadStateApiCall;
 
 import java.util.HashMap;
 import java.util.List;
@@ -43,11 +46,14 @@ public class ApiRequest implements Request {
   private static final String API_PREFIX = "/api";
   private final Map<String, ApiCall> mApiCalls;
 
-  public ApiRequest(AppManagement mAppManagement, ImageServiceWrapper imageService) {
+  public ApiRequest(AppManagement appManagement, ImageServiceWrapper imageService,
+                    StateManagement stateManagement) {
     List<ApiCall> calls = ImmutableList.<ApiCall>of(
-        new GetAppApiCall(mAppManagement, imageService),
-        new ListAppsApiCall(mAppManagement, imageService),
-        new FetchMediaImagesApiCall(mAppManagement));
+        new GetAppApiCall(appManagement, imageService),
+        new ListAppsApiCall(appManagement, imageService),
+        new FetchMediaImagesApiCall(appManagement),
+        new UploadStateApiCall(stateManagement),
+        new DownloadStateApiCall(stateManagement));
 
     Map<String, ApiCall> callsMapped = new HashMap<>();
     for (ApiCall call : calls) {

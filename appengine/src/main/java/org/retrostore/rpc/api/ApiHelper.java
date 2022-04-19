@@ -18,6 +18,7 @@ package org.retrostore.rpc.api;
 
 import org.retrostore.client.common.proto.App;
 import org.retrostore.client.common.proto.Trs80Extension;
+import org.retrostore.client.common.proto.Trs80Model;
 import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.app.AppStoreItem;
 import org.retrostore.data.app.Author;
@@ -49,16 +50,16 @@ class ApiHelper {
     switch (app.trs80Extension.model) {
       default:
       case MODEL_I:
-        trsExtension.setModel(Trs80Extension.Trs80Model.MODEL_I);
+        trsExtension.setModel(Trs80Model.MODEL_I);
         break;
       case MODEL_III:
-        trsExtension.setModel(Trs80Extension.Trs80Model.MODEL_III);
+        trsExtension.setModel(Trs80Model.MODEL_III);
         break;
       case MODEL_4:
-        trsExtension.setModel(Trs80Extension.Trs80Model.MODEL_4);
+        trsExtension.setModel(Trs80Model.MODEL_4);
         break;
       case MODEL_4P:
-        trsExtension.setModel(Trs80Extension.Trs80Model.MODEL_4P);
+        trsExtension.setModel(Trs80Model.MODEL_4P);
         break;
     }
 

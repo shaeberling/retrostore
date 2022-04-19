@@ -38,6 +38,8 @@ import org.retrostore.data.card.FirmwareManagementImpl;
 import org.retrostore.data.user.UserManagement;
 import org.retrostore.data.user.UserService;
 import org.retrostore.data.user.UserServiceImpl;
+import org.retrostore.data.xray.StateManagement;
+import org.retrostore.data.xray.StateManagementImpl;
 import org.retrostore.request.Cache;
 import org.retrostore.request.DownloadAppRequest;
 import org.retrostore.request.EnsureAdminExistsRequest;
@@ -97,6 +99,7 @@ public class MainServlet extends RetroStoreServlet {
     AppSearch appSearch = new AppSearchImpl(searchService);
     AppManagement appManagement =
         new AppManagementCached(new AppManagementImpl(blobstoreWrapper, appSearch));
+    StateManagement stateManagement = new StateManagementImpl();
     UserService accountTypeProvider = new UserServiceImpl(userManagement, userService);
     ImagesService imagesService = ImagesServiceFactory.getImagesService();
     MemcacheWrapper memcache = new MemcacheWrapperImpl(MemcacheServiceFactory.getMemcacheService());
@@ -132,7 +135,7 @@ public class MainServlet extends RetroStoreServlet {
         new PolymerRequest(getResourceLoader(m)),
         new StaticFileRequest(m.defaultResourceLoader),
         new PostUploadRequest(m.appManagement),
-        new ApiRequest(m.appManagement, m.imgServWrapper),
+        new ApiRequest(m.appManagement, m.imgServWrapper, m.stateManagement),
         new UpdateDataRequest(m.appSearch, m.appManagement)
         // Note: Add more request servers here. Keep in mind that this is in priority-order.
         );

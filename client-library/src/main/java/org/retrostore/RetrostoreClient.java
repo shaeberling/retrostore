@@ -19,6 +19,7 @@ package org.retrostore;
 import org.retrostore.client.common.proto.App;
 import org.retrostore.client.common.proto.MediaImage;
 import org.retrostore.client.common.proto.MediaType;
+import org.retrostore.client.common.proto.SystemState;
 
 import java.util.List;
 import java.util.Set;
@@ -59,4 +60,14 @@ public interface RetrostoreClient {
    * @return A list of all the media images fetched for this app.
    */
   List<MediaImage> fetchMediaImages(String appId) throws ApiException;
+
+  /**
+   * Uploads a new system state.
+   *
+   * @return A unique token that can be used to fetch this state later.
+   */
+  long uploadState(SystemState state) throws ApiException;
+
+  /** Fetches a system state associated with the given token. */
+  SystemState downloadState(long token) throws ApiException;
 }
