@@ -1,6 +1,5 @@
 buildscript {
     repositories {
-        jcenter()
         mavenCentral()
     }
     dependencies {
@@ -14,7 +13,6 @@ repositories {
     url 'https://oss.sonatype.org/content/repositories/snapshots' // SNAPSHOT repository (if needed)
   }
   mavenCentral()
-  jcenter()
   maven { url 'https://maven.haberling.net' }
 }
 
