@@ -109,6 +109,7 @@ public class Responder {
   public void respondProto(com.google.protobuf.GeneratedMessageLite object) {
     try {
       mResponse.setContentType(ContentType.BYTES.str);
+      mResponse.addHeader("Access-Control-Allow-Origin", "*");
       object.writeTo(mResponse.getOutputStream());
       mResponse.getOutputStream().close();
     } catch (IOException ex) {
