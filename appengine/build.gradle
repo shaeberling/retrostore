@@ -55,6 +55,7 @@ appengine {
     stopPreviousVersion = false
     promote = false
     projectId = 'GCLOUD_CONFIG'
+    version = 'GCLOUD_CONFIG'
   }
 }
 
