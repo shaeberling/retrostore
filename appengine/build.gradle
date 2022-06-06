@@ -5,8 +5,17 @@ buildscript {
     }
     dependencies {
         // As of June 28 RC of 2.0.0 is live but seems to break things.
-        classpath 'com.google.cloud.tools:appengine-gradle-plugin:1.3.5'
+        classpath 'com.google.cloud.tools:appengine-gradle-plugin:2.4.4'
     }
+}
+
+repositories {
+  maven {
+    url 'https://oss.sonatype.org/content/repositories/snapshots' // SNAPSHOT repository (if needed)
+  }
+  mavenCentral()
+  jcenter()
+  maven { url 'https://maven.haberling.net' }
 }
 
 apply plugin: 'java'
@@ -14,27 +23,28 @@ apply plugin: 'war'
 apply plugin: 'com.google.cloud.tools.appengine'
 
 dependencies {
-  compile 'com.google.appengine:appengine-api-1.0-sdk:+'  // Latest App Engine Api's
+  implementation 'com.google.appengine:appengine-api-1.0-sdk:+'  // Latest App Engine Api's
   providedCompile 'javax.servlet:javax.servlet-api:3.1.0'
 
-  compile 'jstl:jstl:1.2'
+  implementation 'jstl:jstl:1.2'
 
   // Specific Retrostore AppEngine dependencies..
-  compile project(":client-common")
-  compile "com.google.guava:guava:20.0"
-  compile group: "com.googlecode.objectify", name: "objectify", version: "5.1.22"
-  compile "com.google.code.gson:gson:2.8.0"
-  compile "commons-fileupload:commons-fileupload:1.3.3"
-  compile group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.3'
-  compile group: 'org.apache.httpcomponents', name: 'httpmime', version: '4.5.3'
+  implementation 'com.google.protobuf:protobuf-lite:3.0.0'
+  implementation 'org.retrostore:retrostore-client:0.1.8'
+  implementation "com.google.guava:guava:20.0"
+  implementation "com.googlecode.objectify:objectify:5.1.22"
+  implementation "com.google.code.gson:gson:2.8.0"
+  implementation "commons-fileupload:commons-fileupload:1.3.3"
+  implementation 'org.apache.httpcomponents:httpclient:4.5.3'
+  implementation 'org.apache.httpcomponents:httpmime:4.5.3'
 
-  testCompile 'junit:junit:4.12'
-  testCompile 'com.google.truth:truth:0.33'
-  testCompile 'org.mockito:mockito-all:1.10.19'
+  testImplementation 'junit:junit:4.13.2'
+  testImplementation 'com.google.truth:truth:1.1.3'
+  testImplementation 'org.mockito:mockito-all:1.10.19'
 
-  testCompile 'com.google.appengine:appengine-testing:+'
-  testCompile 'com.google.appengine:appengine-api-stubs:+'
-  testCompile 'com.google.appengine:appengine-tools-sdk:+'
+  testImplementation 'com.google.appengine:appengine-testing:+'
+  testImplementation 'com.google.appengine:appengine-api-stubs:+'
+  testImplementation 'com.google.appengine:appengine-tools-sdk:+'
 }
 
 appengine {
