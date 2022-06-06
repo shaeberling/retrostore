@@ -54,6 +54,7 @@ appengine {
   deploy {
     stopPreviousVersion = false
     promote = false
+    projectId = 'GCLOUD_CONFIG'
   }
 }
 
