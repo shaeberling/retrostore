@@ -1,5 +1,7 @@
 <img src="https://github.com/shaeberling/retrostore/raw/master/docs/retrostore_logo.png" width="300">
 
+![workflow status](https://github.com/shaeberling/retrostore/actions/workflows/gradle.yml/badge.svg)
+
 **RetroStore** aims to be an app store that is home to often long forgotten games and apps on platforms from our past.
 
 Take e.g. a system like the [TRS-80](https://en.wikipedia.org/wiki/TRS-80). There are many games and apps that have been
