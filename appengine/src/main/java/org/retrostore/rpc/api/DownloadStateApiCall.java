@@ -1,9 +1,9 @@
 package org.retrostore.rpc.api;
 
-import com.google.gson.Gson;
 import com.google.protobuf.ByteString;
-import org.retrostore.client.common.DownloadSystemStateApiParams;
+import com.google.protobuf.InvalidProtocolBufferException;
 import org.retrostore.client.common.proto.ApiResponseDownloadSystemState;
+import org.retrostore.client.common.proto.DownloadSystemStateParams;
 import org.retrostore.client.common.proto.Trs80Model;
 import org.retrostore.data.xray.StateManagement;
 import org.retrostore.data.xray.SystemState;
@@ -12,7 +12,6 @@ import org.retrostore.request.Response;
 import org.retrostore.rpc.internal.ApiCall;
 
 import java.util.Optional;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class DownloadStateApiCall implements ApiCall {
@@ -30,11 +29,20 @@ public class DownloadStateApiCall implements ApiCall {
   }
 
   @Override
-  public Response call(RequestData params) {
+  public Response call(RequestData data) {
     ApiResponseDownloadSystemState.Builder response = ApiResponseDownloadSystemState.newBuilder();
-    DownloadSystemStateApiParams apiParams = parseParams(params.getBody());
+    DownloadSystemStateParams apiParams;
+    try {
+      apiParams = DownloadSystemStateParams.parseFrom(data.getRawBody());
+    } catch (InvalidProtocolBufferException e) {
+      String errMsg = "Cannot parse ProtoBuf params: " + e.getMessage();
+      log.warning(errMsg);
+      response.setSuccess(false);
+      response.setMessage(errMsg);
+      return responder -> responder.respondProto(response.build());
+    }
 
-    if (apiParams == null || apiParams.token <= 0) {
+    if (apiParams == null || apiParams.getToken() <= 0) {
       String errMsg = "Illegal params. Ensure 'token' is > 0.";
       log.warning(errMsg);
       response.setSuccess(false);
@@ -42,10 +50,10 @@ public class DownloadStateApiCall implements ApiCall {
       return responder -> responder.respondProto(response.build());
     }
 
-    Optional<SystemState> systemState = mStateManagement.getSystemState(apiParams.token);
+    Optional<SystemState> systemState = mStateManagement.getSystemState(apiParams.getToken());
     if (!systemState.isPresent()) {
       String errMsg =
-          String.format("Cannot find system state with given token '%d'", apiParams.token);
+          String.format("Cannot find system state with given token '%d'", apiParams.getToken());
       log.warning(errMsg);
       response.setSuccess(false);
       response.setMessage(errMsg);
@@ -108,14 +116,5 @@ public class DownloadStateApiCall implements ApiCall {
     }
 
     return proto.build();
-  }
-
-  private DownloadSystemStateApiParams parseParams(String params) {
-    try {
-      return (new Gson()).fromJson(params, DownloadSystemStateApiParams.class);
-    } catch (Exception ex) {
-      log.log(Level.WARNING, "Cannot parse params", ex);
-      return null;
-    }
   }
 }

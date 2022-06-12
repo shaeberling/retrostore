@@ -3,6 +3,7 @@ package org.retrostore.rpc.api;
 import com.google.protobuf.InvalidProtocolBufferException;
 import org.retrostore.client.common.proto.ApiResponseUploadSystemState;
 import org.retrostore.client.common.proto.SystemState;
+import org.retrostore.client.common.proto.UploadSystemStateParams;
 import org.retrostore.data.xray.StateManagement;
 import org.retrostore.request.RequestData;
 import org.retrostore.request.Response;
@@ -28,18 +29,21 @@ public class UploadStateApiCall implements ApiCall {
   @Override
   public Response call(RequestData params) {
     ApiResponseUploadSystemState.Builder response = ApiResponseUploadSystemState.newBuilder();
-
+    UploadSystemStateParams apiParams;
     try {
-      SystemState systemState = SystemState.parseFrom(params.getRawBody());
-      long token = mStateManagement.addSystemState(convertFromProto(systemState));
-      response.setSuccess(true);
-      response.setToken(token);
+      apiParams = UploadSystemStateParams.parseFrom(params.getRawBody());
     } catch (InvalidProtocolBufferException e) {
-      String errMsg = "Cannot parse SystemState protocol buffer";
+      String errMsg = "Cannot parse ProtoBuf params: " + e.getMessage();
       log.warning(errMsg);
       response.setSuccess(false);
       response.setMessage(errMsg);
+      return responder -> responder.respondProto(response.build());
     }
+
+    SystemState systemState = apiParams.getState();
+    long token = mStateManagement.addSystemState(convertFromProto(systemState));
+    response.setSuccess(true);
+    response.setToken(token);
     return responder -> responder.respondProto(response.build());
   }
 

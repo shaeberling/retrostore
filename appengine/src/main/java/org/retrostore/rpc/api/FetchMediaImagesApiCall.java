@@ -16,18 +16,18 @@
 
 package org.retrostore.rpc.api;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
 import org.retrostore.client.common.FetchMediaImagesApiParams;
 import org.retrostore.client.common.proto.ApiResponseMediaImages;
+import org.retrostore.client.common.proto.FetchMediaImagesParams;
 import org.retrostore.client.common.proto.MediaImage;
 import org.retrostore.client.common.proto.MediaType;
 import org.retrostore.data.app.AppManagement;
 import org.retrostore.data.app.AppStoreItem;
 import org.retrostore.request.RequestData;
-import org.retrostore.request.Responder;
 import org.retrostore.request.Response;
 import org.retrostore.rpc.internal.ApiCall;
 
@@ -51,18 +51,32 @@ public class FetchMediaImagesApiCall implements ApiCall {
 
   @Override
   public Response call(RequestData data) {
-    final ApiResponseMediaImages response = callInternal(data);
+    String appId = getAppIdFromParams(data.getRawBody());
+    final ApiResponseMediaImages response = callInternal(appId);
     return responder -> responder.respondProto(response);
   }
 
-  private ApiResponseMediaImages callInternal(RequestData data) {
-    ApiResponseMediaImages.Builder response = ApiResponseMediaImages.newBuilder();
-    FetchMediaImagesApiParams params = parseParams(data.getBody());
-    if (params == null) {
-      return response.setSuccess(false).setMessage("Cannot parse parameters.").build();
-    }
+  // Works with the old (JSON) and new (PB) parameter API.
+  private String getAppIdFromParams(byte[] data) {
+    FetchMediaImagesParams params;
+    try {
+      params = FetchMediaImagesParams.parseFrom(data);
+      return params.getAppId();
+    } catch (InvalidProtocolBufferException e) {
+      // If this fails, try to parse it as JSON.
+      FetchMediaImagesApiParams oldParams = parseLegacyParams(new String(data));
+      if (oldParams != null) {
+        LOG.warning("Legacy parameters used.");
+        return oldParams.appId;
+      }
+      LOG.severe("Cannot parse parameters.");
 
-    String appId = params.appId;
+    }
+    return null;
+  }
+
+  private ApiResponseMediaImages callInternal(String appId) {
+    ApiResponseMediaImages.Builder response = ApiResponseMediaImages.newBuilder();
     if (Strings.isNullOrEmpty(appId)) {
       return response.setSuccess(false).setMessage("No appId given.").build();
     }
@@ -124,7 +138,7 @@ public class FetchMediaImagesApiCall implements ApiCall {
     to.setDescription(from.description != null ? from.description : "");
   }
 
-  private FetchMediaImagesApiParams parseParams(String params) {
+  private FetchMediaImagesApiParams parseLegacyParams(String params) {
     try {
       return (new Gson()).fromJson(params, FetchMediaImagesApiParams.class);
     } catch (Exception ex) {
