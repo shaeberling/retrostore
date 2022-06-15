@@ -111,6 +111,7 @@ public class DownloadStateApiCall implements ApiCall {
       org.retrostore.client.common.proto.SystemState.MemoryRegion.Builder regionProto =
           org.retrostore.client.common.proto.SystemState.MemoryRegion.newBuilder();
       regionProto.setStart(region.start);
+      regionProto.setLength(region.data.length);
       regionProto.setData(ByteString.copyFrom(region.data));
       proto.addMemoryRegions(regionProto);
     }
