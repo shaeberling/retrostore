@@ -30,6 +30,7 @@ import org.retrostore.rpc.api.DownloadStateApiCall;
 import org.retrostore.rpc.api.FetchMediaImagesApiCall;
 import org.retrostore.rpc.api.GetAppApiCall;
 import org.retrostore.rpc.api.ListAppsApiCall;
+import org.retrostore.rpc.api.ListAppsNanoApiCall;
 import org.retrostore.rpc.api.UploadStateApiCall;
 
 import java.util.HashMap;
@@ -51,6 +52,7 @@ public class ApiRequest implements Request {
     List<ApiCall> calls = ImmutableList.<ApiCall>of(
         new GetAppApiCall(appManagement, imageService),
         new ListAppsApiCall(appManagement, imageService),
+        new ListAppsNanoApiCall(appManagement, imageService),
         new FetchMediaImagesApiCall(appManagement),
         new UploadStateApiCall(stateManagement),
         new DownloadStateApiCall(stateManagement));

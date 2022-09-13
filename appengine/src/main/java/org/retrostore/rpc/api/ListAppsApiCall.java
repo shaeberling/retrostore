@@ -43,7 +43,7 @@ import java.util.logging.Logger;
 public class ListAppsApiCall implements ApiCall {
   private static final Logger LOG = Logger.getLogger("ListAppsApiCall");
   private final AppManagement mAppManagement;
-  private final ApiHelper mApiHelper;
+  protected final ApiHelper mApiHelper;
 
   public ListAppsApiCall(AppManagement appManagement, ImageServiceWrapper imageService) {
     mAppManagement = appManagement;
@@ -57,8 +57,8 @@ public class ListAppsApiCall implements ApiCall {
 
   @Override
   public Response call(final RequestData data) {
-    final ApiResponseApps responseApps = callInternal(getAppIdFromParams(data.getRawBody()));
-    return responder -> responder.respondProto(responseApps);
+    ListAppsParams params = getAppIdFromParams(data.getRawBody());
+    return responder -> responder.respondProto(callInternal(params));
   }
 
   // Works with the old (JSON) and new (PB) parameter API.
@@ -96,32 +96,15 @@ public class ListAppsApiCall implements ApiCall {
   }
 
   private ApiResponseApps callInternal(ListAppsParams params) {
-    long tStart = System.currentTimeMillis();
     ApiResponseApps.Builder response = ApiResponseApps.newBuilder();
-    if (params == null) {
-      return response.setSuccess(false).setMessage("Cannot parse parameters.").build();
+    List<AppStoreItem> filteredApps = null;
+    try {
+      filteredApps = listInternal(params);
+    } catch (Exception e) {
+      return response.setSuccess(false).setMessage(e.getMessage()).build();
     }
-
-    // TODO: This is not efficient once we have a large number of apps. However, we currently
-    // cache them all, so the appManagement implementation used here should be the caching kind.
-    List<AppStoreItem> allApps = mAppManagement.getAllApps();
-    if (allApps.size() - 1 < params.getStart()) {
-      return response.setSuccess(false).setMessage("Parameter 'start' out of range").build();
-    }
-
-    // Sort apps alphabetically by name. We need to do it at this point and not at the
-    // end to ensure that sorting will be maintained after partitioning.
-    allApps.sort((o1, o2) -> {
-      if (o1 == null || o2 == null) {
-        return 0;
-      }
-      return o1.listing.name.compareTo(o2.listing.name);
-    });
 
     long tPreBuilding = System.currentTimeMillis();
-    LOG.info(String.format("[Perf] getAllApps took %d ms. ", (tPreBuilding - tStart)));
-    List<AppStoreItem> filteredApps = filterApps(allApps, params);
-
     List<App.Builder> apps = new ArrayList<>();
     for (int i = params.getStart(); i < params.getStart() + params.getNum() && i < filteredApps.size(); ++i) {
       AppStoreItem appStoreItem = filteredApps.get(i);
@@ -134,6 +117,32 @@ public class ListAppsApiCall implements ApiCall {
       response.addApp(app.build());
     }
     return response.setSuccess(true).setMessage("All good :-)").build();
+  }
+
+  List<AppStoreItem> listInternal(ListAppsParams params) throws Exception {
+    long tStart = System.currentTimeMillis();
+    ApiResponseApps.Builder response = ApiResponseApps.newBuilder();
+    if (params == null) {
+      throw new Exception("Cannot parse parameters.");
+    }
+
+    // TODO: This is not efficient once we have a large number of apps. However, we currently
+    // cache them all, so the appManagement implementation used here should be the caching kind.
+    List<AppStoreItem> allApps = mAppManagement.getAllApps();
+    if (allApps.size() - 1 < params.getStart()) {
+      throw new Exception("Parameter 'start' out of range");
+    }
+
+    // Sort apps alphabetically by name. We need to do it at this point and not at the
+    // end to ensure that sorting will be maintained after partitioning.
+    allApps.sort((o1, o2) -> {
+      if (o1 == null || o2 == null) {
+        return 0;
+      }
+      return o1.listing.name.compareTo(o2.listing.name);
+    });
+
+    return filterApps(allApps, params);
   }
 
   private List<AppStoreItem> filterApps(List<AppStoreItem> apps, ListAppsParams params) {

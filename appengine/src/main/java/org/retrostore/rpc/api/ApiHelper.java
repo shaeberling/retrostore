@@ -17,6 +17,7 @@
 package org.retrostore.rpc.api;
 
 import org.retrostore.client.common.proto.App;
+import org.retrostore.client.common.proto.AppNano;
 import org.retrostore.client.common.proto.Trs80Extension;
 import org.retrostore.client.common.proto.Trs80Model;
 import org.retrostore.data.app.AppManagement;
@@ -44,29 +45,43 @@ class ApiHelper {
     appBuilder.setReleaseYear(app.listing.releaseYear);
     Optional<Author> authorOpt = mAppManagement.getAuthorById(app.listing.authorId);
     authorOpt.ifPresent(author -> appBuilder.setAuthor(author.name));
-
     // Set the TRS80 related parameters.
     Trs80Extension.Builder trsExtension = Trs80Extension.newBuilder();
-    switch (app.trs80Extension.model) {
-      default:
-      case MODEL_I:
-        trsExtension.setModel(Trs80Model.MODEL_I);
-        break;
-      case MODEL_III:
-        trsExtension.setModel(Trs80Model.MODEL_III);
-        break;
-      case MODEL_4:
-        trsExtension.setModel(Trs80Model.MODEL_4);
-        break;
-      case MODEL_4P:
-        trsExtension.setModel(Trs80Model.MODEL_4P);
-        break;
-    }
+    trsExtension.setModel(getTrs80Model(app));
+    appBuilder.setExtTrs80(trsExtension);
 
     for (String blobKey : app.screenshotsBlobKeys) {
       appBuilder.addScreenshotUrl(mImageService.getServingUrl(blobKey).orElse(""));
     }
+    return appBuilder;
+  }
+
+  AppNano.Builder convertToNano(AppStoreItem app) {
+    AppNano.Builder appBuilder = AppNano.newBuilder();
+    appBuilder.setId(app.id);
+    appBuilder.setName(app.listing.name);
+    appBuilder.setVersion(app.listing.versionString);
+    appBuilder.setReleaseYear(app.listing.releaseYear);
+    Optional<Author> authorOpt = mAppManagement.getAuthorById(app.listing.authorId);
+    authorOpt.ifPresent(author -> appBuilder.setAuthor(author.name));
+    // Set the TRS80 related parameters.
+    Trs80Extension.Builder trsExtension = Trs80Extension.newBuilder();
+    trsExtension.setModel(getTrs80Model(app));
     appBuilder.setExtTrs80(trsExtension);
     return appBuilder;
+  }
+
+  Trs80Model getTrs80Model(AppStoreItem app) {
+    switch (app.trs80Extension.model) {
+      default:
+      case MODEL_I:
+        return Trs80Model.MODEL_I;
+      case MODEL_III:
+        return Trs80Model.MODEL_III;
+      case MODEL_4:
+        return Trs80Model.MODEL_4;
+      case MODEL_4P:
+        return Trs80Model.MODEL_4P;
+    }
   }
 }
