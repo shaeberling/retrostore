@@ -31,7 +31,9 @@ import org.retrostore.request.RequestData;
 import org.retrostore.request.Response;
 import org.retrostore.rpc.internal.ApiCall;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -39,6 +41,16 @@ public class FetchMediaImagesApiCall implements ApiCall {
   private static final Logger LOG = Logger.getLogger("FetchMediaImages");
 
   private final AppManagement mAppManagement;
+
+  static class Params {
+    final String appId;
+    final Set<MediaType> types;
+
+    Params(String appId, Set<MediaType> types) {
+      this.appId = appId;
+      this.types = types;
+    }
+  }
 
   public FetchMediaImagesApiCall(AppManagement appManagement) {
     mAppManagement = appManagement;
@@ -51,23 +63,24 @@ public class FetchMediaImagesApiCall implements ApiCall {
 
   @Override
   public Response call(RequestData data) {
-    String appId = getAppIdFromParams(data.getRawBody());
-    final ApiResponseMediaImages response = callInternal(appId);
+    Params params = parseParams(data.getRawBody());
+    final ApiResponseMediaImages response = callInternal(params);
     return responder -> responder.respondProto(response);
   }
 
   // Works with the old (JSON) and new (PB) parameter API.
-  private String getAppIdFromParams(byte[] data) {
+  private Params parseParams(byte[] data) {
     FetchMediaImagesParams params;
     try {
       params = FetchMediaImagesParams.parseFrom(data);
-      return params.getAppId();
+      return new Params(params.getAppId(), new HashSet<>(params.getMediaTypeList()));
     } catch (InvalidProtocolBufferException e) {
       // If this fails, try to parse it as JSON.
       FetchMediaImagesApiParams oldParams = parseLegacyParams(new String(data));
       if (oldParams != null) {
+        // Legacy params didn't have media type limits.
         LOG.warning("Legacy parameters used.");
-        return oldParams.appId;
+        return new Params(oldParams.appId, new HashSet<>());
       }
       LOG.severe("Cannot parse parameters.");
 
@@ -75,16 +88,16 @@ public class FetchMediaImagesApiCall implements ApiCall {
     return null;
   }
 
-  private ApiResponseMediaImages callInternal(String appId) {
+  private ApiResponseMediaImages callInternal(Params params) {
     ApiResponseMediaImages.Builder response = ApiResponseMediaImages.newBuilder();
-    if (Strings.isNullOrEmpty(appId)) {
+    if (Strings.isNullOrEmpty(params.appId)) {
       return response.setSuccess(false).setMessage("No appId given.").build();
     }
 
-    java.util.Optional<AppStoreItem> appById = mAppManagement.getAppById(appId);
+    java.util.Optional<AppStoreItem> appById = mAppManagement.getAppById(params.appId);
     if (!appById.isPresent()) {
       return response.setSuccess(false)
-          .setMessage(String.format("Cannot find app with ID '%s'.", appId))
+          .setMessage(String.format("Cannot find app with ID '%s'.", params.appId))
           .build();
     }
     AppStoreItem app = appById.get();
@@ -94,31 +107,33 @@ public class FetchMediaImagesApiCall implements ApiCall {
         mAppManagement.getMediaImagesForApp(app.id);
 
     // This is TRS80 specific.
-    for (int i = 0; i < 4; ++i) {
-      MediaImage.Builder mediaImageBld = MediaImage.newBuilder();
+    if (params.types.isEmpty() || params.types.contains(MediaType.DISK)) {
+      for (int i = 0; i < 4; ++i) {
+        MediaImage.Builder mediaImageBld = MediaImage.newBuilder();
 
-      if (trs80Ext.disk.length > i && trs80Ext.disk[i] != 0) {
-        if (mediaImagesForApp.containsKey(trs80Ext.disk[i])) {
-          convert(mediaImagesForApp.get(trs80Ext.disk[i]), mediaImageBld, MediaType.DISK);
+        if (trs80Ext.disk.length > i && trs80Ext.disk[i] != 0) {
+          if (mediaImagesForApp.containsKey(trs80Ext.disk[i])) {
+            convert(mediaImagesForApp.get(trs80Ext.disk[i]), mediaImageBld, MediaType.DISK);
+          }
         }
+        response.addMediaImage(mediaImageBld);
       }
-      response.addMediaImage(mediaImageBld);
     }
-    {
+    if (params.types.isEmpty() || params.types.contains(MediaType.CASSETTE)) {
       MediaImage.Builder mediaImageBld = MediaImage.newBuilder();
       if (trs80Ext.cassette != 0 && mediaImagesForApp.containsKey(trs80Ext.cassette)) {
         convert(mediaImagesForApp.get(trs80Ext.cassette), mediaImageBld, MediaType.CASSETTE);
       }
       response.addMediaImage(mediaImageBld);
     }
-    {
+    if (params.types.isEmpty() || params.types.contains(MediaType.COMMAND)) {
       MediaImage.Builder mediaImageBld = MediaImage.newBuilder();
       if (trs80Ext.command != 0 && mediaImagesForApp.containsKey(trs80Ext.command)) {
         convert(mediaImagesForApp.get(trs80Ext.command), mediaImageBld, MediaType.COMMAND);
       }
       response.addMediaImage(mediaImageBld);
     }
-    {
+    if (params.types.isEmpty() || params.types.contains(MediaType.BASIC)) {
       MediaImage.Builder mediaImageBld = MediaImage.newBuilder();
       if (trs80Ext.basic != 0 && mediaImagesForApp.containsKey(trs80Ext.basic)) {
         convert(mediaImagesForApp.get(trs80Ext.basic), mediaImageBld, MediaType.BASIC);
