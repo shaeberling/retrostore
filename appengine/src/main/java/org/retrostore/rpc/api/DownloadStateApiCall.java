@@ -61,11 +61,12 @@ public class DownloadStateApiCall implements ApiCall {
     }
     SystemState state = systemState.get();
     response.setSuccess(true);
-    response.setSystemState(convertToProto(state));
+    response.setSystemState(convertToProto(state, apiParams.getExcludeMemoryRegions()));
     return responder -> responder.respondProto(response.build());
   }
 
-  private static org.retrostore.client.common.proto.SystemState convertToProto(SystemState state) {
+  private static org.retrostore.client.common.proto.SystemState convertToProto(SystemState state,
+   boolean excludeMemoryRegions) {
     org.retrostore.client.common.proto.SystemState.Builder proto =
         org.retrostore.client.common.proto.SystemState.newBuilder();
 
@@ -106,14 +107,16 @@ public class DownloadStateApiCall implements ApiCall {
     registersProto.setR2(state.registers.r_2);
     proto.setRegisters(registersProto);
 
-    // MEMORY REGIONS
-    for (SystemState.MemoryRegion region : state.memoryRegions) {
-      org.retrostore.client.common.proto.SystemState.MemoryRegion.Builder regionProto =
-          org.retrostore.client.common.proto.SystemState.MemoryRegion.newBuilder();
-      regionProto.setStart(region.start);
-      regionProto.setLength(region.data.length);
-      regionProto.setData(ByteString.copyFrom(region.data));
-      proto.addMemoryRegions(regionProto);
+    if (!excludeMemoryRegions) {
+      // MEMORY REGIONS
+      for (SystemState.MemoryRegion region : state.memoryRegions) {
+        org.retrostore.client.common.proto.SystemState.MemoryRegion.Builder regionProto =
+            org.retrostore.client.common.proto.SystemState.MemoryRegion.newBuilder();
+        regionProto.setStart(region.start);
+        regionProto.setLength(region.data.length);
+        regionProto.setData(ByteString.copyFrom(region.data));
+        proto.addMemoryRegions(regionProto);
+      }
     }
 
     return proto.build();
