@@ -27,6 +27,7 @@ import org.retrostore.request.RequestData;
 import org.retrostore.request.Responder;
 import org.retrostore.resources.ImageServiceWrapper;
 import org.retrostore.rpc.api.DownloadStateApiCall;
+import org.retrostore.rpc.api.DownloadStateMemoryRegionApiCall;
 import org.retrostore.rpc.api.FetchMediaImagesApiCall;
 import org.retrostore.rpc.api.GetAppApiCall;
 import org.retrostore.rpc.api.ListAppsApiCall;
@@ -49,13 +50,14 @@ public class ApiRequest implements Request {
 
   public ApiRequest(AppManagement appManagement, ImageServiceWrapper imageService,
                     StateManagement stateManagement) {
-    List<ApiCall> calls = ImmutableList.<ApiCall>of(
+    List<ApiCall> calls = ImmutableList.of(
         new GetAppApiCall(appManagement, imageService),
         new ListAppsApiCall(appManagement, imageService),
         new ListAppsNanoApiCall(appManagement, imageService),
         new FetchMediaImagesApiCall(appManagement),
         new UploadStateApiCall(stateManagement),
-        new DownloadStateApiCall(stateManagement));
+        new DownloadStateApiCall(stateManagement),
+        new DownloadStateMemoryRegionApiCall(stateManagement));
 
     Map<String, ApiCall> callsMapped = new HashMap<>();
     for (ApiCall call : calls) {
