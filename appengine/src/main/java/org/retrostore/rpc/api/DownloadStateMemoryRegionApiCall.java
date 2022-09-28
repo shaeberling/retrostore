@@ -71,16 +71,14 @@ public class DownloadStateMemoryRegionApiCall implements ApiCall {
     for (SystemState.MemoryRegion region : systemState.get().memoryRegions) {
       int regionLength = region.data.length;
       int regionEnd = region.start + regionLength - 1;
-      // Check of the region overlaps with the request. (either start or end of the region must
-      // lie within the requested region.
-      if ((region.start >= startAddr && region.start <= endAddr) ||
-          (regionEnd >= startAddr && regionEnd <= endAddr)) {
-        int startCopy = Math.max(startAddr, region.start);
-        int endCopy = Math.min(endAddr, regionEnd);
+      int startCopy = Math.max(startAddr, region.start);
+      int endCopy = Math.min(endAddr, regionEnd);
 
+      // Check of the region overlaps with the request.
+      if (startCopy <= endCopy) {
         System.arraycopy(region.data, startCopy - region.start, result, startCopy - startAddr,
             endCopy + 1 - startCopy);
-    }
+      }
 
       // If the region has an overlap with the requested range, write that portion.
       for (int i = region.start; i >= startAddr && i <= endAddr && i - region.start < region.data.length; ++i) {
