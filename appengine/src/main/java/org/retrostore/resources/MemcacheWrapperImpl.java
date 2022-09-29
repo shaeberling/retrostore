@@ -45,4 +45,9 @@ public class MemcacheWrapperImpl implements MemcacheWrapper {
   public Optional<String> getString(String key) {
     return Optional.ofNullable((String) mMemcacheService.get(key));
   }
+
+  @Override
+  public Optional<Object> getObject(String key) {
+    return Optional.ofNullable(mMemcacheService.get(key));
+  }
 }

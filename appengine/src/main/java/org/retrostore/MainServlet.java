@@ -99,10 +99,10 @@ public class MainServlet extends RetroStoreServlet {
     AppSearch appSearch = new AppSearchImpl(searchService);
     AppManagement appManagement =
         new AppManagementCached(new AppManagementImpl(blobstoreWrapper, appSearch));
-    StateManagement stateManagement = new StateManagementImpl();
+    MemcacheWrapper memcache = new MemcacheWrapperImpl(MemcacheServiceFactory.getMemcacheService());
+    StateManagement stateManagement = new StateManagementImpl(memcache);
     UserService accountTypeProvider = new UserServiceImpl(userManagement, userService);
     ImagesService imagesService = ImagesServiceFactory.getImagesService();
-    MemcacheWrapper memcache = new MemcacheWrapperImpl(MemcacheServiceFactory.getMemcacheService());
     ImageServiceWrapper imgServWrapper =
         new CachingImageService(new ImageServiceWrapperImpl(imagesService), memcache);
     Cache cache = new TwoLayerCacheImpl(memcache);

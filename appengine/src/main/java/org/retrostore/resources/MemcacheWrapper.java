@@ -39,6 +39,14 @@ public interface MemcacheWrapper {
   Optional<String> getString(String key);
 
   /**
+   * Gets the item with the given key, if available, as a raw Object..
+   *
+   * @param key the key of the item.
+   * @return The item, if available in memcache.
+   */
+  Optional<Object> getObject(String key);
+
+  /**
    * Adds or updates an item in memcache.
    *
    * @param key  the key of the item.
