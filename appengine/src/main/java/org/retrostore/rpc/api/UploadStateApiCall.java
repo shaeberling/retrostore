@@ -63,9 +63,8 @@ public class UploadStateApiCall implements ApiCall {
   private static boolean isRegionValid(SystemState.MemoryRegion region) {
     final int MAX_SIZE = 1000000;
     boolean valid = region.getStart() >= 0 && region.getStart() < MAX_SIZE
-        && region.getLength() > 0 && region.getLength() < MAX_SIZE
-        && region.getData().toByteArray().length < MAX_SIZE
-        && region.getData().toByteArray().length == region.getLength();
+        && region.getLength() < MAX_SIZE
+        && region.getData().toByteArray().length < MAX_SIZE;
     if (!valid) {
       log.warning("===== Region is invalid: =====");
       log.warning("Start        : " + region.getStart());
