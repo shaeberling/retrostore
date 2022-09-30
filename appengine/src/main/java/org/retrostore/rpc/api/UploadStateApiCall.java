@@ -41,10 +41,38 @@ public class UploadStateApiCall implements ApiCall {
     }
 
     SystemState systemState = apiParams.getState();
-    long token = mStateManagement.addSystemState(convertFromProto(systemState));
-    response.setSuccess(true);
-    response.setToken(token);
+    if (!isStateValid(systemState)) {
+      response.setSuccess(false);
+      response.setMessage("Uploaded state is invalid");
+    } else {
+      long token = mStateManagement.addSystemState(convertFromProto(systemState));
+      response.setSuccess(true);
+      response.setToken(token);
+    }
     return responder -> responder.respondProto(response.build());
+  }
+
+  /** Return whether the given state is valid. */
+  private boolean isStateValid(SystemState state) {
+    return state.getMemoryRegionsList()
+        .stream()
+        .allMatch(UploadStateApiCall::isRegionValid);
+  }
+
+  /** Return whether the given region is valid. */
+  private static boolean isRegionValid(SystemState.MemoryRegion region) {
+    final int MAX_SIZE = 1000000;
+    boolean valid = region.getStart() >= 0 && region.getStart() < MAX_SIZE
+        && region.getLength() > 0 && region.getLength() < MAX_SIZE
+        && region.getData().toByteArray().length < MAX_SIZE
+        && region.getData().toByteArray().length == region.getLength();
+    if (!valid) {
+      log.warning("===== Region is invalid: =====");
+      log.warning("Start        : " + region.getStart());
+      log.warning("Length       : " + region.getLength());
+      log.warning("Bytes Length : " + region.getData().toByteArray().length);
+    }
+    return valid;
   }
 
   private static org.retrostore.data.xray.SystemState convertFromProto(SystemState proto) {
