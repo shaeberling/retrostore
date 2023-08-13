@@ -77,7 +77,7 @@ public interface AppManagement {
   Map<Long, MediaImage> getMediaImagesForApp(String appId);
 
   /**
-   * Deletes the media imafge with the given ID.
+   * Deletes the media image with the given ID.
    *
    * @param mediaId the id of the media image.
    */

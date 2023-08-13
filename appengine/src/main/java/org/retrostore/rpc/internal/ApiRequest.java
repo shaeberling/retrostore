@@ -28,6 +28,7 @@ import org.retrostore.request.Responder;
 import org.retrostore.resources.ImageServiceWrapper;
 import org.retrostore.rpc.api.DownloadStateApiCall;
 import org.retrostore.rpc.api.DownloadStateMemoryRegionApiCall;
+import org.retrostore.rpc.api.FetchMediaImageRefsApiCall;
 import org.retrostore.rpc.api.FetchMediaImagesApiCall;
 import org.retrostore.rpc.api.GetAppApiCall;
 import org.retrostore.rpc.api.ListAppsApiCall;
@@ -55,6 +56,7 @@ public class ApiRequest implements Request {
         new ListAppsApiCall(appManagement, imageService),
         new ListAppsNanoApiCall(appManagement, imageService),
         new FetchMediaImagesApiCall(appManagement),
+        new FetchMediaImageRefsApiCall(appManagement),
         new UploadStateApiCall(stateManagement),
         new DownloadStateApiCall(stateManagement),
         new DownloadStateMemoryRegionApiCall(stateManagement));

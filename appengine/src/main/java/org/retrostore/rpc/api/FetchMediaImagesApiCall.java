@@ -88,7 +88,8 @@ public class FetchMediaImagesApiCall implements ApiCall {
     return null;
   }
 
-  private ApiResponseMediaImages callInternal(Params params) {
+  // Called from FetchMediaImageRefsApiCall, to avoid duplication.
+  ApiResponseMediaImages callInternal(Params params) {
     ApiResponseMediaImages.Builder response = ApiResponseMediaImages.newBuilder();
     if (Strings.isNullOrEmpty(params.appId)) {
       return response.setSuccess(false).setMessage("No appId given.").build();
