@@ -80,13 +80,14 @@ public class FetchMediaImageRefsApiCall implements ApiCall {
       // Skip empty/UNKNOWN entries.
       if (image.getData().size() == 0) continue;
 
-      String ref = params.appId + "/" + image.getFilename();
+      String token = params.appId + "/" + image.getFilename();
       response.addMediaImageRef(MediaImageRef.newBuilder()
           .setType(image.getType())
           .setFilename(image.getFilename())
+          .setSize(image.getData().size())
           .setUploadTime(image.getUploadTime())
           .setDescription(image.getDescription())
-          .setDataRef(ref));
+          .setToken(token));
     }
 
     return response.setSuccess(true).setMessage("All good :-)").build();
