@@ -1,0 +1,309 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>First Bay Area Tandy Assembly Meetup - 2023</title>
+<style>
+
+@font-face {
+    font-family: CrystalWeb;
+    src: url("font.otf") format("opentype");
+}
+
+:root {
+	box-sizing: border-box;
+  --aqua: hsl(208, 75%, 50%);
+  --aqua-dark: hsl(205, 61%, 43%);
+  --aqua-darker: hsl(194, 22%, 23%);
+}
+
+*, ::before, ::after {
+    box-sizing: inherit;
+    text-decoration: none;
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+	outline: none;
+}
+
+body {
+    font-size: 100%;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Encode Sans Semi Expanded', sans-serif;
+}
+
+.inspiration {
+  position: absolute;
+  top: 1em;
+  right: 1em;
+  color: var(--aqua-darker);
+  transition: all 300ms ease-in;
+  font-size: .85em;
+}
+
+.inspiration:hover {
+  color: var(--aqua-dark);
+}
+
+.outline {
+  width: 500px;
+  height: 700px;
+  border: 1px solid hsl(0, 6%, 64%);
+  position: relative;
+  overflow: hidden;
+  zoom: 1.2;
+}
+
+h1 {
+  text-transform: uppercase;
+  text-align: center;
+  padding-top: .75em;
+  font-family: 'CrystalWeb';
+  color: red;
+}
+
+h1 span:first-of-type {
+  font-weight: 300;
+  display: block;
+  line-height: 1
+}
+
+h1 span:last-of-type {
+  font-weight: 700;
+  display: block;
+  line-height: 1;
+  font-size: 1.3em;
+}
+
+.img-wrap {
+  border: 10px solid #fff0;
+  width: 200px;
+  height: 200px;
+  /* overflow: hidden; */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(42deg);
+}
+
+.wrappy {
+  width: 200px;
+  height: 200px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+}
+
+.wrappy::before {
+  position: absolute;
+  content: "";
+  width: 228px;
+  height: 16px;
+  background-color: var(--aqua-dark);
+  z-index: 2000;
+  bottom: -8px;
+  left: -88px;
+  transform: rotate(45deg);
+}
+
+.wrappy::after {
+  position: absolute;
+  content: "";
+  width: 227px;
+  height: 16px;
+  background-color: var(--aqua-dark);
+  z-index: 2000;
+  bottom: 3px;
+  left: 73px;
+  transform: rotate(-45deg);
+}
+
+.img-city {
+  display: block;
+  width: 200px;
+  height: 200px;
+  object-fit: cover;
+  transform: rotate(-45deg) scale(1.5);
+}
+
+.bar--one {
+  width: 300px;
+  height: 35px;
+  background-image: linear-gradient(to right, var(--aqua-darker), var(--aqua) 80%);
+  transform: rotate(-45deg) translate(-140px, 27px)
+}
+
+.bar--two {
+  width: 300px;
+  height: 35px;
+  background-image: linear-gradient(to left, var(--aqua-darker), var(--aqua) 80%);
+  transform: rotate(45deg) translate(257px, -139px)
+}
+
+.box {
+  width: 120px;
+  height: 120px;
+  position: absolute;
+  border: 16px solid var(--aqua-dark);
+  transform: translate(190px, 60px) rotate(45deg);
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+  z-index: -2;
+}
+
+.triangle--one {
+  width: 500px;
+  height: 565px;
+  background-color: hsl(240, 37%, 17%);
+  position: absolute;
+  bottom: 0;
+  z-index: -1;
+  clip-path: polygon(0% 37%, 35% 6%, 50% 19%, 65% 6%, 100% 37%, 100% 100%, 0% 100%)
+}
+
+.footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  color: #fff;
+  text-align: center;
+  background-color: #64daff2b;
+}
+
+#featuring-text {
+  position: absolute;
+  bottom: 72px;
+  left: 0;
+  right: 0;
+  margin: 20px;
+  padding: 15px;
+  border-radius: 5px;
+  background-color: #2a79b1;
+}
+#featuring-text > * {
+  color: #fff;
+  font-size: 0.8em;
+}
+
+#featuring-text > table {
+  width: 100%;
+}
+
+.footer h3 {
+  text-transform: uppercase;
+  font-weight: 900;
+  font-size: 0.9em
+}
+
+.numbers {
+  padding: 0.4em 0;
+  padding-top: 0.2em;
+  font-size: .8em;
+  text-align: center;
+  color: red;
+  font-size: 1.65em;
+  font-weight: 900;}
+
+.numbers span {
+  color: red;
+  font-size: 2.2em;
+  font-weight: 500;
+}
+
+.numbers p {
+  text-align: left;
+  margin-left: .5em;
+}
+
+.number--one, .number--two, .number--three {
+  display: flex;
+}
+
+.number--one, .number--two {
+  margin-right: 1.5em;
+}
+
+.site {
+  text-transform: uppercase;
+  font-size: .8em;
+  margin-bottom: 1.2em;
+}
+
+#qr-code {
+  width: 100px;
+  height: 115px;
+  position: absolute;
+  right: 35px;
+  top: 115px;
+}
+
+#golden-gate {
+  width: 100px;
+  height: 115px;
+  position: absolute;
+  left: 35px;
+  top: 115px;
+}
+
+.location {
+  font-size: 0.5em;
+}
+
+
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Encode+Sans+Semi+Expanded:wght@300;900&display=swap" rel="stylesheet">
+
+</head>
+<body>
+<div class="outline">
+     <h1><span>First Bay Area</span><span>Tandy Assembly Meetup</span></h1>
+     
+     <div class="wrappy">
+            <div class="img-wrap">
+              <img class="img-city" src="trs80.png" alt="">
+            </div>
+      </div>
+      <img id="qr-code" src="qr-code-sign-up.svg"></svg>
+      <img id="golden-gate" src="golden-gate.png"></svg>
+     
+
+     <div style="height: 150px; overflow: hidden;" ><svg viewBox="0 0 500 150" preserveAspectRatio="none" style="height: 100%; width: 100%;"><path d="M0.00,49.99 C128.38,147.54 355.25,-36.01 500.00,49.99 L500.00,150.00 L0.00,150.00 Z" style="stroke: none; fill: rgb(40, 40, 65);"></path></svg></div>
+     <div style="width:100%; height:500px; background-color: rgb(40, 40, 65); margin-top:-1px;"></div>
+     
+     <!--<div class="box"></div>
+     
+     <div class="bar bar--one"></div>
+     <div class="bar bar--two"></div>
+     
+     <div class="triangle triangle--one"></div>-->
+     
+     <div id="featuring-text">
+      
+      <table>
+        <tr><td><b>Featuring</b></td><td>Tim Mann (xtrs)</td></tr>
+        <tr><td>Arthur Gleckler (Weerd)</td><td>Michael Wessel (Talker/80)</td></tr>
+        <tr><td>Lawrence Kesteloot (trstools)</td><td>Arno Puder (TRS-IO, PocketTRS)</td></tr>
+      </table>
+     </div>
+
+     <div class="footer">
+       
+       <h3>JOIN US IN PERSON</h3>
+       <div class="numbers">
+        Nov 4 2023 ● 2-5pm
+       <div class="location">Hosted at San Francisco State University</div>
+     </div>
+       <!-- <p class="site">RetroStore.org/meetup23</p> -->
+       
+     </div>
+     
+   </div>
+  </body>
+  </html>
