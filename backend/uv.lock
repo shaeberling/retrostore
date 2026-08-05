@@ -308,6 +308,23 @@ wheels = [
 ]
 
 [[package]]
+name = "google-cloud-datastore"
+version = "2.26.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "google-api-core", extra = ["grpc"] },
+    { name = "google-auth" },
+    { name = "google-cloud-core" },
+    { name = "grpcio" },
+    { name = "proto-plus" },
+    { name = "protobuf" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/35/1c/bb7ca295b6bf6618e2c271e425463f11233c2cb4d725581d812be99dd45f/google_cloud_datastore-2.26.0.tar.gz", hash = "sha256:1ac4882f033fcb90bd75d1171b46400ecd5def23768598843d9c041e0c0b4a6a", size = 265861, upload-time = "2026-07-08T17:03:47.579Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f3/f5/1477eaa0577f653ce7168db03950cb46173844f59885074e74671ab09fba/google_cloud_datastore-2.26.0-py3-none-any.whl", hash = "sha256:1bde5694308468da5c932153a6b0331d5b54e1c21de366b6a75ddb0000fd5f4b", size = 207526, upload-time = "2026-07-08T17:03:17.967Z" },
+]
+
+[[package]]
 name = "google-cloud-firestore"
 version = "2.28.0"
 source = { registry = "https://pypi.org/simple" }
@@ -770,6 +787,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "firebase-admin" },
     { name = "flask" },
+    { name = "google-cloud-datastore" },
     { name = "google-cloud-firestore" },
     { name = "google-cloud-storage" },
     { name = "gunicorn" },
@@ -789,6 +807,7 @@ dev = [
 requires-dist = [
     { name = "firebase-admin", specifier = ">=7.5,<8" },
     { name = "flask", specifier = ">=3.1.3,<4" },
+    { name = "google-cloud-datastore", specifier = ">=2.26,<3" },
     { name = "google-cloud-firestore", specifier = ">=2.28,<3" },
     { name = "google-cloud-storage", specifier = ">=3.13,<4" },
     { name = "gunicorn", specifier = ">=26,<27" },

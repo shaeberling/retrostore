@@ -15,7 +15,7 @@ Completed foundation work:
 - A Python 3.14.6 `uv` workspace and lockfile now define the shared backend and
   the independently deployable Flask API/admin service skeletons.
 - Every direct and transitive Python dependency has been audited against current
-  stable PyPI metadata. The resolved 52-package environment has no outdated or
+  stable PyPI metadata. The 55-record locked graph has no outdated or
   inconsistent packages, and its Python 3.14 compatibility evidence is recorded
   in `backend/DEPENDENCIES.md`.
 - A separate GitHub Actions workflow installs the frozen lockfile and runs the
@@ -25,14 +25,22 @@ Completed foundation work:
 - A mutation-safe contract harness, semantic protobuf normalizer, two-host
   comparator, and initial reviewed twelve-scenario App Engine golden baseline
   are in place.
-- The source-derived route, entity, bundled-service, and partial Firebase cloud
-  inventory is recorded in `docs/current-system-inventory.md`.
+- The read-only production infrastructure inventory is recorded in
+  `docs/current-system-inventory.md`: App Engine deployment and domains,
+  Datastore kind counts, Blobstore size, buckets, DNS, IAM, and the absence of
+  Cloud Run and load-balancer resources are now established.
+- A strict read-only Python inventory/reconciliation command scans legacy
+  Datastore, fingerprints non-user records and binary fields, records schema
+  shapes, applies the seven-day state rule, and validates app, author, user,
+  media, and Blobstore references without emitting production identifiers or
+  values. Its first production run found no broken references and eight
+  unreferenced Blobstore objects to preserve and investigate.
 
 Open foundation work:
 
-- The selected gcloud account requires an interactive `gcloud auth login` to
-  refresh its expired token before App Engine, Storage, Cloud Run, DNS, and
-  load-balancer inventory can continue.
+- Add an App Engine-side migration operation for Blobstore content checksums and
+  live Search-index inspection; these bundled-service values are not available
+  through the Cloud Datastore client.
 - The golden corpus still needs real catalog/media success cases, boundaries,
   malformed inputs, full entity coverage, client-library runs, and synthetic
   state lifecycle cases.
@@ -951,8 +959,8 @@ the rollback. If a gate fails, traffic stays on or returns to App Engine.
   after all C clients have moved to HTTPS.
 - The public static website bucket's CDN, cache-invalidation, and deployment
   policy. It must remain separate from the private application-assets bucket.
-- The exact region for the named Firestore databases, Cloud Run services, and
-  assets bucket after the existing project inventory.
+- Approve the inventory-derived location proposal: `nam5` for named Firestore
+  databases, `US` for the private assets bucket, and `us-central1` for Cloud Run.
 - Whether to use the existing Firebase Storage bucket or create a dedicated
   private production assets bucket.
 - The retention period for uploaded system states, normalized migration exports,
@@ -975,20 +983,29 @@ the read-only infrastructure inventory.
 The first implementation milestone is Phase 0 plus the read-only portion of
 Phase 1:
 
-1. Add the canonical protobuf schema and API contract document.
-2. Establish the locked Python project and two Flask application skeletons.
-3. Pin the legacy Java toolchain sufficiently to run baseline tests and build the
-   future migration exporter.
-4. Build golden tests for catalog and media reads.
-5. Run those tests against the live App Engine service and a local Flask test
-   implementation.
-6. Produce a route, database, bucket, location, and data inventory.
-7. Validate representative Objectify entities and state sizes before finalizing
-   the normalized Firestore importer.
-8. Define the complete comparison corpus and implement its semantic result
-   format and approved-difference mechanism.
-9. Document candidate hostnames, current DNS and HTTP behavior, the proposed
-   load-balancer URL map, route groups, and rollback owners.
+- [x] Add the canonical protobuf schema and API contract registry.
+- [x] Establish the locked Python project and two Flask application skeletons.
+- [ ] Pin the legacy Java toolchain sufficiently to run baseline tests and build
+  the migration exporter.
+- [ ] Expand the initial safe baseline into golden success, boundary, malformed,
+  media, and state-lifecycle cases.
+- [ ] Run the expanded suite against App Engine and the local Flask candidate.
+- [x] Produce the route and read-only cloud infrastructure inventory.
+- [x] Build a repeatable read-only exporter/reconciler for representative
+  Objectify encodings, binary sizes and checksums, and reference integrity.
+- [ ] Complete the comparison corpus and approved-difference format. The method
+  registry, semantic normalizer, initial baseline, and two-host comparator are
+  already implemented.
+- [ ] Finalize candidate hostnames, the load-balancer URL map, route groups,
+  monitoring thresholds, and named rollback owners. Current DNS, certificates,
+  HTTP behavior, and absence of an existing load balancer are documented.
+
+The next executable task is to expand the public API golden corpus with real
+catalog/media successes, boundaries, and malformed inputs, using the reconciled
+production shapes to choose representative cases. In parallel with that test
+work, the legacy Java toolchain needs to be pinned before adding the narrowly
+scoped App Engine-side Blobstore/Search migration operation. No named database
+or bucket is needed for either task.
 
 No production data, Firebase configuration, or routing should change during this
 milestone.

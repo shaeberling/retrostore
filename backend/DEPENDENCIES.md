@@ -33,6 +33,7 @@ candidates and yanked releases are excluded.
 | Python | 3.13.11 | 3.14.6 | Upgraded |
 | `firebase-admin` | 7.5.0 | 7.5.0 | Current |
 | `Flask` | 3.1.3 | 3.1.3 | Current |
+| `google-cloud-datastore` | — | 2.26.0 | Added at current version |
 | `google-cloud-firestore` | 2.28.0 | 2.28.0 | Current |
 | `google-cloud-storage` | 3.13.0 | 3.13.0 | Current |
 | `gunicorn` | 23.0.0 | 26.0.0 | Upgraded |
@@ -55,7 +56,7 @@ introduced during an ordinary build.
   `x86_64` and macOS ARM64, so neither local development nor the Cloud Run image
   needs to compile gRPC from source.
 - Protobuf 7.35.1 supports Python 3.10 and newer and publishes an ABI3 wheel.
-- Firestore, Storage, pytest, pytest-cov, Ruff, and uv explicitly classify
+- Datastore, Firestore, Storage, pytest, pytest-cov, Ruff, and uv explicitly classify
   Python 3.14 support in current PyPI metadata.
 - Firebase Admin, Flask, Gunicorn, and HTTPX publish platform-independent Python
   wheels whose `Requires-Python` ranges include 3.14. They install and execute in
@@ -64,8 +65,8 @@ introduced during an ordinary build.
 
 ## Complete graph audit
 
-The locked environment contains 52 installed third-party packages. After an
-upgrade resolution:
+The lockfile contains 55 package records, and the CPython 3.14 development
+environment installs 53 third-party distributions. After an upgrade resolution:
 
 ```text
 uv tree --outdated            -> no outdated packages reported
@@ -75,7 +76,7 @@ uv pip check                  -> all installed packages are compatible
 
 Validation under CPython 3.14.6:
 
-- All 20 unit and contract tests pass with pytest 9.1.1.
+- All 26 unit, contract, and inventory tests pass with pytest 9.1.1.
 - Ruff passes with `target-version = "py314"`.
 - Both Gunicorn 26 application factories pass `--check-config`.
 - The twelve mutation-safe live App Engine observations have zero differences

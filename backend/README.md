@@ -63,3 +63,25 @@ UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python -m retrostore.contract.compa
 The comparator exits nonzero on any transport or semantic difference. The
 reviewed initial App Engine baseline is versioned under
 `tests/contract/golden/`.
+
+## Read-only production inventory
+
+The inventory command reads the legacy Datastore-mode database and emits a
+sanitized report containing only aggregate counts, schema shapes, sizes,
+checksums, and referential-integrity findings. It does not include entity keys,
+property values, user details, or binary contents, and its source adapter has no
+mutation methods.
+
+Use Application Default Credentials in automation:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python -m retrostore.inventory.cli \
+  --project trs-80 \
+  --output /tmp/retrostore-inventory.json
+```
+
+For an operator session already authenticated with gcloud, add `--auth gcloud`.
+Add `--fail-on-integrity-errors` in CI or reconciliation jobs once any reviewed
+legacy exceptions have been classified. Blobstore rows provide metadata and
+MD5 values only; copying and independently hashing the legacy Blobstore content
+will require an App Engine-side migration operation.
