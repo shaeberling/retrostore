@@ -1,0 +1,189 @@
+{
+  "base_url": "https://retrostore.org",
+  "observations": [
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "Eh9JbnZhbGlkIHJlcXVlc3QsIGFwcElkIG1pc3Npbmcu",
+      "body_length": 33,
+      "body_sha256": "afe18390c991d945729e5bb84b6978dbe8780ece1fbcc528dddf3baf42cefc00",
+      "content_type": "application/octet-stream",
+      "method": "getApp",
+      "request_format": "protobuf",
+      "scenario": "get_app_missing_id",
+      "semantic_body": {
+        "app": [],
+        "message": "Invalid request, appId missing.",
+        "success": false
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "Eh5QYXJhbWV0ZXIgJ3N0YXJ0JyBvdXQgb2YgcmFuZ2U=",
+      "body_length": 32,
+      "body_sha256": "a8739500a8ae182f5a841c1a7687088cee8b25777ec5fa8962097a622b7847ee",
+      "content_type": "application/octet-stream",
+      "method": "listApps",
+      "request_format": "protobuf",
+      "scenario": "list_apps_out_of_range",
+      "semantic_body": {
+        "app": [],
+        "message": "Parameter 'start' out of range",
+        "success": false
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "Eh5QYXJhbWV0ZXIgJ3N0YXJ0JyBvdXQgb2YgcmFuZ2U=",
+      "body_length": 32,
+      "body_sha256": "a8739500a8ae182f5a841c1a7687088cee8b25777ec5fa8962097a622b7847ee",
+      "content_type": "application/octet-stream",
+      "method": "listAppsNano",
+      "request_format": "protobuf",
+      "scenario": "list_apps_nano_out_of_range",
+      "semantic_body": {
+        "app": [],
+        "message": "Parameter 'start' out of range",
+        "success": false
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "Eg9ObyBhcHBJZCBnaXZlbi4=",
+      "body_length": 17,
+      "body_sha256": "0fc3ddeef0bcf5c6484cf9e2647f996113e6afeb75b6d52cd4fd3279ea952ca6",
+      "content_type": "application/octet-stream",
+      "method": "fetchMediaImages",
+      "request_format": "protobuf",
+      "scenario": "fetch_media_images_missing_id",
+      "semantic_body": {
+        "mediaImage": [],
+        "message": "No appId given.",
+        "success": false
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "Eg9ObyBhcHBJZCBnaXZlbi4=",
+      "body_length": 17,
+      "body_sha256": "0fc3ddeef0bcf5c6484cf9e2647f996113e6afeb75b6d52cd4fd3279ea952ca6",
+      "content_type": "application/octet-stream",
+      "method": "fetchMediaImageRefs",
+      "request_format": "protobuf",
+      "scenario": "fetch_media_refs_missing_id",
+      "semantic_body": {
+        "mediaImageRef": [],
+        "message": "No appId given.",
+        "success": false
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "",
+      "body_length": 0,
+      "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "content_type": "application/octet-stream",
+      "method": "fetchMediaImageRegion",
+      "request_format": "protobuf",
+      "scenario": "fetch_media_region_bad_token",
+      "semantic_body": null,
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "EhlVcGxvYWRlZCBzdGF0ZSBpcyBpbnZhbGlk",
+      "body_length": 27,
+      "body_sha256": "f249a75791d37931b3235b19b21df8c998db6c0aa182da5e13e323c034881103",
+      "content_type": "application/octet-stream",
+      "method": "uploadState",
+      "request_format": "protobuf",
+      "scenario": "upload_state_invalid_region",
+      "semantic_body": {
+        "message": "Uploaded state is invalid",
+        "success": false,
+        "token": "0"
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "EiZJbGxlZ2FsIHBhcmFtcy4gRW5zdXJlICd0b2tlbicgaXMgPiAwLg==",
+      "body_length": 40,
+      "body_sha256": "0954903ec7c968bf79b494ff97e202c9fd889773b92060a6cae8e6d24323149b",
+      "content_type": "application/octet-stream",
+      "method": "downloadState",
+      "request_format": "protobuf",
+      "scenario": "download_state_bad_token",
+      "semantic_body": {
+        "message": "Illegal params. Ensure 'token' is > 0.",
+        "success": false
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "",
+      "body_length": 0,
+      "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "content_type": "application/octet-stream",
+      "method": "downloadStateMemoryRegion",
+      "request_format": "protobuf",
+      "scenario": "download_state_region_bad_token",
+      "semantic_body": null,
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "Eg5BcHAgbm90IGZvdW5kLg==",
+      "body_length": 16,
+      "body_sha256": "47041e705eede5292b83cac9c879e0407fdebfdda6d5ad0380989ed7df85cc3a",
+      "content_type": "application/octet-stream",
+      "method": "getApp",
+      "request_format": "legacy_json",
+      "scenario": "get_app_legacy_json_missing_id",
+      "semantic_body": {
+        "app": [],
+        "message": "App not found.",
+        "success": false
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "Eh5QYXJhbWV0ZXIgJ3N0YXJ0JyBvdXQgb2YgcmFuZ2U=",
+      "body_length": 32,
+      "body_sha256": "a8739500a8ae182f5a841c1a7687088cee8b25777ec5fa8962097a622b7847ee",
+      "content_type": "application/octet-stream",
+      "method": "listApps",
+      "request_format": "legacy_json",
+      "scenario": "list_apps_legacy_json_out_of_range",
+      "semantic_body": {
+        "app": [],
+        "message": "Parameter 'start' out of range",
+        "success": false
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "EjpDYW5ub3QgZmluZCBhcHAgd2l0aCBJRCAnX19yZXRyb3N0b3JlX2NvbnRyYWN0X21pc3NpbmdfXycu",
+      "body_length": 60,
+      "body_sha256": "2efef370186964217058a6e0867d9905643de22617a476512f9242d6e42e330b",
+      "content_type": "application/octet-stream",
+      "method": "fetchMediaImages",
+      "request_format": "legacy_json",
+      "scenario": "fetch_media_images_legacy_json_missing_id",
+      "semantic_body": {
+        "mediaImage": [],
+        "message": "Cannot find app with ID '__retrostore_contract_missing__'.",
+        "success": false
+      },
+      "status_code": 200
+    }
+  ],
+  "schema_version": 1
+}

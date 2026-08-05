@@ -41,3 +41,16 @@ client-library/build
 
 # Contains auto-generated protocol buffer files.
 client-common/src/main/java/org/retrostore/client/common/proto/
+
+# Python backend
+backend/.venv/
+backend/.pytest_cache/
+backend/.ruff_cache/
+backend/.coverage
+backend/htmlcov/
+__pycache__/
+*.py[cod]
+
+# Firebase CLI
+firebase-debug.log
+.firebase/

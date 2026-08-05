@@ -1,0 +1,1 @@
+"""Compatibility API service tests."""
