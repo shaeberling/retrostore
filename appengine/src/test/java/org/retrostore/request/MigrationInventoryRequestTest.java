@@ -69,6 +69,25 @@ public final class MigrationInventoryRequestTest {
   }
 
   @Test
+  public void unauthenticatedRequestReachesInventoryAuthorization() {
+    StubRequestData requestData =
+        new StubRequestData(MigrationInventoryRequest.PATH, RequestData.Type.GET);
+    StubUserService userService = new StubUserService(UserAccountType.NOT_LOGGED_IN);
+    RecordingResponder responder = new RecordingResponder();
+
+    boolean interceptedByLogin =
+        new LoginRequest().serveUrl(requestData, responder, userService);
+    boolean servedByInventory =
+        new MigrationInventoryRequest(Object::new)
+            .serveUrl(requestData, responder, userService);
+
+    assertThat(interceptedByLogin).isFalse();
+    assertThat(servedByInventory).isTrue();
+    assertThat(responder.forbidden).isEqualTo("You need to be an admin");
+    assertThat(responder.json).isNull();
+  }
+
+  @Test
   public void onlyAcceptsGet() {
     AtomicInteger calls = new AtomicInteger();
     RecordingResponder responder = new RecordingResponder();

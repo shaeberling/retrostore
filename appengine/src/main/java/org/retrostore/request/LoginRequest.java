@@ -56,8 +56,10 @@ public class LoginRequest implements Request {
       return false;
     }
 
-    // The public site "/" will not require a login.
-    if (url.equals("/") || matchesPrefix(requestData.getUrl())) {
+    // Public routes and the migration operation perform any required authorization themselves.
+    if (url.equals("/")
+        || url.equals(MigrationInventoryRequest.PATH)
+        || matchesPrefix(requestData.getUrl())) {
       return false;
     }
 
