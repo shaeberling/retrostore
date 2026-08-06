@@ -91,9 +91,11 @@ modify in place.
 
 ## App Engine runtime and dispatch
 
-The deployed application source is a Java 11 WAR using the App Engine bundled
-services. `MainServlet` handles both GET and POST through one priority-ordered
-request chain. `ObjectifyFilter` wraps all paths.
+Production traffic runs a Java 11 WAR using the App Engine bundled services.
+The source is configured to stage new versions on Java 25 with EE 8
+compatibility while retaining Java 11 bytecode, Servlet 2.5, and
+`javax.servlet`. `MainServlet` handles both GET and POST through one
+priority-ordered request chain. `ObjectifyFilter` wraps all paths.
 
 The source dispatch order is significant:
 

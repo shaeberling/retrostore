@@ -36,7 +36,8 @@ Completed foundation work:
   values. Its first production run found no broken references and eight
   unreferenced Blobstore objects to preserve and investigate.
 - The legacy Java build is reproducible again: Java 21.0.12+8 builds Java 11
-  bytecode with checksum-pinned Gradle 8.14.5, the current App Engine plugin and
+  bytecode for the supported App Engine Java 25 runtime in EE 8 compatibility
+  mode, with checksum-pinned Gradle 8.14.5, the current App Engine plugin and
   stable SDK, immutable dependencies, full dependency verification, and CI.
 - An admin-only, no-store App Engine operation now streams and hashes all
   Blobstore content and compares the live Search index with current app entities
@@ -153,9 +154,11 @@ authorization and business rules server-side.
 
 ## Current architecture
 
-The application is a Java 11 App Engine WAR. A catch-all servlet dispatches the
-public website, public API, admin application, uploads, screenshots, reporting,
-firmware/card endpoints, and static resources.
+Production traffic currently runs a Java 11 App Engine WAR. The source is now
+configured for Java 25 in EE 8 compatibility mode while retaining Java 11
+bytecode and the existing `javax.servlet` application contract. A catch-all
+servlet dispatches the public website, public API, admin application, uploads,
+screenshots, reporting, firmware/card endpoints, and static resources.
 
 The application currently depends on:
 

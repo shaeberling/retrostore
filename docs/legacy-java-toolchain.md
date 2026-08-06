@@ -9,7 +9,8 @@ The legacy App Engine application now builds with this pinned toolchain:
 | Component | Pinned version | Reason |
 | --- | --- | --- |
 | Temurin JDK | `21.0.12+8` | Current Java 21 maintenance release; Java 21 is the newest LTS supported by the selected Gradle line |
-| Java bytecode target | `11` | Matches the deployed App Engine Java 11 runtime |
+| Java bytecode target | `11` | Preserves the legacy application's bytecode and API baseline |
+| App Engine runtime | Java 25 with EE 8 compatibility | Current supported runtime while retaining the application's `javax.servlet` contract |
 | Gradle | `8.14.5` | Newest Gradle 8 maintenance release and newest release compatible with the App Engine plugin |
 | App Engine Gradle plugin | `2.8.7` | Current stable release |
 | App Engine Java SDK | `5.0.4` | Current stable release; `5.0.5-beta.1` was excluded as a prerelease |
@@ -19,9 +20,10 @@ Gradle. `gradle/verification-metadata.xml` also records SHA-256 values for every
 resolved plugin, POM, module descriptor, and JAR. There are no dynamic `+`
 versions left in the build.
 
-The Java 21 toolchain compiles with `--release 11`. This lets the build tooling
-run on a maintained LTS JDK without silently producing classes that the live
-Java 11 App Engine runtime cannot load.
+The Java 21 toolchain compiles with `--release 11`. This keeps the legacy
+application bytecode and Java API surface stable while the non-promoted App
+Engine candidate runs on Java 25. The runtime uses EE 8 compatibility mode so
+the existing Servlet 2.5 descriptor and `javax.servlet` imports remain valid.
 
 ## Compatibility findings
 
@@ -82,8 +84,8 @@ a successful compile as sufficient.
 
 The App Engine plugin emits Gradle convention deprecations. Those warnings are
 expected and explain why the project cannot move to Gradle 9 until Google
-updates or replaces that plugin. They do not alter the Java 11 application
-artifact.
+updates or replaces that plugin. They do not alter the Java 11 bytecode target
+or application behavior.
 
 Primary release sources:
 
@@ -91,3 +93,5 @@ Primary release sources:
 - [App Engine Gradle plugin metadata](https://repo1.maven.org/maven2/com/google/cloud/tools/appengine-gradle-plugin/maven-metadata.xml)
 - [App Engine Java SDK metadata](https://repo1.maven.org/maven2/com/google/appengine/appengine-api-1.0-sdk/maven-metadata.xml)
 - [Adoptium release API](https://api.adoptium.net/v3/assets/latest/21/hotspot?architecture=x64&image_type=jdk&os=linux&vendor=eclipse)
+- [App Engine Java runtime support schedule](https://cloud.google.com/appengine/docs/standard/lifecycle/support-schedule)
+- [App Engine Java runtime upgrade guide](https://cloud.google.com/appengine/docs/standard/java-gen2/upgrade-java-runtime)
