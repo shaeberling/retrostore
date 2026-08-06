@@ -265,9 +265,10 @@ and its usage are documented in `backend/README.md`.
 The source names the App Engine Search index `AppStoreItem`. It indexes app name
 and description with the app ID as document ID. `refreshIndex` writes all
 current apps but does not delete stale documents. Its exact live document count
-cannot be queried through gcloud or the public service and must be captured by a
-small read-only App Engine-side exporter or reconstructed and compared from the
-32 source app entities.
+cannot be queried through gcloud or the public service. An admin-only,
+aggregate-only App Engine inventory operation is now implemented and locally
+tested to enumerate and compare it with the 32 source app entities; it has not
+yet been deployed or run against the live index.
 
 Other stateful dependencies:
 
@@ -315,11 +316,13 @@ Infrastructure discovery and Datastore-side reconciliation are complete enough
 to choose the target topology. Remaining checks require access to bundled App
 Engine services rather than more one-off Datastore queries:
 
-- Copy and independently hash Blobstore contents; Datastore exposes their size
-  and MD5 metadata but not the object bytes through the Cloud Datastore client.
+- Deploy the reviewed, read-only bundled-services inventory operation to a
+  non-promoted App Engine version and capture two matching Blobstore content
+  hashes and Search comparisons. Datastore alone exposes only Blob metadata.
 - Investigate and classify the eight unreferenced Blobstore objects.
-- Reconstruct the `AppStoreItem` search index and, if necessary, add a temporary
-  read-only App Engine-side count operation to detect stale documents.
+- Use the captured Search comparison to decide whether stale, missing, or
+  content-mismatched documents require a later reviewed index rebuild. Do not
+  refresh the live index during inventory collection.
 - Decide whether the ten legacy `RetroStoreUser` records become invited
   Firebase identities, disabled historical records, or both. Firebase Auth has
   no existing identities or configuration to merge.

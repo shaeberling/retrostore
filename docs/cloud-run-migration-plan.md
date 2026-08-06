@@ -38,12 +38,16 @@ Completed foundation work:
 - The legacy Java build is reproducible again: Java 21.0.12+8 builds Java 11
   bytecode with checksum-pinned Gradle 8.14.5, the current App Engine plugin and
   stable SDK, immutable dependencies, full dependency verification, and CI.
+- An admin-only, no-store App Engine operation now streams and hashes all
+  Blobstore content and compares the live Search index with current app entities
+  using sanitized aggregate output. Ten focused Java tests cover its hashing,
+  reconciliation, access control, failure handling, and non-disclosure rules.
 
 Open foundation work:
 
-- Add an App Engine-side migration operation for Blobstore content checksums and
-  live Search-index inspection; these bundled-service values are not available
-  through the Cloud Datastore client.
+- Deploy the bundled-services inventory operation to a temporary, non-promoted
+  App Engine version and capture two matching production reports; implementation
+  and local tests are complete, but no version has been deployed or invoked.
 - The golden corpus still needs full catalog/media entity coverage,
   client-library runs, and synthetic state lifecycle cases. Representative real
   successes, boundaries, every request format, and malformed input for all nine
@@ -1000,6 +1004,10 @@ Phase 1:
 - [x] Produce the route and read-only cloud infrastructure inventory.
 - [x] Build a repeatable read-only exporter/reconciler for representative
   Objectify encodings, binary sizes and checksums, and reference integrity.
+- [x] Implement and test the sanitized App Engine-side Blobstore-content and
+  live Search-index inventory operation without deploying it.
+- [ ] Capture and reconcile two matching reports from a reviewed, non-promoted
+  App Engine version, then stop that temporary version.
 - [ ] Complete the comparison corpus and approved-difference format. The method
   registry, semantic normalizer, initial baseline, and two-host comparator are
   already implemented.
@@ -1007,13 +1015,14 @@ Phase 1:
   monitoring thresholds, and named rollback owners. Current DNS, certificates,
   HTTP behavior, and absence of an existing load balancer are documented.
 
-The next executable task is the narrowly scoped, read-only App Engine-side
-Blobstore checksum and Search-index inventory operation now unlocked by the
-reproducible Java build. It should emit aggregate reconciliation data without
-object contents or production identifiers and include focused tests. The Flask
-candidate can then implement the reviewed representative corpus behind a
-storage abstraction while the complete every-entity/client/state corpus
-continues to grow. No named database or bucket is needed for these tasks.
+The next executable task is a reviewed deployment of the read-only bundled-
+services inventory operation to a temporary, non-promoted App Engine version,
+followed by two matching sanitized captures and shutdown of that version. This
+is an explicit production-environment change and is not performed by the local
+implementation work. After that evidence is retained, the Flask candidate can
+implement the reviewed representative corpus behind a storage abstraction while
+the complete every-entity/client/state corpus continues to grow. No named
+database or bucket is needed for these tasks.
 
 No production data, Firebase configuration, or routing should change during this
 milestone.

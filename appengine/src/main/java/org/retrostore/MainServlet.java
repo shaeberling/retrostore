@@ -16,6 +16,7 @@
 
 package org.retrostore;
 
+import com.google.appengine.api.blobstore.BlobInfoFactory;
 import com.google.appengine.api.blobstore.BlobstoreService;
 import com.google.appengine.api.blobstore.BlobstoreServiceFactory;
 import com.google.appengine.api.images.ImagesService;
@@ -40,6 +41,7 @@ import org.retrostore.data.user.UserService;
 import org.retrostore.data.user.UserServiceImpl;
 import org.retrostore.data.xray.StateManagement;
 import org.retrostore.data.xray.StateManagementImpl;
+import org.retrostore.migration.BundledServicesInventory;
 import org.retrostore.request.Cache;
 import org.retrostore.request.DownloadAppRequest;
 import org.retrostore.request.EnsureAdminExistsRequest;
@@ -47,6 +49,7 @@ import org.retrostore.request.FaviconRequest;
 import org.retrostore.request.ForwardingRequest;
 import org.retrostore.request.ImportRpkRequest;
 import org.retrostore.request.LoginRequest;
+import org.retrostore.request.MigrationInventoryRequest;
 import org.retrostore.request.PingRequest;
 import org.retrostore.request.PolymerRequest;
 import org.retrostore.request.PublicSiteRequest;
@@ -78,6 +81,7 @@ import org.retrostore.rpc.internal.RpcCallRequest;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -136,7 +140,12 @@ public class MainServlet extends RetroStoreServlet {
         new StaticFileRequest(m.defaultResourceLoader),
         new PostUploadRequest(m.appManagement),
         new ApiRequest(m.appManagement, m.imgServWrapper, m.stateManagement),
-        new UpdateDataRequest(m.appSearch, m.appManagement)
+        new UpdateDataRequest(m.appSearch, m.appManagement),
+        new MigrationInventoryRequest(
+            () ->
+                BundledServicesInventory.forAppEngine(
+                        new BlobInfoFactory(), m.blobstoreService, m.searchService)
+                    .create(m.appManagement.getAllApps(), Instant.now()))
         // Note: Add more request servers here. Keep in mind that this is in priority-order.
         );
   }

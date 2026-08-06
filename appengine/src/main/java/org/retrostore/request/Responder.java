@@ -105,6 +105,18 @@ public class Responder {
     }
   }
 
+  /** Converts the given object into non-cacheable JSON and sends it. */
+  public void respondJsonNoStore(Object object) {
+    try {
+      mResponse.setHeader("Cache-Control", "no-store");
+      mResponse.setHeader("Pragma", "no-cache");
+      mResponse.setContentType(ContentType.JSON.str);
+      mResponse.getWriter().write((new Gson()).toJson(object));
+    } catch (IOException ex) {
+      LOG.log(Level.SEVERE, "Cannot serve data", ex);
+    }
+  }
+
   /** Respond with a Protocol Buffer lite message. */
   public void respondProto(com.google.protobuf.GeneratedMessageLite object) {
     try {
@@ -125,6 +137,11 @@ public class Responder {
   /** Respond with a bad request and a plain text error message. */
   public void respondForbidden(String content) {
     respond(content, ContentType.PLAIN, HttpServletResponse.SC_FORBIDDEN);
+  }
+
+  /** Respond with an internal-server-error code and a plain text error message. */
+  public void respondInternalServerError(String content) {
+    respond(content, ContentType.PLAIN, HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
   }
 
   /** Respond with not-found error code and no content. */
