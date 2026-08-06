@@ -41,19 +41,28 @@ Completed foundation work:
   stable SDK, immutable dependencies, full dependency verification, and CI.
 - An admin-only, no-store App Engine operation now streams and hashes all
   Blobstore content and compares the live Search index with current app entities
-  using sanitized aggregate output. Ten focused Java tests cover its hashing,
+  using sanitized aggregate output. Eleven focused Java tests cover its hashing,
   reconciliation, access control, failure handling, and non-disclosure rules.
+- Corrected version `migration-inventory-20260806-112020` is deployed on App
+  Engine Java 25 in EE 8 compatibility mode with 0% traffic. An unauthenticated
+  version-hostname smoke test returned the intended HTTP 403, and the production
+  Java 11 version remains the sole 100% traffic allocation.
 
 Open foundation work:
 
-- Deploy the bundled-services inventory operation to a temporary, non-promoted
-  App Engine version and capture two matching production reports; implementation
-  and local tests are complete, but no version has been deployed or invoked.
+- Authenticate as an existing RetroStore admin on corrected version
+  `migration-inventory-20260806-112020`, capture two matching production
+  reports, compare them with the Datastore inventory, and then stop the
+  temporary migration versions after the reviewed artifact is retained. The
+  privileged inventory operation has not yet been invoked.
 - The golden corpus still needs full catalog/media entity coverage,
   client-library runs, and synthetic state lifecycle cases. Representative real
   successes, boundaries, every request format, and malformed input for all nine
   methods are covered.
-- No production resources or routing have been created or changed.
+- No production routing has changed. Two temporary Java 25 versions exist at
+  0% traffic; `migration-inventory-20260806-111431` is the superseded pre-fix
+  smoke-test candidate and `migration-inventory-20260806-112020` is the
+  corrected report-capture candidate.
 
 ## Executive summary
 

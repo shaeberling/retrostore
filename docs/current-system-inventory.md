@@ -60,16 +60,20 @@ Observed Firebase resources:
 | Default service account | `trs-80@appspot.gserviceaccount.com` |
 | Serving status | `SERVING` |
 | Services | One: `default` |
-| Deployed versions | 15 |
+| Deployed versions | 17 |
 | Live version | `20230819t145020` |
 | Live runtime | Java 11, standard environment, F1 |
 | Traffic | 100% to the live version |
 
-The other fourteen versions are Java 8 deployments from 2022, receive no
-traffic, and remain in `SERVING` state. The live version was deployed on
-2023-08-19 and has App Engine bundled APIs enabled. A single dynamic instance
-was observed during inventory; instance counts and traffic metrics are
-transient and are not migration capacity targets.
+Fourteen older versions are Java 8 deployments from 2022, receive no traffic,
+and remain in `SERVING` state. Two temporary Java 25 migration candidates were
+deployed on 2026-08-06 and also receive 0% traffic:
+`migration-inventory-20260806-111431` is the superseded pre-fix smoke-test
+candidate, and `migration-inventory-20260806-112020` is the corrected candidate.
+The live version was deployed on 2023-08-19 and has App Engine bundled APIs
+enabled. A single dynamic instance was observed during the initial inventory;
+instance counts and traffic metrics are transient and are not migration
+capacity targets.
 
 The App Engine application currently owns the production custom-domain front
 door directly:
@@ -318,9 +322,11 @@ Infrastructure discovery and Datastore-side reconciliation are complete enough
 to choose the target topology. Remaining checks require access to bundled App
 Engine services rather than more one-off Datastore queries:
 
-- Deploy the reviewed, read-only bundled-services inventory operation to a
-  non-promoted App Engine version and capture two matching Blobstore content
-  hashes and Search comparisons. Datastore alone exposes only Blob metadata.
+- Authenticate to corrected, non-promoted version
+  `migration-inventory-20260806-112020` and capture two matching Blobstore
+  content hashes and Search comparisons. Datastore alone exposes only Blob
+  metadata. Stop both temporary migration versions after the reviewed artifact
+  is retained.
 - Investigate and classify the eight unreferenced Blobstore objects.
 - Use the captured Search comparison to decide whether stale, missing, or
   content-mismatched documents require a later reviewed index rebuild. Do not

@@ -81,23 +81,28 @@ Run the complete Java build locally:
 ./gradlew --no-daemon :appengine:build
 ```
 
-The focused suite currently contains ten tests for bounded reads, incomplete
+The focused suite currently contains eleven tests for bounded reads, incomplete
 reads, both MD5 encodings, deterministic hashing, Search reconciliation,
 serialized-data suppression, route isolation, role/method enforcement,
-failure redaction, and no-store response headers.
+login-handler bypass, failure redaction, and no-store response headers.
 
-No version has been deployed as part of this implementation. Before collecting
-the live report:
+Corrected version `migration-inventory-20260806-112020` was deployed on
+2026-08-06 using App Engine Java 25 in EE 8 compatibility mode with promotion
+disabled. It is `SERVING` at 0% traffic, and an unauthenticated request to the
+operation returned HTTP 403. The privileged inventory scan has not been run.
+Superseded smoke-test version `migration-inventory-20260806-111431` also remains
+at 0% traffic pending reviewed cleanup.
 
-1. Review and commit the operation.
-2. Deploy it as a new App Engine version with `promote = false`.
-3. Authenticate as an existing RetroStore admin on the version hostname.
-4. Capture the report to a restricted migration-artifact location.
-5. Repeat it and require identical aggregate digests and counts after excluding
+To collect the live report:
+
+1. Authenticate as an existing RetroStore admin on the corrected version
+   hostname.
+2. Capture the report to a restricted migration-artifact location.
+3. Repeat it and require identical aggregate digests and counts after excluding
    `generated_at`.
-6. Compare its Blob counts/bytes with the Datastore inventory and its expected
+4. Compare its Blob counts/bytes with the Datastore inventory and its expected
    Search count with the catalog inventory.
-7. Stop the temporary version after the reviewed report is retained.
+5. Stop both temporary versions after the reviewed report is retained.
 
 Do not change `retrostore.org`, the public `/api/*` routes, or production traffic
 to run this operation.
