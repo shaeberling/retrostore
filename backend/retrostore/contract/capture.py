@@ -9,11 +9,11 @@ from typing import Any
 import httpx
 
 from retrostore.contract.observations import observe_response
-from retrostore.contract.scenarios import safe_baseline_scenarios, safe_legacy_json_scenarios
+from retrostore.contract.scenarios import all_safe_scenarios
 
 
 def capture(base_url: str, timeout_seconds: float = 30.0) -> dict[str, Any]:
-    scenarios = (*safe_baseline_scenarios(), *safe_legacy_json_scenarios())
+    scenarios = all_safe_scenarios()
     observations = []
     with httpx.Client(base_url=base_url, follow_redirects=False, timeout=timeout_seconds) as client:
         for scenario in scenarios:
@@ -22,9 +22,10 @@ def capture(base_url: str, timeout_seconds: float = 30.0) -> dict[str, Any]:
             observations.append(observe_response(scenario, response).to_dict())
 
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "captured_at": datetime.now(UTC).isoformat(),
         "base_url": base_url.rstrip("/"),
+        "scenario_count": len(scenarios),
         "observations": observations,
     }
 

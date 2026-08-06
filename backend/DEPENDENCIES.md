@@ -1,6 +1,6 @@
 # Backend runtime and dependency audit
 
-Last audited: 2026-08-05
+Last audited: 2026-08-06
 
 ## Runtime decision
 
@@ -56,8 +56,8 @@ introduced during an ordinary build.
   `x86_64` and macOS ARM64, so neither local development nor the Cloud Run image
   needs to compile gRPC from source.
 - Protobuf 7.35.1 supports Python 3.10 and newer and publishes an ABI3 wheel.
-- Datastore, Firestore, Storage, pytest, pytest-cov, Ruff, and uv explicitly classify
-  Python 3.14 support in current PyPI metadata.
+- Datastore, Firestore, Storage, pytest, pytest-cov, Ruff, and uv explicitly
+  classify Python 3.14 support in current PyPI metadata.
 - Firebase Admin, Flask, Gunicorn, and HTTPX publish platform-independent Python
   wheels whose `Requires-Python` ranges include 3.14. They install and execute in
   the checked Python 3.14 environment.
@@ -76,10 +76,10 @@ uv pip check                  -> all installed packages are compatible
 
 Validation under CPython 3.14.6:
 
-- All 26 unit, contract, and inventory tests pass with pytest 9.1.1.
+- All 37 unit, contract, and inventory tests pass with pytest 9.1.1.
 - Ruff passes with `target-version = "py314"`.
 - Both Gunicorn 26 application factories pass `--check-config`.
-- The twelve mutation-safe live App Engine observations have zero differences
+- The 45 mutation-safe live App Engine observations have zero differences
   from the reviewed golden baseline when captured with Python 3.14 and
   protobuf 7.
 - The lockfile passes `uv lock --check` with the pinned uv 0.12.1 build tool.

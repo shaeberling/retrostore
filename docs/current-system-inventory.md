@@ -2,7 +2,7 @@
 
 Status: Infrastructure and Datastore inventory complete; bundled-service validation remains
 
-Last verified: 2026-08-05
+Last verified: 2026-08-06
 
 This document records observed production and source behavior. Unknown values
 remain explicit; no production resources were created or modified while
@@ -164,7 +164,8 @@ exact revision and checksums in `backend/proto/UPSTREAM.md`.
 
 ### Observed live transport behavior
 
-Mutation-safe probes against `retrostore.org` on 2026-08-05 establish:
+Mutation-safe probes against `retrostore.org` on 2026-08-05 and 2026-08-06
+establish:
 
 - Headerless POST requests are accepted.
 - GET and HEAD reach API methods as well as POST.
@@ -178,15 +179,23 @@ Mutation-safe probes against `retrostore.org` on 2026-08-05 establish:
   the observed response does not include an allow-origin header.
 - Raw-region errors return an empty `application/octet-stream` body with HTTP
   200 and the wildcard allow-origin header.
+- Four invalid-input paths currently return HTTP 500, `text/html`, and no CORS
+  header: negative `listApps.start`, a well-formed media token naming a missing
+  file, malformed `fetchMediaImages`, and malformed `fetchMediaImageRefs`.
 
-The reviewed initial golden baseline has twelve scenarios: one mutation-safe
-protobuf scenario per method plus the three supported legacy JSON forms. It is
-stored in `backend/tests/contract/golden/live-safe-baseline.json`.
+The reviewed golden baseline has 45 scenarios: 12 established baselines, 9
+successful reads, 15 boundary cases, and malformed protobuf for all 9 methods.
+It freezes catalog ordering, protobuf and legacy JSON success behavior, media
+selection and placeholders, binary hashes, raw prefix/tail/EOF reads, missing
+state behavior, and the four HTTP 500 cases above. Two independent complete
+captures matched with zero differences. It is stored in
+`backend/tests/contract/golden/live-safe-baseline.json`.
 
 Important legacy edge case: an empty `uploadState` message has no memory
 regions, passes `allMatch`, and allocates a token. Contract probes must never use
-an empty upload. The checked-in safe scenario includes a negative-start memory
-region and is rejected before state storage.
+an empty upload. The corpus checks both a negative-start region and malformed
+protobuf, and its safety guard refuses to run any write scenario that could
+reach state storage.
 
 ## Datastore, Blobstore, and bundled-service data
 

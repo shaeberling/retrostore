@@ -2,7 +2,7 @@
 
 Status: In progress
 
-Last updated: 2026-08-05
+Last updated: 2026-08-06
 
 ## Implementation status
 
@@ -22,9 +22,9 @@ Completed foundation work:
   backend linter and tests on pushes and pull requests to `master`.
 - A machine-readable registry freezes all nine API methods, both raw-byte
   responses, all three legacy JSON forms, and the state-writing method.
-- A mutation-safe contract harness, semantic protobuf normalizer, two-host
-  comparator, and initial reviewed twelve-scenario App Engine golden baseline
-  are in place.
+- A mutation-safe contract harness, binary-aware semantic protobuf normalizer,
+  two-host comparator, and reviewed 45-scenario App Engine golden baseline are
+  in place. Two independent complete captures matched with zero differences.
 - The read-only production infrastructure inventory is recorded in
   `docs/current-system-inventory.md`: App Engine deployment and domains,
   Datastore kind counts, Blobstore size, buckets, DNS, IAM, and the absence of
@@ -41,9 +41,10 @@ Open foundation work:
 - Add an App Engine-side migration operation for Blobstore content checksums and
   live Search-index inspection; these bundled-service values are not available
   through the Cloud Datastore client.
-- The golden corpus still needs real catalog/media success cases, boundaries,
-  malformed inputs, full entity coverage, client-library runs, and synthetic
-  state lifecycle cases.
+- The golden corpus still needs full catalog/media entity coverage,
+  client-library runs, and synthetic state lifecycle cases. Representative real
+  successes, boundaries, every request format, and malformed input for all nine
+  methods are covered.
 - No production resources or routing have been created or changed.
 
 ## Executive summary
@@ -987,9 +988,12 @@ Phase 1:
 - [x] Establish the locked Python project and two Flask application skeletons.
 - [ ] Pin the legacy Java toolchain sufficiently to run baseline tests and build
   the migration exporter.
-- [ ] Expand the initial safe baseline into golden success, boundary, malformed,
-  media, and state-lifecycle cases.
-- [ ] Run the expanded suite against App Engine and the local Flask candidate.
+- [x] Expand the initial safe baseline into representative golden success,
+  boundary, malformed, catalog, and media cases.
+- [x] Run and repeat the expanded suite against App Engine with zero differences.
+- [ ] Add every-app/media coverage, client-library runs, and isolated synthetic
+  state lifecycle cases.
+- [ ] Run the expanded suite against the local Flask candidate.
 - [x] Produce the route and read-only cloud infrastructure inventory.
 - [x] Build a repeatable read-only exporter/reconciler for representative
   Objectify encodings, binary sizes and checksums, and reference integrity.
@@ -1000,12 +1004,12 @@ Phase 1:
   monitoring thresholds, and named rollback owners. Current DNS, certificates,
   HTTP behavior, and absence of an existing load balancer are documented.
 
-The next executable task is to expand the public API golden corpus with real
-catalog/media successes, boundaries, and malformed inputs, using the reconciled
-production shapes to choose representative cases. In parallel with that test
-work, the legacy Java toolchain needs to be pinned before adding the narrowly
-scoped App Engine-side Blobstore/Search migration operation. No named database
-or bucket is needed for either task.
+The next executable task is to pin the legacy Java toolchain and make its tests
+and build reproducible. That unlocks the narrowly scoped App Engine-side
+Blobstore/Search migration operation. The Flask candidate can then implement
+the now-reviewed representative corpus behind a storage abstraction while the
+complete every-entity/client/state corpus continues to grow. No named database
+or bucket is needed for these tasks.
 
 No production data, Firebase configuration, or routing should change during this
 milestone.

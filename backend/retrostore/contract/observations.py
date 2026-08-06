@@ -9,8 +9,10 @@ import httpx
 from google.protobuf import json_format
 from google.protobuf.message import Message
 
-from retrostore.contract.scenarios import ContractScenario
+from retrostore.contract.scenarios import ContractScenario, ScenarioCategory
 from retrostore.contracts import ResponseKind
+
+MAX_INLINE_BODY_BYTES = 64 * 1024
 
 
 @dataclass(frozen=True, slots=True)
@@ -18,12 +20,13 @@ class ResponseObservation:
     scenario: str
     method: str
     request_format: str
+    category: str
     status_code: int
     content_type: str | None
     access_control_allow_origin: str | None
     body_length: int
     body_sha256: str
-    body_base64: str
+    body_base64: str | None
     semantic_body: dict[str, Any] | None
 
     def to_dict(self) -> dict[str, Any]:
@@ -31,17 +34,18 @@ class ResponseObservation:
 
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> Self:
-        return cls(**value)
+        return cls(**{"category": ScenarioCategory.BASELINE, **value})
 
 
 def normalize_protobuf(message_type: type[Message], body: bytes) -> dict[str, Any]:
     message = message_type()
     message.ParseFromString(body)
-    return json_format.MessageToDict(
+    normalized = json_format.MessageToDict(
         message,
         preserving_proto_field_name=True,
         always_print_fields_with_no_presence=True,
     )
+    return _summarize_binary_fields(normalized)
 
 
 def observe_response(
@@ -49,7 +53,12 @@ def observe_response(
 ) -> ResponseObservation:
     body = response.content
     semantic_body = None
-    if scenario.method.response_kind == ResponseKind.PROTOBUF:
+    content_type = response.headers.get("content-type")
+    if (
+        scenario.method.response_kind == ResponseKind.PROTOBUF
+        and content_type is not None
+        and content_type.startswith("application/octet-stream")
+    ):
         if scenario.method.response_type is None:
             raise ValueError(f"{scenario.method.name} has no protobuf response type")
         semantic_body = normalize_protobuf(scenario.method.response_type, body)
@@ -58,14 +67,37 @@ def observe_response(
         scenario=scenario.name,
         method=scenario.method.name,
         request_format=scenario.request_format,
+        category=scenario.category,
         status_code=response.status_code,
-        content_type=response.headers.get("content-type"),
+        content_type=content_type,
         access_control_allow_origin=response.headers.get("access-control-allow-origin"),
         body_length=len(body),
         body_sha256=hashlib.sha256(body).hexdigest(),
-        body_base64=base64.b64encode(body).decode("ascii"),
+        body_base64=(
+            base64.b64encode(body).decode("ascii")
+            if len(body) <= MAX_INLINE_BODY_BYTES
+            else None
+        ),
         semantic_body=semantic_body,
     )
+
+
+def _summarize_binary_fields(value: Any) -> Any:
+    if isinstance(value, dict):
+        summarized = {}
+        for key, child in value.items():
+            if key == "data" and isinstance(child, str):
+                raw = base64.b64decode(child)
+                summarized[key] = {
+                    "size": len(raw),
+                    "sha256": hashlib.sha256(raw).hexdigest(),
+                }
+            else:
+                summarized[key] = _summarize_binary_fields(child)
+        return summarized
+    if isinstance(value, list):
+        return [_summarize_binary_fields(child) for child in value]
+    return value
 
 
 def compare_observations(

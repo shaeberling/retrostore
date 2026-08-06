@@ -1,11 +1,13 @@
 {
   "base_url": "https://retrostore.org",
+  "captured_at": "2026-08-05T23:58:43.921837+00:00",
   "observations": [
     {
       "access_control_allow_origin": "*",
       "body_base64": "Eh9JbnZhbGlkIHJlcXVlc3QsIGFwcElkIG1pc3Npbmcu",
       "body_length": 33,
       "body_sha256": "afe18390c991d945729e5bb84b6978dbe8780ece1fbcc528dddf3baf42cefc00",
+      "category": "baseline",
       "content_type": "application/octet-stream",
       "method": "getApp",
       "request_format": "protobuf",
@@ -22,6 +24,7 @@
       "body_base64": "Eh5QYXJhbWV0ZXIgJ3N0YXJ0JyBvdXQgb2YgcmFuZ2U=",
       "body_length": 32,
       "body_sha256": "a8739500a8ae182f5a841c1a7687088cee8b25777ec5fa8962097a622b7847ee",
+      "category": "baseline",
       "content_type": "application/octet-stream",
       "method": "listApps",
       "request_format": "protobuf",
@@ -38,6 +41,7 @@
       "body_base64": "Eh5QYXJhbWV0ZXIgJ3N0YXJ0JyBvdXQgb2YgcmFuZ2U=",
       "body_length": 32,
       "body_sha256": "a8739500a8ae182f5a841c1a7687088cee8b25777ec5fa8962097a622b7847ee",
+      "category": "baseline",
       "content_type": "application/octet-stream",
       "method": "listAppsNano",
       "request_format": "protobuf",
@@ -54,6 +58,7 @@
       "body_base64": "Eg9ObyBhcHBJZCBnaXZlbi4=",
       "body_length": 17,
       "body_sha256": "0fc3ddeef0bcf5c6484cf9e2647f996113e6afeb75b6d52cd4fd3279ea952ca6",
+      "category": "baseline",
       "content_type": "application/octet-stream",
       "method": "fetchMediaImages",
       "request_format": "protobuf",
@@ -70,6 +75,7 @@
       "body_base64": "Eg9ObyBhcHBJZCBnaXZlbi4=",
       "body_length": 17,
       "body_sha256": "0fc3ddeef0bcf5c6484cf9e2647f996113e6afeb75b6d52cd4fd3279ea952ca6",
+      "category": "baseline",
       "content_type": "application/octet-stream",
       "method": "fetchMediaImageRefs",
       "request_format": "protobuf",
@@ -86,6 +92,7 @@
       "body_base64": "",
       "body_length": 0,
       "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "category": "baseline",
       "content_type": "application/octet-stream",
       "method": "fetchMediaImageRegion",
       "request_format": "protobuf",
@@ -98,6 +105,7 @@
       "body_base64": "EhlVcGxvYWRlZCBzdGF0ZSBpcyBpbnZhbGlk",
       "body_length": 27,
       "body_sha256": "f249a75791d37931b3235b19b21df8c998db6c0aa182da5e13e323c034881103",
+      "category": "baseline",
       "content_type": "application/octet-stream",
       "method": "uploadState",
       "request_format": "protobuf",
@@ -114,6 +122,7 @@
       "body_base64": "EiZJbGxlZ2FsIHBhcmFtcy4gRW5zdXJlICd0b2tlbicgaXMgPiAwLg==",
       "body_length": 40,
       "body_sha256": "0954903ec7c968bf79b494ff97e202c9fd889773b92060a6cae8e6d24323149b",
+      "category": "baseline",
       "content_type": "application/octet-stream",
       "method": "downloadState",
       "request_format": "protobuf",
@@ -129,6 +138,7 @@
       "body_base64": "",
       "body_length": 0,
       "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "category": "baseline",
       "content_type": "application/octet-stream",
       "method": "downloadStateMemoryRegion",
       "request_format": "protobuf",
@@ -138,9 +148,630 @@
     },
     {
       "access_control_allow_origin": "*",
+      "body_base64": "CAESDEFsbCBnb29kIDotKRrZBAokMjU5ODQ3YWEtY2UzYS00OGJiLWEwMzctZTM5MmJlYjk2YjIyEiBTcGFjZSBJbnZhZGVycyAoTW9kZWwgSSBFZGl0aW9uKRoDMS4wIuUBSW5zcGlyZWQgYnkgU3BhY2UgSW52YWRlcnMsIHRoZSBmaXJzdCBBcmNhZGUgR2FtZSBJIHBsYXllZCBpbiBteSB5b3V0aCwgYW5kIGJ5IHRoZSBncmVhdCBCaWcgRml2ZSBHYW1lcywgd2hpY2ggbWFkZSBteSBodW1ibGUgVFJTLTgwIGFuIEFyY2FkZSBHYW1lIGNvbnNvbGUgYW5kIHJlYWxseSBzaG93ZWQgd2hhdCB3YXMgcG9zc2libGUuIEkgZW5qb3kgcGxheWluZyBpdCwgaG9wZSB5b3UgZG8gdG9vISjqDzKFAWh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9qaGhLcVBXdTlSTUJueF9KY3pfQ2p0cUJreXNBaW9rdnphdGROWnZ2UDVEbkZ1UUR4VDAwRzk3SnhTMHBLRUJPWjM2c3N2YUlQcXpReTRMRDBnVHhCSG0xRExkSGpRPXM4MDAyhgFodHRwczovL2xoMy5nb29nbGV1c2VyY29udGVudC5jb20vcGxBNUk4MjRZUGFaV1Z5WnVGbjhhTDBQRDRwOGl1MDFhd0c4M2FVeWVmU3pnYjBHdzloeDEtQ2s4d3B4YWtnTHh5TDBMY0ZHSHY1TzlQYUpVdTFmR3h1RHB2U29JQmc9czgwMDoKVGltIFdhbHRlckICCAE=",
+      "body_length": 620,
+      "body_sha256": "6ae5071d4ce2b77f773b2f3591cdae7d618cf878e4f1dc66de5ecb8b831ef9ae",
+      "category": "success",
+      "content_type": "application/octet-stream",
+      "method": "getApp",
+      "request_format": "protobuf",
+      "scenario": "get_app_existing",
+      "semantic_body": {
+        "app": [
+          {
+            "author": "Tim Walter",
+            "description": "Inspired by Space Invaders, the first Arcade Game I played in my youth, and by the great Big Five Games, which made my humble TRS-80 an Arcade Game console and really showed what was possible. I enjoy playing it, hope you do too!",
+            "ext_trs80": {
+              "model": "MODEL_I"
+            },
+            "id": "259847aa-ce3a-48bb-a037-e392beb96b22",
+            "name": "Space Invaders (Model I Edition)",
+            "release_year": 2026,
+            "screenshot_url": [
+              "https://lh3.googleusercontent.com/jhhKqPWu9RMBnx_Jcz_CjtqBkysAiokvzatdNZvvP5DnFuQDxT00G97JxS0pKEBOZ36ssvaIPqzQy4LD0gTxBHm1DLdHjQ=s800",
+              "https://lh3.googleusercontent.com/plA5I824YPaZWVyZuFn8aL0PD4p8iu01awG83aUyefSzgb0Gw9hx1-Ck8wpxakgLxyL0LcFGHv5O9PaJUu1fGxuDpvSoIBg=s800"
+            ],
+            "version": "1.0"
+          }
+        ],
+        "message": "All good :-)",
+        "success": true
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "CAESDEFsbCBnb29kIDotKRq5BQokOGMwMjhhZmUtOTZiMy0xMWU3LWE2OGItNWI2MTMzY2E1ZjBjEg5Bcm1vcmVkIFBhdHJvbBoDMS4wIt0CQXJtb3JlZCBQYXRyb2wgaXMgYSBkaWZmZXJlbnQgdmVyc2lvbiBvZiBvdXIgZmlyc3QgZ2FtZSwgYSB2ZXJzaW9uIG9mIHRoZSBvbGQgY29pbi1vcCBnYW1lIEJBVFRMRVpPTkUuIFRoZSBvcmlnaW5hbCB3YXMgY2FsbGVkIFRhbmsgWm9uZSAyMDAwIChJIGhhdGUgdGhhdCBuYW1lISkuIFdlIHN1Ym1pdHRlZCBpdCB0byBTY290dCBBZGFtcycgY29tcGFueSBBZHZlbnR1cmUgSW50ZXJuYXRpb25hbCB3aG9zZSBtYXJrZXRpbmcgZHJvaWRzIG1hZGUgdXMgY2hhbmdlIHRoZSBweXJhbWlkcyB0byBob3VzZXMsIHRoZSBmbHlpbmcgc2F1Y2VyIHRvIGEgcm9ib3QgYW5kIHRoZSBuYW1lIHRvIEFybW9yZWQgUGF0cm9sLii9DzJ3aHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL05WVlVVZkZPVV9zc1FIOGtvOV95cWpXSUEwS2xCWExtZ2pvMDFNZXRYenVPRW93WW9ZdWpSNjhBVy01a3Q3UUFQN29IeGhHa2lGVFVyeV9sPXM4MDAyd2h0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9MX3oyYXVmTzJFTFZDMzJHQnhsTURjdE1tWEh5N2Y1UnNfSGFZMzNOYVd0VGE1SkJCZTJBVE4xVmpfU0lJNDRFU2ZWdk9fZEJ1TmFEbk1lZz1zODAwOiNXYXluZSBXZXN0bW9yZWxhbmQgYW5kIFRlcnJ5IEdpbG1hbkICCAIamAgKJGIzMDY0MjRjLTk5MTctMTFlNy05NzAzLTJmYTYzMjEwN2FjNxIMQXR0YWNrIEZvcmNlGgMxLjAi0ANUaGUgZ29hbCBpbiBBdHRhY2sgRm9yY2Ugd2FzIHRvIGRyaXZlIHlvdXIgbGl0dGxlIHNoaXAgYmV0d2VlbiB0aGUgd2hpdGUgc3F1YXJlcyBhbmQgYmxhc3QgdGhlIGJhZCByYW1zaGlwcy4gIEJ5IG5vdyBvdXIgc2lnbmF0dXJlICJmbGFnc2hpcCIgYWxpZW4gaGFkIGJlY29tZSBhIHJlZ3VsYXIgY2hhcmFjdGVyIGluIGV2ZXJ5IGdhbWUuICBUaGUgZHJlYWRlZCBmbGFnc2hpcCBoYWQgYW4gZXZpbCByb3RhdGluZyBleWUgYW5kIGFsc28gcG9zc2Vzc2VkIGEgdmVyeSBkZWFkbHkgbGFzZXIgYm9sdC4gIEkgbGlrZWQgdGhlIGxhc2VyIGJvbHQgZWZmZWN0IHNvIG11Y2ggdGhhdCBJIHVzZWQgaXQgb24gdGhlIHRpdGxlIHBhZ2UgdG8gZHJhdyB0aGUgQXR0YWNrIEZvcmNlIGxvZ28uICBJIHN0aWxsIGhhdmUgdGhlIG9yaWdpbmFsIHBhY2thZ2UgYXJ0d29yayBmb3IgU3VwZXIgTm92YSBhbmQgQXR0YWNrIEZvcmNlLii8DzJ5aHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2wzWlF3M2VXQWFFRG5pRFF6OVBxdmZnR0JBczNKUHVKNDc2alNJVUFxbjFuUkV5V3lXZl9VN3QzVng1d2otNHhVS0s1ekJfbUZLQm50RzhZT2c9czgwMDJ5aHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tLzd2U2E5RnU1eF9NYmZ4NUx6ZGdqSnVnMGdWc2h6YTduNWNFYXBUZWN5NXpvLXNyQTJnQnpoLU1pMEJKQzRfUGNqdVU2R3lxY3JFb3NGRnBjc3c9czgwMDJ5aHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL0E2T2RsUlQydVRLbm5MdmJXN21JYlI3ajNITnB4eHAtQ2FXZ2JfQTB3OEZ5THdOYXNINWpsLVZtbk52Z2N1NWZTbzNQVnVoQ2ktQXBET004a3c9czgwMDJ3aHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL1FoMHAxWnZkMkpnMUR1VXNIb0lzR3huUU85cU9KQUZmOWhLb2RXdmRIUFhpTWtEUGFDUXdva0tFMlZxbGdjR0dxVGlKYVRpR1RkUVJMZVNFPXM4MDA6GUJpbGwgSG9ndWUgYW5kIEplZmYgS29ueXVCAggC",
+      "body_length": 1767,
+      "body_sha256": "4d500bab07d4b2675d3417ed3f7da18734bd3fae252ad4ce27d1773ab6eb43b5",
+      "category": "success",
+      "content_type": "application/octet-stream",
+      "method": "listApps",
+      "request_format": "protobuf",
+      "scenario": "list_apps_first_page",
+      "semantic_body": {
+        "app": [
+          {
+            "author": "Wayne Westmoreland and Terry Gilman",
+            "description": "Armored Patrol is a different version of our first game, a version of the old coin-op game BATTLEZONE. The original was called Tank Zone 2000 (I hate that name!). We submitted it to Scott Adams' company Adventure International whose marketing droids made us change the pyramids to houses, the flying saucer to a robot and the name to Armored Patrol.",
+            "ext_trs80": {
+              "model": "MODEL_III"
+            },
+            "id": "8c028afe-96b3-11e7-a68b-5b6133ca5f0c",
+            "name": "Armored Patrol",
+            "release_year": 1981,
+            "screenshot_url": [
+              "https://lh3.googleusercontent.com/NVVUUfFOU_ssQH8ko9_yqjWIA0KlBXLmgjo01MetXzuOEowYoYujR68AW-5kt7QAP7oHxhGkiFTUry_l=s800",
+              "https://lh3.googleusercontent.com/L_z2aufO2ELVC32GBxlMDctMmXHy7f5Rs_HaY33NaWtTa5JBBe2ATN1Vj_SII44ESfVvO_dBuNaDnMeg=s800"
+            ],
+            "version": "1.0"
+          },
+          {
+            "author": "Bill Hogue and Jeff Konyu",
+            "description": "The goal in Attack Force was to drive your little ship between the white squares and blast the bad ramships.  By now our signature \"flagship\" alien had become a regular character in every game.  The dreaded flagship had an evil rotating eye and also possessed a very deadly laser bolt.  I liked the laser bolt effect so much that I used it on the title page to draw the Attack Force logo.  I still have the original package artwork for Super Nova and Attack Force.",
+            "ext_trs80": {
+              "model": "MODEL_III"
+            },
+            "id": "b306424c-9917-11e7-9703-2fa632107ac7",
+            "name": "Attack Force",
+            "release_year": 1980,
+            "screenshot_url": [
+              "https://lh3.googleusercontent.com/l3ZQw3eWAaEDniDQz9PqvfgGBAs3JPuJ476jSIUAqn1nREyWyWf_U7t3Vx5wj-4xUKK5zB_mFKBntG8YOg=s800",
+              "https://lh3.googleusercontent.com/7vSa9Fu5x_Mbfx5LzdgjJug0gVshza7n5cEapTecy5zo-srA2gBzh-Mi0BJC4_PcjuU6GyqcrEosFFpcsw=s800",
+              "https://lh3.googleusercontent.com/A6OdlRT2uTKnnLvbW7mIbR7j3HNpxxp-CaWgb_A0w8FyLwNasH5jl-VmnNvgcu5fSo3PVuhCi-ApDOM8kw=s800",
+              "https://lh3.googleusercontent.com/Qh0p1Zvd2Jg1DuUsHoIsGxnQO9qOJAFf9hKodWvdHPXiMkDPaCQwokKE2VqlgcGGqTiJaTiGTdQRLeSE=s800"
+            ],
+            "version": "1.0"
+          }
+        ],
+        "message": "All good :-)",
+        "success": true
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "CAESDEFsbCBnb29kIDotKRpnCiQ4YzAyOGFmZS05NmIzLTExZTctYTY4Yi01YjYxMzNjYTVmMGMSDkFybW9yZWQgUGF0cm9sGgMxLjAgvQ8qI1dheW5lIFdlc3Rtb3JlbGFuZCBhbmQgVGVycnkgR2lsbWFuMgIIAhpbCiRiMzA2NDI0Yy05OTE3LTExZTctOTcwMy0yZmE2MzIxMDdhYzcSDEF0dGFjayBGb3JjZRoDMS4wILwPKhlCaWxsIEhvZ3VlIGFuZCBKZWZmIEtvbnl1MgIIAg==",
+      "body_length": 214,
+      "body_sha256": "cce71023198ca20a2c1d66e9376cd62e20d7c6c94acdf7704aab6224f70f7c70",
+      "category": "success",
+      "content_type": "application/octet-stream",
+      "method": "listAppsNano",
+      "request_format": "protobuf",
+      "scenario": "list_apps_nano_first_page",
+      "semantic_body": {
+        "app": [
+          {
+            "author": "Wayne Westmoreland and Terry Gilman",
+            "ext_trs80": {
+              "model": "MODEL_III"
+            },
+            "id": "8c028afe-96b3-11e7-a68b-5b6133ca5f0c",
+            "name": "Armored Patrol",
+            "release_year": 1981,
+            "version": "1.0"
+          },
+          {
+            "author": "Bill Hogue and Jeff Konyu",
+            "ext_trs80": {
+              "model": "MODEL_III"
+            },
+            "id": "b306424c-9917-11e7-9703-2fa632107ac7",
+            "name": "Attack Force",
+            "release_year": 1980,
+            "version": "1.0"
+          }
+        ],
+        "message": "All good :-)",
+        "success": true
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "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",
+      "body_length": 3521,
+      "body_sha256": "1483a57f4d933c856e9c92ec56e498125048b59b234cd8fa5b3044334c3ec2b3",
+      "category": "success",
+      "content_type": "application/octet-stream",
+      "method": "fetchMediaImages",
+      "request_format": "protobuf",
+      "scenario": "fetch_media_images_command",
+      "semantic_body": {
+        "mediaImage": [
+          {
+            "data": {
+              "sha256": "312f570af4c76ed5f3ba50a0e68ba02a9188ebc0f49f459f6ffd751812d1f6d3",
+              "size": 3477
+            },
+            "description": "",
+            "filename": "command.CMD",
+            "type": "COMMAND",
+            "uploadTime": "1784576089251"
+          }
+        ],
+        "message": "All good :-)",
+        "success": true
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "CAESDEFsbCBnb29kIDotKRpKCAESCmRpc2tfMC5kc2saLzI1OTg0N2FhLWNlM2EtNDhiYi1hMDM3LWUzOTJiZWI5NmIyMi9kaXNrXzAuZHNrILC1mIj4MzCAgAYaSwgDEgtjb21tYW5kLkNNRBowMjU5ODQ3YWEtY2UzYS00OGJiLWEwMzctZTM5MmJlYjk2YjIyL2NvbW1hbmQuQ01EIKO5mIj4MzCVGw==",
+      "body_length": 169,
+      "body_sha256": "0abf2f7e99833e8bec7e08ab414462799e3b00d20abd6cdf9641f13ccfe30ff7",
+      "category": "success",
+      "content_type": "application/octet-stream",
+      "method": "fetchMediaImageRefs",
+      "request_format": "protobuf",
+      "scenario": "fetch_media_refs_all",
+      "semantic_body": {
+        "mediaImageRef": [
+          {
+            "description": "",
+            "filename": "disk_0.dsk",
+            "size": 98304,
+            "token": "259847aa-ce3a-48bb-a037-e392beb96b22/disk_0.dsk",
+            "type": "DISK",
+            "uploadTime": "1784576088752"
+          },
+          {
+            "description": "",
+            "filename": "command.CMD",
+            "size": 3477,
+            "token": "259847aa-ce3a-48bb-a037-e392beb96b22/command.CMD",
+            "type": "COMMAND",
+            "uploadTime": "1784576089251"
+          }
+        ],
+        "message": "All good :-)",
+        "success": true
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "AQIAVfMx/3/NI1YhFVcRWQ==",
+      "body_length": 16,
+      "body_sha256": "c2720591c55425965025e7144de356599157ccee82e199990b94e110d2f86b79",
+      "category": "success",
+      "content_type": "application/octet-stream",
+      "method": "fetchMediaImageRegion",
+      "request_format": "protobuf",
+      "scenario": "fetch_media_region_prefix",
+      "semantic_body": null,
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
       "body_base64": "Eg5BcHAgbm90IGZvdW5kLg==",
       "body_length": 16,
       "body_sha256": "47041e705eede5292b83cac9c879e0407fdebfdda6d5ad0380989ed7df85cc3a",
+      "category": "boundary",
+      "content_type": "application/octet-stream",
+      "method": "getApp",
+      "request_format": "protobuf",
+      "scenario": "get_app_not_found",
+      "semantic_body": {
+        "app": [],
+        "message": "App not found.",
+        "success": false
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "CAESDEFsbCBnb29kIDotKQ==",
+      "body_length": 16,
+      "body_sha256": "b34f45cce201e7a3c21f7ef376abdf5fc58952dea3603fa3ae432f26dce672c6",
+      "category": "boundary",
+      "content_type": "application/octet-stream",
+      "method": "listApps",
+      "request_format": "protobuf",
+      "scenario": "list_apps_zero_count",
+      "semantic_body": {
+        "app": [],
+        "message": "All good :-)",
+        "success": true
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "CAESDEFsbCBnb29kIDotKQ==",
+      "body_length": 16,
+      "body_sha256": "b34f45cce201e7a3c21f7ef376abdf5fc58952dea3603fa3ae432f26dce672c6",
+      "category": "boundary",
+      "content_type": "application/octet-stream",
+      "method": "listApps",
+      "request_format": "protobuf",
+      "scenario": "list_apps_negative_count",
+      "semantic_body": {
+        "app": [],
+        "message": "All good :-)",
+        "success": true
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": null,
+      "body_base64": "PGh0bWw+PGhlYWQ+PHRpdGxlPlNlcnZlciBFcnJvcjwvdGl0bGU+PC9oZWFkPjxib2R5PlJlcXVlc3QgZmFpbGVkOiBVbmV4cGVjdGVkIGV4Y2VwdGlvbiBmcm9tIHNlcnZsZXQ6IGphdmEubGFuZy5JbmRleE91dE9mQm91bmRzRXhjZXB0aW9uOiBJbmRleCAtMSBvdXQgb2YgYm91bmRzIGZvciBsZW5ndGggMzI8L2JvZHk+PC9odG1sPg==",
+      "body_length": 190,
+      "body_sha256": "043b39917dd53877065e979550e6b35cef4a12ed2c41c0dfeff54d7c9f77c987",
+      "category": "boundary",
+      "content_type": "text/html",
+      "method": "listApps",
+      "request_format": "protobuf",
+      "scenario": "list_apps_negative_start",
+      "semantic_body": null,
+      "status_code": 500
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "CAESDEFsbCBnb29kIDotKRrGBgokMWNhNDUwNGMtOTZiNC0xMWU3LTkwZTgtM2IwNmIyMDAyZWJjEgZaYXh4b24aAzEuMCLzA1RoaXMgdGltZSB3ZSBnb3QgcGVybWlzc2lvbiBmaXJzdC4gU2VnYSBnYXZlIHVzIGEgbGljZW5zZSBmb3IgdGhlIGdhbWUgWkFYWE9OIGFuZCB0aGVuIHdlIHdyb3RlIHRoaXMuIEJ5IHRoaXMgdGltZSwgVGFuZHkvUmFkaW8gU2hhY2sgaGFkIHN0YXJ0ZWQgYWNjZXB0aW5nIHRoaXJkIHBhcnR5IHByb2dyYW1zIGZvciBzYWxlIGluIHRoZWlyIHN0b3JlcyBhbmQgc28gd2Ugc3RydWNrIGEgZGVhbCB3aXRoIHRoZW0gaW5zdGVhZCBvZiBBZHZlbnR1cmUgSW50ZXJuYXRpb25hbC4gSG93ZXZlciBtYW51ZmFjdHVyaW5nIHByb2JsZW1zIG9uIG91ciBlbmQgbGltaXRlZCB0aGUgZGlzdHJpYnV0aW9uLiBVc2UgdGhlIGFycm93IGtleXMgdG8gbW92ZSBhbmQgU1BBQ0UgQkFSIHRvIGZpcmUuIFRoZSBnYW1lIGNhbiBiZSBzdG9wcGVkIGJ5IGhpdHRpbmcgU0hJRlQrUywgYW5kIHJlc3RhcnRlZCBieSB0aGVuIGhpdHRpbmcgRU5URVIuIFNISUZUK0JSRUFLIGFib3J0cyB0aGUgZ2FtZS4ovg8yd2h0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9CemRzTWJjY2NOdzN2YWxvUEIyRnJnV1l6MVZ6bmFUcmxlR1QzTmJDX2xJMmZCd1pNYmVDS0VBdV9xZWpBTFQ1V0JaZUJGS25ET0JNa1hCZT1zODAwMnZodHRwczovL2xoMy5nb29nbGV1c2VyY29udGVudC5jb20vNVVHNFk3bF9Odl9QS09xZ2xOaHZQM1puT2hDWVFEN3NtRjhHRUFxY09KS0thQWI4STFfa0ZTVlgzdlJORnBfeUVycElpdUhSVEU4S3k4QT1zODAwOiNXYXluZSBXZXN0bW9yZWxhbmQgYW5kIFRlcnJ5IEdpbG1hbkICCAI=",
+      "body_length": 857,
+      "body_sha256": "d833c3574e6c87ee9b7678087d205d23093ac14b4a33fab06aff59a5ffa1c5dd",
+      "category": "boundary",
+      "content_type": "application/octet-stream",
+      "method": "listApps",
+      "request_format": "protobuf",
+      "scenario": "list_apps_last_page_truncated",
+      "semantic_body": {
+        "app": [
+          {
+            "author": "Wayne Westmoreland and Terry Gilman",
+            "description": "This time we got permission first. Sega gave us a license for the game ZAXXON and then we wrote this. By this time, Tandy/Radio Shack had started accepting third party programs for sale in their stores and so we struck a deal with them instead of Adventure International. However manufacturing problems on our end limited the distribution. Use the arrow keys to move and SPACE BAR to fire. The game can be stopped by hitting SHIFT+S, and restarted by then hitting ENTER. SHIFT+BREAK aborts the game.",
+            "ext_trs80": {
+              "model": "MODEL_III"
+            },
+            "id": "1ca4504c-96b4-11e7-90e8-3b06b2002ebc",
+            "name": "Zaxxon",
+            "release_year": 1982,
+            "screenshot_url": [
+              "https://lh3.googleusercontent.com/BzdsMbcccNw3valoPB2FrgWYz1VznaTrleGT3NbC_lI2fBwZMbeCKEAu_qejALT5WBZeBFKnDOBMkXBe=s800",
+              "https://lh3.googleusercontent.com/5UG4Y7l_Nv_PKOqglNhvP3ZnOhCYQD7smF8GEAqcOJKKaAb8I1_kFSVX3vRNFp_yErpIiuHRTE8Ky8A=s800"
+            ],
+            "version": "1.0"
+          }
+        ],
+        "message": "All good :-)",
+        "success": true
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "CAESDEFsbCBnb29kIDotKQ==",
+      "body_length": 16,
+      "body_sha256": "b34f45cce201e7a3c21f7ef376abdf5fc58952dea3603fa3ae432f26dce672c6",
+      "category": "boundary",
+      "content_type": "application/octet-stream",
+      "method": "listApps",
+      "request_format": "protobuf",
+      "scenario": "list_apps_empty_search_result",
+      "semantic_body": {
+        "app": [],
+        "message": "All good :-)",
+        "success": true
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "CAESDEFsbCBnb29kIDotKRq5BQokOGMwMjhhZmUtOTZiMy0xMWU3LWE2OGItNWI2MTMzY2E1ZjBjEg5Bcm1vcmVkIFBhdHJvbBoDMS4wIt0CQXJtb3JlZCBQYXRyb2wgaXMgYSBkaWZmZXJlbnQgdmVyc2lvbiBvZiBvdXIgZmlyc3QgZ2FtZSwgYSB2ZXJzaW9uIG9mIHRoZSBvbGQgY29pbi1vcCBnYW1lIEJBVFRMRVpPTkUuIFRoZSBvcmlnaW5hbCB3YXMgY2FsbGVkIFRhbmsgWm9uZSAyMDAwIChJIGhhdGUgdGhhdCBuYW1lISkuIFdlIHN1Ym1pdHRlZCBpdCB0byBTY290dCBBZGFtcycgY29tcGFueSBBZHZlbnR1cmUgSW50ZXJuYXRpb25hbCB3aG9zZSBtYXJrZXRpbmcgZHJvaWRzIG1hZGUgdXMgY2hhbmdlIHRoZSBweXJhbWlkcyB0byBob3VzZXMsIHRoZSBmbHlpbmcgc2F1Y2VyIHRvIGEgcm9ib3QgYW5kIHRoZSBuYW1lIHRvIEFybW9yZWQgUGF0cm9sLii9DzJ3aHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL05WVlVVZkZPVV9zc1FIOGtvOV95cWpXSUEwS2xCWExtZ2pvMDFNZXRYenVPRW93WW9ZdWpSNjhBVy01a3Q3UUFQN29IeGhHa2lGVFVyeV9sPXM4MDAyd2h0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9MX3oyYXVmTzJFTFZDMzJHQnhsTURjdE1tWEh5N2Y1UnNfSGFZMzNOYVd0VGE1SkJCZTJBVE4xVmpfU0lJNDRFU2ZWdk9fZEJ1TmFEbk1lZz1zODAwOiNXYXluZSBXZXN0bW9yZWxhbmQgYW5kIFRlcnJ5IEdpbG1hbkICCAIamAgKJGIzMDY0MjRjLTk5MTctMTFlNy05NzAzLTJmYTYzMjEwN2FjNxIMQXR0YWNrIEZvcmNlGgMxLjAi0ANUaGUgZ29hbCBpbiBBdHRhY2sgRm9yY2Ugd2FzIHRvIGRyaXZlIHlvdXIgbGl0dGxlIHNoaXAgYmV0d2VlbiB0aGUgd2hpdGUgc3F1YXJlcyBhbmQgYmxhc3QgdGhlIGJhZCByYW1zaGlwcy4gIEJ5IG5vdyBvdXIgc2lnbmF0dXJlICJmbGFnc2hpcCIgYWxpZW4gaGFkIGJlY29tZSBhIHJlZ3VsYXIgY2hhcmFjdGVyIGluIGV2ZXJ5IGdhbWUuICBUaGUgZHJlYWRlZCBmbGFnc2hpcCBoYWQgYW4gZXZpbCByb3RhdGluZyBleWUgYW5kIGFsc28gcG9zc2Vzc2VkIGEgdmVyeSBkZWFkbHkgbGFzZXIgYm9sdC4gIEkgbGlrZWQgdGhlIGxhc2VyIGJvbHQgZWZmZWN0IHNvIG11Y2ggdGhhdCBJIHVzZWQgaXQgb24gdGhlIHRpdGxlIHBhZ2UgdG8gZHJhdyB0aGUgQXR0YWNrIEZvcmNlIGxvZ28uICBJIHN0aWxsIGhhdmUgdGhlIG9yaWdpbmFsIHBhY2thZ2UgYXJ0d29yayBmb3IgU3VwZXIgTm92YSBhbmQgQXR0YWNrIEZvcmNlLii8DzJ5aHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2wzWlF3M2VXQWFFRG5pRFF6OVBxdmZnR0JBczNKUHVKNDc2alNJVUFxbjFuUkV5V3lXZl9VN3QzVng1d2otNHhVS0s1ekJfbUZLQm50RzhZT2c9czgwMDJ5aHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tLzd2U2E5RnU1eF9NYmZ4NUx6ZGdqSnVnMGdWc2h6YTduNWNFYXBUZWN5NXpvLXNyQTJnQnpoLU1pMEJKQzRfUGNqdVU2R3lxY3JFb3NGRnBjc3c9czgwMDJ5aHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL0E2T2RsUlQydVRLbm5MdmJXN21JYlI3ajNITnB4eHAtQ2FXZ2JfQTB3OEZ5THdOYXNINWpsLVZtbk52Z2N1NWZTbzNQVnVoQ2ktQXBET004a3c9czgwMDJ3aHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL1FoMHAxWnZkMkpnMUR1VXNIb0lzR3huUU85cU9KQUZmOWhLb2RXdmRIUFhpTWtEUGFDUXdva0tFMlZxbGdjR0dxVGlKYVRpR1RkUVJMZVNFPXM4MDA6GUJpbGwgSG9ndWUgYW5kIEplZmYgS29ueXVCAggC",
+      "body_length": 1767,
+      "body_sha256": "4d500bab07d4b2675d3417ed3f7da18734bd3fae252ad4ce27d1773ab6eb43b5",
+      "category": "boundary",
+      "content_type": "application/octet-stream",
+      "method": "listApps",
+      "request_format": "protobuf",
+      "scenario": "list_apps_command_filter",
+      "semantic_body": {
+        "app": [
+          {
+            "author": "Wayne Westmoreland and Terry Gilman",
+            "description": "Armored Patrol is a different version of our first game, a version of the old coin-op game BATTLEZONE. The original was called Tank Zone 2000 (I hate that name!). We submitted it to Scott Adams' company Adventure International whose marketing droids made us change the pyramids to houses, the flying saucer to a robot and the name to Armored Patrol.",
+            "ext_trs80": {
+              "model": "MODEL_III"
+            },
+            "id": "8c028afe-96b3-11e7-a68b-5b6133ca5f0c",
+            "name": "Armored Patrol",
+            "release_year": 1981,
+            "screenshot_url": [
+              "https://lh3.googleusercontent.com/NVVUUfFOU_ssQH8ko9_yqjWIA0KlBXLmgjo01MetXzuOEowYoYujR68AW-5kt7QAP7oHxhGkiFTUry_l=s800",
+              "https://lh3.googleusercontent.com/L_z2aufO2ELVC32GBxlMDctMmXHy7f5Rs_HaY33NaWtTa5JBBe2ATN1Vj_SII44ESfVvO_dBuNaDnMeg=s800"
+            ],
+            "version": "1.0"
+          },
+          {
+            "author": "Bill Hogue and Jeff Konyu",
+            "description": "The goal in Attack Force was to drive your little ship between the white squares and blast the bad ramships.  By now our signature \"flagship\" alien had become a regular character in every game.  The dreaded flagship had an evil rotating eye and also possessed a very deadly laser bolt.  I liked the laser bolt effect so much that I used it on the title page to draw the Attack Force logo.  I still have the original package artwork for Super Nova and Attack Force.",
+            "ext_trs80": {
+              "model": "MODEL_III"
+            },
+            "id": "b306424c-9917-11e7-9703-2fa632107ac7",
+            "name": "Attack Force",
+            "release_year": 1980,
+            "screenshot_url": [
+              "https://lh3.googleusercontent.com/l3ZQw3eWAaEDniDQz9PqvfgGBAs3JPuJ476jSIUAqn1nREyWyWf_U7t3Vx5wj-4xUKK5zB_mFKBntG8YOg=s800",
+              "https://lh3.googleusercontent.com/7vSa9Fu5x_Mbfx5LzdgjJug0gVshza7n5cEapTecy5zo-srA2gBzh-Mi0BJC4_PcjuU6GyqcrEosFFpcsw=s800",
+              "https://lh3.googleusercontent.com/A6OdlRT2uTKnnLvbW7mIbR7j3HNpxxp-CaWgb_A0w8FyLwNasH5jl-VmnNvgcu5fSo3PVuhCi-ApDOM8kw=s800",
+              "https://lh3.googleusercontent.com/Qh0p1Zvd2Jg1DuUsHoIsGxnQO9qOJAFf9hKodWvdHPXiMkDPaCQwokKE2VqlgcGGqTiJaTiGTdQRLeSE=s800"
+            ],
+            "version": "1.0"
+          }
+        ],
+        "message": "All good :-)",
+        "success": true
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "CAESDEFsbCBnb29kIDotKQ==",
+      "body_length": 16,
+      "body_sha256": "b34f45cce201e7a3c21f7ef376abdf5fc58952dea3603fa3ae432f26dce672c6",
+      "category": "boundary",
+      "content_type": "application/octet-stream",
+      "method": "fetchMediaImages",
+      "request_format": "protobuf",
+      "scenario": "fetch_media_images_unknown_filter",
+      "semantic_body": {
+        "mediaImage": [],
+        "message": "All good :-)",
+        "success": true
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "CAESDEFsbCBnb29kIDotKRpLCAMSC2NvbW1hbmQuQ01EGjAyNTk4NDdhYS1jZTNhLTQ4YmItYTAzNy1lMzkyYmViOTZiMjIvY29tbWFuZC5DTUQgo7mYiPgzMJUb",
+      "body_length": 93,
+      "body_sha256": "38f7bc8105c6ca9d3c0305dd840f1b7941ffa53c9761273fa49dc2b7dbca66c4",
+      "category": "boundary",
+      "content_type": "application/octet-stream",
+      "method": "fetchMediaImageRefs",
+      "request_format": "protobuf",
+      "scenario": "fetch_media_refs_command_filter",
+      "semantic_body": {
+        "mediaImageRef": [
+          {
+            "description": "",
+            "filename": "command.CMD",
+            "size": 3477,
+            "token": "259847aa-ce3a-48bb-a037-e392beb96b22/command.CMD",
+            "type": "COMMAND",
+            "uploadTime": "1784576089251"
+          }
+        ],
+        "message": "All good :-)",
+        "success": true
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "AAAAAAICAFU=",
+      "body_length": 8,
+      "body_sha256": "9e8cb5d7edad03694e19ebdd6e7b275bc99a9b5ac183741fbcbfef5085bf82d3",
+      "category": "boundary",
+      "content_type": "application/octet-stream",
+      "method": "fetchMediaImageRegion",
+      "request_format": "protobuf",
+      "scenario": "fetch_media_region_tail_truncated",
+      "semantic_body": null,
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "",
+      "body_length": 0,
+      "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "category": "boundary",
+      "content_type": "application/octet-stream",
+      "method": "fetchMediaImageRegion",
+      "request_format": "protobuf",
+      "scenario": "fetch_media_region_at_eof",
+      "semantic_body": null,
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "",
+      "body_length": 0,
+      "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "category": "boundary",
+      "content_type": "application/octet-stream",
+      "method": "fetchMediaImageRegion",
+      "request_format": "protobuf",
+      "scenario": "fetch_media_region_oversized_length",
+      "semantic_body": null,
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": null,
+      "body_base64": "PGh0bWw+PGhlYWQ+PHRpdGxlPlNlcnZlciBFcnJvcjwvdGl0bGU+PC9oZWFkPjxib2R5PlJlcXVlc3QgZmFpbGVkOiBVbmV4cGVjdGVkIGV4Y2VwdGlvbiBmcm9tIHNlcnZsZXQ6IGphdmEubGFuZy5OdWxsUG9pbnRlckV4Y2VwdGlvbjwvYm9keT48L2h0bWw+",
+      "body_length": 147,
+      "body_sha256": "11d97eeb8ffd47ad56721b439321afe9490062ea11eb1670b6e95936395bf18c",
+      "category": "boundary",
+      "content_type": "text/html",
+      "method": "fetchMediaImageRegion",
+      "request_format": "protobuf",
+      "scenario": "fetch_media_region_missing_file",
+      "semantic_body": null,
+      "status_code": 500
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "Ei1DYW5ub3QgZmluZCBzeXN0ZW0gc3RhdGUgd2l0aCBnaXZlbiB0b2tlbiAnMSc=",
+      "body_length": 47,
+      "body_sha256": "4ad6c01177c7fe820cc03774e78b803e4bec85e21b700f727ed3a74d3071f2a5",
+      "category": "boundary",
+      "content_type": "application/octet-stream",
+      "method": "downloadState",
+      "request_format": "protobuf",
+      "scenario": "download_state_missing_positive_token",
+      "semantic_body": {
+        "message": "Cannot find system state with given token '1'",
+        "success": false
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "",
+      "body_length": 0,
+      "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "category": "boundary",
+      "content_type": "application/octet-stream",
+      "method": "downloadStateMemoryRegion",
+      "request_format": "protobuf",
+      "scenario": "download_state_region_missing_positive_token",
+      "semantic_body": null,
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "Eh9JbnZhbGlkIHJlcXVlc3QsIGFwcElkIG1pc3Npbmcu",
+      "body_length": 33,
+      "body_sha256": "afe18390c991d945729e5bb84b6978dbe8780ece1fbcc528dddf3baf42cefc00",
+      "category": "malformed",
+      "content_type": "application/octet-stream",
+      "method": "getApp",
+      "request_format": "protobuf",
+      "scenario": "get_app_malformed_protobuf",
+      "semantic_body": {
+        "app": [],
+        "message": "Invalid request, appId missing.",
+        "success": false
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "EhhDYW5ub3QgcGFyc2UgcGFyYW1ldGVycy4=",
+      "body_length": 26,
+      "body_sha256": "961b47d7fd14340366d4e67c997cd046cd4fbc6e8e1fc9053b6158084f478ad3",
+      "category": "malformed",
+      "content_type": "application/octet-stream",
+      "method": "listApps",
+      "request_format": "protobuf",
+      "scenario": "list_apps_malformed_protobuf",
+      "semantic_body": {
+        "app": [],
+        "message": "Cannot parse parameters.",
+        "success": false
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "EhhDYW5ub3QgcGFyc2UgcGFyYW1ldGVycy4=",
+      "body_length": 26,
+      "body_sha256": "961b47d7fd14340366d4e67c997cd046cd4fbc6e8e1fc9053b6158084f478ad3",
+      "category": "malformed",
+      "content_type": "application/octet-stream",
+      "method": "listAppsNano",
+      "request_format": "protobuf",
+      "scenario": "list_apps_nano_malformed_protobuf",
+      "semantic_body": {
+        "app": [],
+        "message": "Cannot parse parameters.",
+        "success": false
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": null,
+      "body_base64": "PGh0bWw+PGhlYWQ+PHRpdGxlPlNlcnZlciBFcnJvcjwvdGl0bGU+PC9oZWFkPjxib2R5PlJlcXVlc3QgZmFpbGVkOiBVbmV4cGVjdGVkIGV4Y2VwdGlvbiBmcm9tIHNlcnZsZXQ6IGphdmEubGFuZy5OdWxsUG9pbnRlckV4Y2VwdGlvbjwvYm9keT48L2h0bWw+",
+      "body_length": 147,
+      "body_sha256": "11d97eeb8ffd47ad56721b439321afe9490062ea11eb1670b6e95936395bf18c",
+      "category": "malformed",
+      "content_type": "text/html",
+      "method": "fetchMediaImages",
+      "request_format": "protobuf",
+      "scenario": "fetch_media_images_malformed_protobuf",
+      "semantic_body": null,
+      "status_code": 500
+    },
+    {
+      "access_control_allow_origin": null,
+      "body_base64": "PGh0bWw+PGhlYWQ+PHRpdGxlPlNlcnZlciBFcnJvcjwvdGl0bGU+PC9oZWFkPjxib2R5PlJlcXVlc3QgZmFpbGVkOiBVbmV4cGVjdGVkIGV4Y2VwdGlvbiBmcm9tIHNlcnZsZXQ6IGphdmEubGFuZy5OdWxsUG9pbnRlckV4Y2VwdGlvbjwvYm9keT48L2h0bWw+",
+      "body_length": 147,
+      "body_sha256": "11d97eeb8ffd47ad56721b439321afe9490062ea11eb1670b6e95936395bf18c",
+      "category": "malformed",
+      "content_type": "text/html",
+      "method": "fetchMediaImageRefs",
+      "request_format": "protobuf",
+      "scenario": "fetch_media_image_refs_malformed_protobuf",
+      "semantic_body": null,
+      "status_code": 500
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "",
+      "body_length": 0,
+      "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "category": "malformed",
+      "content_type": "application/octet-stream",
+      "method": "fetchMediaImageRegion",
+      "request_format": "protobuf",
+      "scenario": "fetch_media_image_region_malformed_protobuf",
+      "semantic_body": null,
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "EugBQ2Fubm90IHBhcnNlIFByb3RvQnVmIHBhcmFtczogV2hpbGUgcGFyc2luZyBhIHByb3RvY29sIG1lc3NhZ2UsIHRoZSBpbnB1dCBlbmRlZCB1bmV4cGVjdGVkbHkgaW4gdGhlIG1pZGRsZSBvZiBhIGZpZWxkLiAgVGhpcyBjb3VsZCBtZWFuIGVpdGhlciB0aGF0IHRoZSBpbnB1dCBoYXMgYmVlbiB0cnVuY2F0ZWQgb3IgdGhhdCBhbiBlbWJlZGRlZCBtZXNzYWdlIG1pc3JlcG9ydGVkIGl0cyBvd24gbGVuZ3RoLg==",
+      "body_length": 235,
+      "body_sha256": "3bb0557a6146be52976f4bd6d6db1cca1046e2e123f25b38a38a13610da50ece",
+      "category": "malformed",
+      "content_type": "application/octet-stream",
+      "method": "uploadState",
+      "request_format": "protobuf",
+      "scenario": "upload_state_malformed_protobuf",
+      "semantic_body": {
+        "message": "Cannot parse ProtoBuf params: While parsing a protocol message, the input ended unexpectedly in the middle of a field.  This could mean either that the input has been truncated or that an embedded message misreported its own length.",
+        "success": false,
+        "token": "0"
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "EugBQ2Fubm90IHBhcnNlIFByb3RvQnVmIHBhcmFtczogV2hpbGUgcGFyc2luZyBhIHByb3RvY29sIG1lc3NhZ2UsIHRoZSBpbnB1dCBlbmRlZCB1bmV4cGVjdGVkbHkgaW4gdGhlIG1pZGRsZSBvZiBhIGZpZWxkLiAgVGhpcyBjb3VsZCBtZWFuIGVpdGhlciB0aGF0IHRoZSBpbnB1dCBoYXMgYmVlbiB0cnVuY2F0ZWQgb3IgdGhhdCBhbiBlbWJlZGRlZCBtZXNzYWdlIG1pc3JlcG9ydGVkIGl0cyBvd24gbGVuZ3RoLg==",
+      "body_length": 235,
+      "body_sha256": "3bb0557a6146be52976f4bd6d6db1cca1046e2e123f25b38a38a13610da50ece",
+      "category": "malformed",
+      "content_type": "application/octet-stream",
+      "method": "downloadState",
+      "request_format": "protobuf",
+      "scenario": "download_state_malformed_protobuf",
+      "semantic_body": {
+        "message": "Cannot parse ProtoBuf params: While parsing a protocol message, the input ended unexpectedly in the middle of a field.  This could mean either that the input has been truncated or that an embedded message misreported its own length.",
+        "success": false
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "",
+      "body_length": 0,
+      "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "category": "malformed",
+      "content_type": "application/octet-stream",
+      "method": "downloadStateMemoryRegion",
+      "request_format": "protobuf",
+      "scenario": "download_state_memory_region_malformed_protobuf",
+      "semantic_body": null,
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "Eg5BcHAgbm90IGZvdW5kLg==",
+      "body_length": 16,
+      "body_sha256": "47041e705eede5292b83cac9c879e0407fdebfdda6d5ad0380989ed7df85cc3a",
+      "category": "baseline",
       "content_type": "application/octet-stream",
       "method": "getApp",
       "request_format": "legacy_json",
@@ -157,6 +788,7 @@
       "body_base64": "Eh5QYXJhbWV0ZXIgJ3N0YXJ0JyBvdXQgb2YgcmFuZ2U=",
       "body_length": 32,
       "body_sha256": "a8739500a8ae182f5a841c1a7687088cee8b25777ec5fa8962097a622b7847ee",
+      "category": "baseline",
       "content_type": "application/octet-stream",
       "method": "listApps",
       "request_format": "legacy_json",
@@ -173,6 +805,7 @@
       "body_base64": "EjpDYW5ub3QgZmluZCBhcHAgd2l0aCBJRCAnX19yZXRyb3N0b3JlX2NvbnRyYWN0X21pc3NpbmdfXycu",
       "body_length": 60,
       "body_sha256": "2efef370186964217058a6e0867d9905643de22617a476512f9242d6e42e330b",
+      "category": "baseline",
       "content_type": "application/octet-stream",
       "method": "fetchMediaImages",
       "request_format": "legacy_json",
@@ -183,7 +816,179 @@
         "success": false
       },
       "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "CAESDEFsbCBnb29kIDotKRrZBAokMjU5ODQ3YWEtY2UzYS00OGJiLWEwMzctZTM5MmJlYjk2YjIyEiBTcGFjZSBJbnZhZGVycyAoTW9kZWwgSSBFZGl0aW9uKRoDMS4wIuUBSW5zcGlyZWQgYnkgU3BhY2UgSW52YWRlcnMsIHRoZSBmaXJzdCBBcmNhZGUgR2FtZSBJIHBsYXllZCBpbiBteSB5b3V0aCwgYW5kIGJ5IHRoZSBncmVhdCBCaWcgRml2ZSBHYW1lcywgd2hpY2ggbWFkZSBteSBodW1ibGUgVFJTLTgwIGFuIEFyY2FkZSBHYW1lIGNvbnNvbGUgYW5kIHJlYWxseSBzaG93ZWQgd2hhdCB3YXMgcG9zc2libGUuIEkgZW5qb3kgcGxheWluZyBpdCwgaG9wZSB5b3UgZG8gdG9vISjqDzKFAWh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9qaGhLcVBXdTlSTUJueF9KY3pfQ2p0cUJreXNBaW9rdnphdGROWnZ2UDVEbkZ1UUR4VDAwRzk3SnhTMHBLRUJPWjM2c3N2YUlQcXpReTRMRDBnVHhCSG0xRExkSGpRPXM4MDAyhgFodHRwczovL2xoMy5nb29nbGV1c2VyY29udGVudC5jb20vcGxBNUk4MjRZUGFaV1Z5WnVGbjhhTDBQRDRwOGl1MDFhd0c4M2FVeWVmU3pnYjBHdzloeDEtQ2s4d3B4YWtnTHh5TDBMY0ZHSHY1TzlQYUpVdTFmR3h1RHB2U29JQmc9czgwMDoKVGltIFdhbHRlckICCAE=",
+      "body_length": 620,
+      "body_sha256": "6ae5071d4ce2b77f773b2f3591cdae7d618cf878e4f1dc66de5ecb8b831ef9ae",
+      "category": "success",
+      "content_type": "application/octet-stream",
+      "method": "getApp",
+      "request_format": "legacy_json",
+      "scenario": "get_app_legacy_json_existing",
+      "semantic_body": {
+        "app": [
+          {
+            "author": "Tim Walter",
+            "description": "Inspired by Space Invaders, the first Arcade Game I played in my youth, and by the great Big Five Games, which made my humble TRS-80 an Arcade Game console and really showed what was possible. I enjoy playing it, hope you do too!",
+            "ext_trs80": {
+              "model": "MODEL_I"
+            },
+            "id": "259847aa-ce3a-48bb-a037-e392beb96b22",
+            "name": "Space Invaders (Model I Edition)",
+            "release_year": 2026,
+            "screenshot_url": [
+              "https://lh3.googleusercontent.com/jhhKqPWu9RMBnx_Jcz_CjtqBkysAiokvzatdNZvvP5DnFuQDxT00G97JxS0pKEBOZ36ssvaIPqzQy4LD0gTxBHm1DLdHjQ=s800",
+              "https://lh3.googleusercontent.com/plA5I824YPaZWVyZuFn8aL0PD4p8iu01awG83aUyefSzgb0Gw9hx1-Ck8wpxakgLxyL0LcFGHv5O9PaJUu1fGxuDpvSoIBg=s800"
+            ],
+            "version": "1.0"
+          }
+        ],
+        "message": "All good :-)",
+        "success": true
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": "CAESDEFsbCBnb29kIDotKRq5BQokOGMwMjhhZmUtOTZiMy0xMWU3LWE2OGItNWI2MTMzY2E1ZjBjEg5Bcm1vcmVkIFBhdHJvbBoDMS4wIt0CQXJtb3JlZCBQYXRyb2wgaXMgYSBkaWZmZXJlbnQgdmVyc2lvbiBvZiBvdXIgZmlyc3QgZ2FtZSwgYSB2ZXJzaW9uIG9mIHRoZSBvbGQgY29pbi1vcCBnYW1lIEJBVFRMRVpPTkUuIFRoZSBvcmlnaW5hbCB3YXMgY2FsbGVkIFRhbmsgWm9uZSAyMDAwIChJIGhhdGUgdGhhdCBuYW1lISkuIFdlIHN1Ym1pdHRlZCBpdCB0byBTY290dCBBZGFtcycgY29tcGFueSBBZHZlbnR1cmUgSW50ZXJuYXRpb25hbCB3aG9zZSBtYXJrZXRpbmcgZHJvaWRzIG1hZGUgdXMgY2hhbmdlIHRoZSBweXJhbWlkcyB0byBob3VzZXMsIHRoZSBmbHlpbmcgc2F1Y2VyIHRvIGEgcm9ib3QgYW5kIHRoZSBuYW1lIHRvIEFybW9yZWQgUGF0cm9sLii9DzJ3aHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL05WVlVVZkZPVV9zc1FIOGtvOV95cWpXSUEwS2xCWExtZ2pvMDFNZXRYenVPRW93WW9ZdWpSNjhBVy01a3Q3UUFQN29IeGhHa2lGVFVyeV9sPXM4MDAyd2h0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9MX3oyYXVmTzJFTFZDMzJHQnhsTURjdE1tWEh5N2Y1UnNfSGFZMzNOYVd0VGE1SkJCZTJBVE4xVmpfU0lJNDRFU2ZWdk9fZEJ1TmFEbk1lZz1zODAwOiNXYXluZSBXZXN0bW9yZWxhbmQgYW5kIFRlcnJ5IEdpbG1hbkICCAIamAgKJGIzMDY0MjRjLTk5MTctMTFlNy05NzAzLTJmYTYzMjEwN2FjNxIMQXR0YWNrIEZvcmNlGgMxLjAi0ANUaGUgZ29hbCBpbiBBdHRhY2sgRm9yY2Ugd2FzIHRvIGRyaXZlIHlvdXIgbGl0dGxlIHNoaXAgYmV0d2VlbiB0aGUgd2hpdGUgc3F1YXJlcyBhbmQgYmxhc3QgdGhlIGJhZCByYW1zaGlwcy4gIEJ5IG5vdyBvdXIgc2lnbmF0dXJlICJmbGFnc2hpcCIgYWxpZW4gaGFkIGJlY29tZSBhIHJlZ3VsYXIgY2hhcmFjdGVyIGluIGV2ZXJ5IGdhbWUuICBUaGUgZHJlYWRlZCBmbGFnc2hpcCBoYWQgYW4gZXZpbCByb3RhdGluZyBleWUgYW5kIGFsc28gcG9zc2Vzc2VkIGEgdmVyeSBkZWFkbHkgbGFzZXIgYm9sdC4gIEkgbGlrZWQgdGhlIGxhc2VyIGJvbHQgZWZmZWN0IHNvIG11Y2ggdGhhdCBJIHVzZWQgaXQgb24gdGhlIHRpdGxlIHBhZ2UgdG8gZHJhdyB0aGUgQXR0YWNrIEZvcmNlIGxvZ28uICBJIHN0aWxsIGhhdmUgdGhlIG9yaWdpbmFsIHBhY2thZ2UgYXJ0d29yayBmb3IgU3VwZXIgTm92YSBhbmQgQXR0YWNrIEZvcmNlLii8DzJ5aHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2wzWlF3M2VXQWFFRG5pRFF6OVBxdmZnR0JBczNKUHVKNDc2alNJVUFxbjFuUkV5V3lXZl9VN3QzVng1d2otNHhVS0s1ekJfbUZLQm50RzhZT2c9czgwMDJ5aHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tLzd2U2E5RnU1eF9NYmZ4NUx6ZGdqSnVnMGdWc2h6YTduNWNFYXBUZWN5NXpvLXNyQTJnQnpoLU1pMEJKQzRfUGNqdVU2R3lxY3JFb3NGRnBjc3c9czgwMDJ5aHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL0E2T2RsUlQydVRLbm5MdmJXN21JYlI3ajNITnB4eHAtQ2FXZ2JfQTB3OEZ5THdOYXNINWpsLVZtbk52Z2N1NWZTbzNQVnVoQ2ktQXBET004a3c9czgwMDJ3aHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL1FoMHAxWnZkMkpnMUR1VXNIb0lzR3huUU85cU9KQUZmOWhLb2RXdmRIUFhpTWtEUGFDUXdva0tFMlZxbGdjR0dxVGlKYVRpR1RkUVJMZVNFPXM4MDA6GUJpbGwgSG9ndWUgYW5kIEplZmYgS29ueXVCAggC",
+      "body_length": 1767,
+      "body_sha256": "4d500bab07d4b2675d3417ed3f7da18734bd3fae252ad4ce27d1773ab6eb43b5",
+      "category": "success",
+      "content_type": "application/octet-stream",
+      "method": "listApps",
+      "request_format": "legacy_json",
+      "scenario": "list_apps_legacy_json_first_page",
+      "semantic_body": {
+        "app": [
+          {
+            "author": "Wayne Westmoreland and Terry Gilman",
+            "description": "Armored Patrol is a different version of our first game, a version of the old coin-op game BATTLEZONE. The original was called Tank Zone 2000 (I hate that name!). We submitted it to Scott Adams' company Adventure International whose marketing droids made us change the pyramids to houses, the flying saucer to a robot and the name to Armored Patrol.",
+            "ext_trs80": {
+              "model": "MODEL_III"
+            },
+            "id": "8c028afe-96b3-11e7-a68b-5b6133ca5f0c",
+            "name": "Armored Patrol",
+            "release_year": 1981,
+            "screenshot_url": [
+              "https://lh3.googleusercontent.com/NVVUUfFOU_ssQH8ko9_yqjWIA0KlBXLmgjo01MetXzuOEowYoYujR68AW-5kt7QAP7oHxhGkiFTUry_l=s800",
+              "https://lh3.googleusercontent.com/L_z2aufO2ELVC32GBxlMDctMmXHy7f5Rs_HaY33NaWtTa5JBBe2ATN1Vj_SII44ESfVvO_dBuNaDnMeg=s800"
+            ],
+            "version": "1.0"
+          },
+          {
+            "author": "Bill Hogue and Jeff Konyu",
+            "description": "The goal in Attack Force was to drive your little ship between the white squares and blast the bad ramships.  By now our signature \"flagship\" alien had become a regular character in every game.  The dreaded flagship had an evil rotating eye and also possessed a very deadly laser bolt.  I liked the laser bolt effect so much that I used it on the title page to draw the Attack Force logo.  I still have the original package artwork for Super Nova and Attack Force.",
+            "ext_trs80": {
+              "model": "MODEL_III"
+            },
+            "id": "b306424c-9917-11e7-9703-2fa632107ac7",
+            "name": "Attack Force",
+            "release_year": 1980,
+            "screenshot_url": [
+              "https://lh3.googleusercontent.com/l3ZQw3eWAaEDniDQz9PqvfgGBAs3JPuJ476jSIUAqn1nREyWyWf_U7t3Vx5wj-4xUKK5zB_mFKBntG8YOg=s800",
+              "https://lh3.googleusercontent.com/7vSa9Fu5x_Mbfx5LzdgjJug0gVshza7n5cEapTecy5zo-srA2gBzh-Mi0BJC4_PcjuU6GyqcrEosFFpcsw=s800",
+              "https://lh3.googleusercontent.com/A6OdlRT2uTKnnLvbW7mIbR7j3HNpxxp-CaWgb_A0w8FyLwNasH5jl-VmnNvgcu5fSo3PVuhCi-ApDOM8kw=s800",
+              "https://lh3.googleusercontent.com/Qh0p1Zvd2Jg1DuUsHoIsGxnQO9qOJAFf9hKodWvdHPXiMkDPaCQwokKE2VqlgcGGqTiJaTiGTdQRLeSE=s800"
+            ],
+            "version": "1.0"
+          }
+        ],
+        "message": "All good :-)",
+        "success": true
+      },
+      "status_code": 200
+    },
+    {
+      "access_control_allow_origin": "*",
+      "body_base64": null,
+      "body_length": 101864,
+      "body_sha256": "773c39cabf958c7993e243cf1e05242ab4a061808afe9df107aa5eb0772d40e3",
+      "category": "success",
+      "content_type": "application/octet-stream",
+      "method": "fetchMediaImages",
+      "request_format": "legacy_json",
+      "scenario": "fetch_media_images_legacy_json_existing",
+      "semantic_body": {
+        "mediaImage": [
+          {
+            "data": {
+              "sha256": "a51342eb96233f5f499b64b6d486c79678f5848c60ec284759983de1522d0e10",
+              "size": 98304
+            },
+            "description": "",
+            "filename": "disk_0.dsk",
+            "type": "DISK",
+            "uploadTime": "1784576088752"
+          },
+          {
+            "data": {
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "size": 0
+            },
+            "description": "",
+            "filename": "",
+            "type": "UNKNOWN",
+            "uploadTime": "0"
+          },
+          {
+            "data": {
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "size": 0
+            },
+            "description": "",
+            "filename": "",
+            "type": "UNKNOWN",
+            "uploadTime": "0"
+          },
+          {
+            "data": {
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "size": 0
+            },
+            "description": "",
+            "filename": "",
+            "type": "UNKNOWN",
+            "uploadTime": "0"
+          },
+          {
+            "data": {
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "size": 0
+            },
+            "description": "",
+            "filename": "",
+            "type": "UNKNOWN",
+            "uploadTime": "0"
+          },
+          {
+            "data": {
+              "sha256": "312f570af4c76ed5f3ba50a0e68ba02a9188ebc0f49f459f6ffd751812d1f6d3",
+              "size": 3477
+            },
+            "description": "",
+            "filename": "command.CMD",
+            "type": "COMMAND",
+            "uploadTime": "1784576089251"
+          },
+          {
+            "data": {
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "size": 0
+            },
+            "description": "",
+            "filename": "",
+            "type": "UNKNOWN",
+            "uploadTime": "0"
+          }
+        ],
+        "message": "All good :-)",
+        "success": true
+      },
+      "status_code": 200
     }
   ],
-  "schema_version": 1
+  "scenario_count": 45,
+  "schema_version": 2
 }

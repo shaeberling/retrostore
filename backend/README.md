@@ -46,8 +46,10 @@ The exact upstream revision and checksum are recorded in `proto/UPSTREAM.md`.
 
 ## Safe contract capture and comparison
 
-The baseline corpus covers every public method plus all three legacy JSON forms.
-Its `uploadState` request is deliberately invalid and cannot allocate a token.
+The reviewed corpus has 45 scenarios covering every public method, all three
+legacy JSON forms, representative successful catalog/media reads, pagination
+and byte-range boundaries, and malformed protobuf for every method. A runtime
+safety guard rejects any `uploadState` scenario that could allocate a token.
 
 ```shell
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python -m retrostore.contract.capture \
@@ -60,9 +62,10 @@ UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python -m retrostore.contract.compa
   --output /tmp/retrostore-comparison.json
 ```
 
-The comparator exits nonzero on any transport or semantic difference. The
-reviewed initial App Engine baseline is versioned under
-`tests/contract/golden/`.
+The comparator exits nonzero on any transport or semantic difference. Binary
+protobuf fields are represented by size and SHA-256 in semantic observations;
+response bodies over 64 KiB are hashed but not duplicated as base64. The
+reviewed App Engine baseline is versioned under `tests/contract/golden/`.
 
 ## Read-only production inventory
 
