@@ -21,6 +21,7 @@ import org.junit.Test;
 import org.retrostore.data.app.AppStoreItem;
 
 import java.nio.charset.StandardCharsets;
+import java.lang.reflect.Proxy;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -119,6 +120,7 @@ public final class BundledServicesInventoryTest {
     assertThat(report.search.contentMismatchDocumentCount).isEqualTo(1);
     assertThat(report.search.duplicateDocumentIdCount).isEqualTo(1);
     assertThat(report.search.missingDocumentIdCount).isEqualTo(1);
+    assertThat(report.search.storageInformationAvailable).isTrue();
     assertThat(report.search.storageUsageBytes).isEqualTo(123);
     assertThat(report.search.storageLimitBytes).isEqualTo(456);
     assertThat(report.search.aggregatesMatch).isFalse();
@@ -127,6 +129,41 @@ public final class BundledServicesInventoryTest {
     assertThat(json).doesNotContain("app-a");
     assertThat(json).doesNotContain("secret-stale-id-9f2c");
     assertThat(json).doesNotContain("Wrong description");
+  }
+
+  @Test
+  public void toleratesSearchStorageInformationUnsupportedByTheRuntime() {
+    com.google.appengine.api.search.Index index =
+        (com.google.appengine.api.search.Index)
+            Proxy.newProxyInstance(
+                getClass().getClassLoader(),
+                new Class<?>[] {com.google.appengine.api.search.Index.class},
+                (proxy, method, arguments) -> {
+                  if (method.getName().equals("getStorageUsage")) {
+                    throw new UnsupportedOperationException(
+                        "Storage information is not available");
+                  }
+                  throw new AssertionError("Unexpected call: " + method.getName());
+                });
+
+    BundledServicesInventory.SearchStorageInformation storage =
+        BundledServicesInventory.readSearchStorageInformation(index);
+    BundledServicesInventory.SearchSource search =
+        () ->
+            new BundledServicesInventory.SearchSnapshot(
+                Collections.emptyList(), storage.usageBytes, storage.limitBytes);
+
+    BundledServicesInventory.Report report =
+        new BundledServicesInventory(new FakeBlobSource(), search, 3)
+            .create(Collections.emptyList(), Instant.EPOCH);
+
+    assertThat(report.search.storageInformationAvailable).isFalse();
+    assertThat(report.search.storageUsageBytes).isNull();
+    assertThat(report.search.storageLimitBytes).isNull();
+    String json = new Gson().toJson(report);
+    assertThat(json).contains("\"storage_information_available\":false");
+    assertThat(json).doesNotContain("storage_usage_bytes");
+    assertThat(json).doesNotContain("storage_limit_bytes");
   }
 
   @Test

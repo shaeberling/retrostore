@@ -165,6 +165,8 @@ public final class BundledServicesInventory {
     SearchReport report = new SearchReport();
     report.liveDocumentCount = liveSnapshot.documents.size();
     report.expectedDocumentCount = expected.size();
+    report.storageInformationAvailable =
+        liveSnapshot.storageUsageBytes != null && liveSnapshot.storageLimitBytes != null;
     report.storageUsageBytes = liveSnapshot.storageUsageBytes;
     report.storageLimitBytes = liveSnapshot.storageLimitBytes;
     report.liveAggregateSha256 = aggregateDocuments(liveSnapshot.documents);
@@ -354,14 +356,29 @@ public final class BundledServicesInventory {
 
   static final class SearchSnapshot {
     final List<SearchDocument> documents;
-    final long storageUsageBytes;
-    final long storageLimitBytes;
+    final Long storageUsageBytes;
+    final Long storageLimitBytes;
 
     SearchSnapshot(
         List<SearchDocument> documents, long storageUsageBytes, long storageLimitBytes) {
+      this(documents, Long.valueOf(storageUsageBytes), Long.valueOf(storageLimitBytes));
+    }
+
+    SearchSnapshot(
+        List<SearchDocument> documents, Long storageUsageBytes, Long storageLimitBytes) {
       this.documents = Collections.unmodifiableList(new ArrayList<>(documents));
       this.storageUsageBytes = storageUsageBytes;
       this.storageLimitBytes = storageLimitBytes;
+    }
+  }
+
+  static final class SearchStorageInformation {
+    final Long usageBytes;
+    final Long limitBytes;
+
+    SearchStorageInformation(Long usageBytes, Long limitBytes) {
+      this.usageBytes = usageBytes;
+      this.limitBytes = limitBytes;
     }
   }
 
@@ -485,11 +502,14 @@ public final class BundledServicesInventory {
     @SerializedName("missing_document_id_count")
     public int missingDocumentIdCount;
 
+    @SerializedName("storage_information_available")
+    public boolean storageInformationAvailable;
+
     @SerializedName("storage_usage_bytes")
-    public long storageUsageBytes;
+    public Long storageUsageBytes;
 
     @SerializedName("storage_limit_bytes")
-    public long storageLimitBytes;
+    public Long storageLimitBytes;
 
     @SerializedName("live_aggregate_sha256")
     public String liveAggregateSha256;
@@ -566,7 +586,16 @@ public final class BundledServicesInventory {
         }
         startId = nextStartId;
       }
-      return new SearchSnapshot(documents, mIndex.getStorageUsage(), mIndex.getStorageLimit());
+      SearchStorageInformation storage = readSearchStorageInformation(mIndex);
+      return new SearchSnapshot(documents, storage.usageBytes, storage.limitBytes);
+    }
+  }
+
+  static SearchStorageInformation readSearchStorageInformation(Index index) {
+    try {
+      return new SearchStorageInformation(index.getStorageUsage(), index.getStorageLimit());
+    } catch (UnsupportedOperationException ignored) {
+      return new SearchStorageInformation(null, null);
     }
   }
 }
