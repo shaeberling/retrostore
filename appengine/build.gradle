@@ -3,17 +3,24 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        // As of June 28 RC of 2.0.0 is live but seems to break things.
-        classpath 'com.google.cloud.tools:appengine-gradle-plugin:2.4.4'
+        classpath 'com.google.cloud.tools:appengine-gradle-plugin:2.8.7'
     }
 }
 
 repositories {
-  maven {
-    url 'https://oss.sonatype.org/content/repositories/snapshots' // SNAPSHOT repository (if needed)
-  }
   mavenCentral()
-  maven { url 'https://maven.haberling.net' }
+  exclusiveContent {
+    forRepository {
+      maven {
+        name = 'retrostoreClient'
+        url = uri('http://maven.haberling.net')
+        allowInsecureProtocol = true
+      }
+    }
+    filter {
+      includeGroup('org.retrostore')
+    }
+  }
 }
 
 apply plugin: 'java'
@@ -21,7 +28,7 @@ apply plugin: 'war'
 apply plugin: 'com.google.cloud.tools.appengine'
 
 dependencies {
-  implementation 'com.google.appengine:appengine-api-1.0-sdk:+'  // Latest App Engine Api's
+  implementation 'com.google.appengine:appengine-api-1.0-sdk:5.0.4'
   providedCompile 'javax.servlet:javax.servlet-api:3.1.0'
 
   implementation 'jstl:jstl:1.2'
@@ -40,9 +47,9 @@ dependencies {
   testImplementation 'com.google.truth:truth:1.1.3'
   testImplementation 'org.mockito:mockito-all:1.10.19'
 
-  testImplementation 'com.google.appengine:appengine-testing:+'
-  testImplementation 'com.google.appengine:appengine-api-stubs:+'
-  testImplementation 'com.google.appengine:appengine-tools-sdk:+'
+  testImplementation 'com.google.appengine:appengine-testing:5.0.4'
+  testImplementation 'com.google.appengine:appengine-api-stubs:5.0.4'
+  testImplementation 'com.google.appengine:appengine-tools-sdk:5.0.4'
 }
 
 appengine {
@@ -59,5 +66,12 @@ appengine {
   }
 }
 
-sourceCompatibility = JavaVersion.VERSION_11
-targetCompatibility = JavaVersion.VERSION_11
+java {
+  toolchain {
+    languageVersion = JavaLanguageVersion.of(21)
+  }
+}
+
+tasks.withType(JavaCompile).configureEach {
+  options.release = 11
+}

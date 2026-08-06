@@ -36,6 +36,7 @@ hs_err_pid*
 local_db.bin
 appengine/build
 appengine/local.properties
+build/
 client-common/build
 client-library/build
 

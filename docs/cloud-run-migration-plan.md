@@ -35,6 +35,9 @@ Completed foundation work:
   media, and Blobstore references without emitting production identifiers or
   values. Its first production run found no broken references and eight
   unreferenced Blobstore objects to preserve and investigate.
+- The legacy Java build is reproducible again: Java 21.0.12+8 builds Java 11
+  bytecode with checksum-pinned Gradle 8.14.5, the current App Engine plugin and
+  stable SDK, immutable dependencies, full dependency verification, and CI.
 
 Open foundation work:
 
@@ -986,7 +989,7 @@ Phase 1:
 
 - [x] Add the canonical protobuf schema and API contract registry.
 - [x] Establish the locked Python project and two Flask application skeletons.
-- [ ] Pin the legacy Java toolchain sufficiently to run baseline tests and build
+- [x] Pin the legacy Java toolchain sufficiently to run baseline tests and build
   the migration exporter.
 - [x] Expand the initial safe baseline into representative golden success,
   boundary, malformed, catalog, and media cases.
@@ -1004,12 +1007,13 @@ Phase 1:
   monitoring thresholds, and named rollback owners. Current DNS, certificates,
   HTTP behavior, and absence of an existing load balancer are documented.
 
-The next executable task is to pin the legacy Java toolchain and make its tests
-and build reproducible. That unlocks the narrowly scoped App Engine-side
-Blobstore/Search migration operation. The Flask candidate can then implement
-the now-reviewed representative corpus behind a storage abstraction while the
-complete every-entity/client/state corpus continues to grow. No named database
-or bucket is needed for these tasks.
+The next executable task is the narrowly scoped, read-only App Engine-side
+Blobstore checksum and Search-index inventory operation now unlocked by the
+reproducible Java build. It should emit aggregate reconciliation data without
+object contents or production identifiers and include focused tests. The Flask
+candidate can then implement the reviewed representative corpus behind a
+storage abstraction while the complete every-entity/client/state corpus
+continues to grow. No named database or bucket is needed for these tasks.
 
 No production data, Firebase configuration, or routing should change during this
 milestone.
