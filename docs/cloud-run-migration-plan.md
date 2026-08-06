@@ -52,6 +52,12 @@ Completed foundation work:
   exactly matched their Datastore-derived expectations. The three temporary
   inventory versions were deleted after validation; production routing remained
   100% on `20230819t145020` throughout.
+- The local Flask compatibility candidate now implements all nine public methods
+  behind a cloud-independent `CompatibilityStorage` boundary. Its explicit
+  representative in-memory adapter passes all 45 reviewed App Engine scenarios
+  with zero transport or semantic differences. Valid state round-trip, memory
+  exclusion, and overlapping-region behavior also have isolated local coverage;
+  the default deployable factory remains fail-closed without a real adapter.
 
 Open foundation work:
 
@@ -1009,7 +1015,8 @@ Phase 1:
 - [x] Run and repeat the expanded suite against App Engine with zero differences.
 - [ ] Add every-app/media coverage, client-library runs, and isolated synthetic
   state lifecycle cases.
-- [ ] Run the expanded suite against the local Flask candidate.
+- [x] Run the expanded suite against the local Flask candidate with zero
+  differences across all 45 reviewed scenarios.
 - [x] Produce the route and read-only cloud infrastructure inventory.
 - [x] Build a repeatable read-only exporter/reconciler for representative
   Objectify encodings, binary sizes and checksums, and reference integrity.
@@ -1024,10 +1031,10 @@ Phase 1:
   monitoring thresholds, and named rollback owners. Current DNS, certificates,
   HTTP behavior, and absence of an existing load balancer are documented.
 
-The next executable task is to implement the reviewed representative corpus in
-the local Flask candidate behind a storage abstraction while the complete
-every-entity, client-library, and synthetic-state corpus continues to grow. No
-named database or bucket is needed for this work.
+The next executable task is to expand the corpus to every app and media record,
+run the JVM and Kotlin Multiplatform clients against the local candidate, and
+complete the isolated synthetic state lifecycle cases. No named database or
+bucket is needed for this work.
 
 No production data, Firebase configuration, or routing should change during this
 milestone.

@@ -76,7 +76,7 @@ uv pip check                  -> all installed packages are compatible
 
 Validation under CPython 3.14.6:
 
-- All 37 unit, contract, and inventory tests pass with pytest 9.1.1.
+- All 41 unit, contract, and inventory tests pass with pytest 9.1.1.
 - Ruff passes with `target-version = "py314"`.
 - Both Gunicorn 26 application factories pass `--check-config`.
 - The 45 mutation-safe live App Engine observations have zero differences

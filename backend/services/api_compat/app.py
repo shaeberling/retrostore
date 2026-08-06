@@ -5,6 +5,8 @@ from typing import Any
 
 from flask import Flask, Response, request
 
+from retrostore.api_compat.service import build_handlers
+from retrostore.api_compat.storage import CompatibilityStorage
 from retrostore.contracts import PUBLIC_API_METHODS
 
 ApiHandler = Callable[[bytes], Response]
@@ -12,9 +14,15 @@ ApiHandler = Callable[[bytes], Response]
 
 def create_app(config: Mapping[str, Any] | None = None) -> Flask:
     app = Flask(__name__)
-    app.config.from_mapping(RETROSTORE_API_HANDLERS={})
+    app.config.from_mapping(RETROSTORE_API_HANDLERS=None, RETROSTORE_API_STORAGE=None)
     if config:
         app.config.from_mapping(config)
+
+    handlers = app.config["RETROSTORE_API_HANDLERS"]
+    storage: CompatibilityStorage | None = app.config["RETROSTORE_API_STORAGE"]
+    if handlers is None:
+        handlers = {} if storage is None else build_handlers(storage)
+    app.config["RETROSTORE_API_HANDLERS"] = handlers
 
     @app.get("/healthz")
     def health() -> tuple[dict[str, str], int]:
@@ -45,6 +53,17 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
         return handler(request.get_data(cache=False, as_text=False))
 
     return app
+
+
+def create_representative_app(config: Mapping[str, Any] | None = None) -> Flask:
+    """Create the local-only candidate backed by the reviewed representative fixture."""
+
+    from retrostore.api_compat.representative import representative_storage
+
+    candidate_config = {"RETROSTORE_API_STORAGE": representative_storage()}
+    if config:
+        candidate_config.update(config)
+    return create_app(candidate_config)
 
 
 app = create_app()

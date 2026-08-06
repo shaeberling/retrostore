@@ -23,12 +23,31 @@ UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run pytest
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run ruff check .
 ```
 
-Run either service locally from this directory:
+Run the fail-closed service skeletons locally from this directory:
 
 ```shell
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run flask --app services.api_compat.app run --port 8080
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run flask --app services.admin.app run --port 8081
 ```
+
+The default API factory reports not-ready until a storage adapter is configured.
+Run the explicit representative candidate when exercising the reviewed local
+compatibility corpus:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run flask \
+  --app 'services.api_compat.app:create_representative_app()' run --port 8080
+
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run pytest \
+  tests/api_compat/test_representative_contract.py
+```
+
+All nine handlers depend on `CompatibilityStorage`, not directly on Flask or a
+cloud SDK. `InMemoryCompatibilityStorage` supports deterministic local tests;
+the later Firestore/Cloud Storage adapter can replace it without changing
+request parsing or response construction. The representative fixture is
+explicitly local-only and verifies its captured media payload by size and
+SHA-256 before use.
 
 ## Protobuf generation
 

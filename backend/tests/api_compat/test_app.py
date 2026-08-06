@@ -1,6 +1,6 @@
 from flask import Response
 
-from services.api_compat.app import create_app
+from services.api_compat.app import create_app, create_representative_app
 
 
 def test_liveness_is_independent_of_implementation_readiness() -> None:
@@ -47,3 +47,12 @@ def test_injected_handler_receives_the_unmodified_body() -> None:
     assert response.status_code == 200
     assert response.data == b"protobuf"
     assert received == [b"\x0a\x03abc"]
+
+
+def test_representative_candidate_has_all_handlers() -> None:
+    client = create_representative_app({"TESTING": True}).test_client()
+
+    response = client.get("/readyz")
+
+    assert response.status_code == 200
+    assert response.get_json() == {"ready": True, "missing_methods": []}
