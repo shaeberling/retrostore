@@ -1,6 +1,6 @@
 # App Engine bundled-services inventory operation
 
-Status: Implemented and locally tested; not deployed or run against production
+Status: Production-validated; temporary versions deleted
 
 Last updated: 2026-08-06
 
@@ -30,7 +30,9 @@ The implementation only calls bundled-service read operations:
 - `BlobInfoFactory.queryBlobInfos()` enumerates Blobstore metadata.
 - `BlobstoreService.fetchData()` reads bounded byte ranges.
 - `Index.getRange()` enumerates Search documents in pages.
-- `Index.getStorageUsage()` and `Index.getStorageLimit()` read index metrics.
+- `Index.getStorageUsage()` and `Index.getStorageLimit()` are attempted for
+  optional index metrics. App Engine Java 25 reports them as unavailable, which
+  is recorded without failing document reconciliation.
 - `AppManagement.getAllApps()` reads the expected catalog documents.
 
 There are no save, put, delete, upload, index-refresh, routing, or deployment
@@ -55,8 +57,9 @@ The JSON report has `schema_version` 1 and contains:
 - Blob object count, total and largest size, bytes hashed, fetch count, duplicate
   key count, metadata-MD5 coverage/matches/mismatches, and one aggregate
   content SHA-256.
-- Live and expected Search document counts, drift counts, storage usage/limit,
-  field-name/type occurrence counts, and live/expected aggregate SHA-256 values.
+- Live and expected Search document counts, drift counts, an explicit storage
+  information availability flag, optional storage usage/limit, field-name/type
+  occurrence counts, and live/expected aggregate SHA-256 values.
 
 The aggregate Blob digest is built from sorted blob keys, sizes, and the
 per-object content SHA-256 values. The keys are inputs to the digest so object
@@ -81,28 +84,49 @@ Run the complete Java build locally:
 ./gradlew --no-daemon :appengine:build
 ```
 
-The focused suite currently contains eleven tests for bounded reads, incomplete
+The focused suite currently contains twelve tests for bounded reads, incomplete
 reads, both MD5 encodings, deterministic hashing, Search reconciliation,
-serialized-data suppression, route isolation, role/method enforcement,
-login-handler bypass, failure redaction, and no-store response headers.
+unsupported Java 25 storage metrics, serialized-data suppression, route
+isolation, role/method enforcement, login-handler bypass, failure redaction,
+and no-store response headers.
 
-Corrected version `migration-inventory-20260806-112020` was deployed on
-2026-08-06 using App Engine Java 25 in EE 8 compatibility mode with promotion
-disabled. It is `SERVING` at 0% traffic, and an unauthenticated request to the
-operation returned HTTP 403. The privileged inventory scan has not been run.
-Superseded smoke-test version `migration-inventory-20260806-111431` also remains
-at 0% traffic pending reviewed cleanup.
+Three versions were deployed on 2026-08-06 using App Engine Java 25 in EE 8
+compatibility mode, always with promotion disabled:
 
-To collect the live report:
+- `migration-inventory-20260806-111431`, the initial smoke-test candidate.
+- `migration-inventory-20260806-112020`, which corrected login routing. Its
+  first authenticated scan exposed that Java 25 throws
+  `UnsupportedOperationException` for optional Search storage metrics after
+  document enumeration.
+- `migration-inventory-20260806-145211`, which records those metrics as
+  unavailable while preserving complete Search reconciliation.
 
-1. Authenticate as an existing RetroStore admin on the corrected version
-   hostname.
-2. Capture the report to a restricted migration-artifact location.
-3. Repeat it and require identical aggregate digests and counts after excluding
-   `generated_at`.
-4. Compare its Blob counts/bytes with the Datastore inventory and its expected
-   Search count with the catalog inventory.
-5. Stop both temporary versions after the reviewed report is retained.
+Two authenticated reports from the final candidate were captured at
+`2026-08-06T15:01:51.775660456Z` and
+`2026-08-06T15:04:41.064404258Z`. After excluding `generated_at`, both reports
+have normalized SHA-256
+`7ba290376c6641c511c7cd58b4b1a7c745d7ba2780d425903de69da84de4fb71`.
+They establish:
+
+- 98 Blobstore objects totaling 6,094,655 bytes, with a largest object of
+  994,809 bytes.
+- 6,094,655 bytes read and hashed across 98 bounded fetches.
+- All 98 metadata MD5 values match the content; no duplicate keys or mismatches.
+- Blob content aggregate SHA-256
+  `dbeb8d33efcb59ddb28e341f483429e7d81b7452a82d1cce50d6f3dee6946aeb`.
+- 32 live Search documents and 32 expected app documents, with no missing,
+  stale, duplicate-ID, missing-ID, or content-mismatched documents.
+- Matching live and expected Search aggregate SHA-256
+  `e89144f61f87285b4b89fd2f718c2891c2aebfc25b213e3ad37f3c7fb4cf46c1`.
+- Exactly 32 `TEXT` fields each for `name` and `description`.
+
+The Blob counts, sizes, metadata-MD5 coverage, and Search count also match the
+independent Datastore inventory. The two raw sanitized reports are retained in
+the operator's gitignored `.migration-artifacts/` directory.
+
+App Engine automatic-scaling versions cannot be stopped, so all three temporary
+versions were deleted after validation. Production traffic stayed 100% on
+`20230819t145020` throughout.
 
 Do not change `retrostore.org`, the public `/api/*` routes, or production traffic
 to run this operation.

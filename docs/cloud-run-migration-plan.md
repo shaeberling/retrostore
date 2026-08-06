@@ -41,28 +41,25 @@ Completed foundation work:
   stable SDK, immutable dependencies, full dependency verification, and CI.
 - An admin-only, no-store App Engine operation now streams and hashes all
   Blobstore content and compares the live Search index with current app entities
-  using sanitized aggregate output. Eleven focused Java tests cover its hashing,
-  reconciliation, access control, failure handling, and non-disclosure rules.
-- Corrected version `migration-inventory-20260806-112020` is deployed on App
-  Engine Java 25 in EE 8 compatibility mode with 0% traffic. An unauthenticated
-  version-hostname smoke test returned the intended HTTP 403, and the production
-  Java 11 version remains the sole 100% traffic allocation.
+  using sanitized aggregate output. Twelve focused Java tests cover its hashing,
+  reconciliation, Java 25 compatibility, access control, failure handling, and
+  non-disclosure rules.
+- Two authenticated production reports from non-promoted Java 25 version
+  `migration-inventory-20260806-145211` matched after excluding `generated_at`.
+  Their normalized SHA-256 is
+  `7ba290376c6641c511c7cd58b4b1a7c745d7ba2780d425903de69da84de4fb71`.
+  All 98 Blobstore objects were content-verified, and all 32 Search documents
+  exactly matched their Datastore-derived expectations. The three temporary
+  inventory versions were deleted after validation; production routing remained
+  100% on `20230819t145020` throughout.
 
 Open foundation work:
 
-- Authenticate as an existing RetroStore admin on corrected version
-  `migration-inventory-20260806-112020`, capture two matching production
-  reports, compare them with the Datastore inventory, and then stop the
-  temporary migration versions after the reviewed artifact is retained. The
-  privileged inventory operation has not yet been invoked.
 - The golden corpus still needs full catalog/media entity coverage,
   client-library runs, and synthetic state lifecycle cases. Representative real
   successes, boundaries, every request format, and malformed input for all nine
   methods are covered.
-- No production routing has changed. Two temporary Java 25 versions exist at
-  0% traffic; `migration-inventory-20260806-111431` is the superseded pre-fix
-  smoke-test candidate and `migration-inventory-20260806-112020` is the
-  corrected report-capture candidate.
+- No production routing has changed, and no temporary inventory version remains.
 
 ## Executive summary
 
@@ -1016,10 +1013,10 @@ Phase 1:
 - [x] Produce the route and read-only cloud infrastructure inventory.
 - [x] Build a repeatable read-only exporter/reconciler for representative
   Objectify encodings, binary sizes and checksums, and reference integrity.
-- [x] Implement and test the sanitized App Engine-side Blobstore-content and
-  live Search-index inventory operation without deploying it.
-- [ ] Capture and reconcile two matching reports from a reviewed, non-promoted
-  App Engine version, then stop that temporary version.
+- [x] Implement, test, and deploy the sanitized App Engine-side
+  Blobstore-content and live Search-index inventory operation without promotion.
+- [x] Capture and reconcile two matching reports from the reviewed,
+  non-promoted App Engine version, then delete all temporary versions.
 - [ ] Complete the comparison corpus and approved-difference format. The method
   registry, semantic normalizer, initial baseline, and two-host comparator are
   already implemented.
@@ -1027,14 +1024,10 @@ Phase 1:
   monitoring thresholds, and named rollback owners. Current DNS, certificates,
   HTTP behavior, and absence of an existing load balancer are documented.
 
-The next executable task is a reviewed deployment of the read-only bundled-
-services inventory operation to a temporary, non-promoted App Engine version,
-followed by two matching sanitized captures and shutdown of that version. This
-is an explicit production-environment change and is not performed by the local
-implementation work. After that evidence is retained, the Flask candidate can
-implement the reviewed representative corpus behind a storage abstraction while
-the complete every-entity/client/state corpus continues to grow. No named
-database or bucket is needed for these tasks.
+The next executable task is to implement the reviewed representative corpus in
+the local Flask candidate behind a storage abstraction while the complete
+every-entity, client-library, and synthetic-state corpus continues to grow. No
+named database or bucket is needed for this work.
 
 No production data, Firebase configuration, or routing should change during this
 milestone.

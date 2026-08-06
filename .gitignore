@@ -55,3 +55,6 @@ __pycache__/
 # Firebase CLI
 firebase-debug.log
 .firebase/
+
+# Restricted production migration evidence
+.migration-artifacts/

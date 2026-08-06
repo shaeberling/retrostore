@@ -86,6 +86,8 @@ UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python -m retrostore.inventory.cli 
 For an operator session already authenticated with gcloud, add `--auth gcloud`.
 Add `--fail-on-integrity-errors` in CI or reconciliation jobs once any reviewed
 legacy exceptions have been classified. Blobstore rows provide metadata and
-MD5 values only. The App Engine-side bundled-services inventory operation that
-independently hashes content is implemented and locally tested, but has not been
-deployed or run against production.
+MD5 values only. The App Engine-side bundled-services operation independently
+hashed all 98 production objects twice and reconciled all 32 live Search
+documents with their source app entities. The normalized reports matched; see
+`docs/appengine-bundled-services-inventory.md` for the retained aggregate
+evidence and controlled-deployment record.

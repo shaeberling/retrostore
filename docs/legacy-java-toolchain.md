@@ -79,7 +79,7 @@ Run the same baseline locally and in CI:
 
 The clean audit build succeeds and produces the WAR. The build initially had no
 Java test sources. The App Engine-side Blobstore/Search inventory operation now
-adds eleven focused tests, so CI executes behavioral coverage rather than
+adds twelve focused tests, so CI executes behavioral coverage rather than
 treating a successful compile as sufficient.
 
 The App Engine plugin emits Gradle convention deprecations. Those warnings are

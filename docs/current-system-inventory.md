@@ -1,6 +1,6 @@
 # RetroStore current-system inventory
 
-Status: Infrastructure and Datastore inventory complete; bundled-service validation remains
+Status: Infrastructure, Datastore, Blobstore, and Search validation complete
 
 Last verified: 2026-08-06
 
@@ -18,8 +18,10 @@ collecting it.
 - App Engine application ID: `trs-80`
 
 The selected gcloud account was reauthenticated and the project was verified
-before this inventory. All cloud observations below were read-only. No APIs were
-enabled and no resources, data, IAM bindings, or routes were changed.
+before this inventory. Initial cloud discovery was read-only. Three controlled,
+non-promoted App Engine versions were later deployed and deleted to collect the
+bundled-service evidence described below. No APIs, production data, IAM
+bindings, or routes were changed.
 
 ## Firebase and Firestore
 
@@ -60,20 +62,18 @@ Observed Firebase resources:
 | Default service account | `trs-80@appspot.gserviceaccount.com` |
 | Serving status | `SERVING` |
 | Services | One: `default` |
-| Deployed versions | 17 |
+| Deployed versions | 15 |
 | Live version | `20230819t145020` |
 | Live runtime | Java 11, standard environment, F1 |
 | Traffic | 100% to the live version |
 
 Fourteen older versions are Java 8 deployments from 2022, receive no traffic,
-and remain in `SERVING` state. Two temporary Java 25 migration candidates were
-deployed on 2026-08-06 and also receive 0% traffic:
-`migration-inventory-20260806-111431` is the superseded pre-fix smoke-test
-candidate, and `migration-inventory-20260806-112020` is the corrected candidate.
-The live version was deployed on 2023-08-19 and has App Engine bundled APIs
-enabled. A single dynamic instance was observed during the initial inventory;
-instance counts and traffic metrics are transient and are not migration
-capacity targets.
+and remain in `SERVING` state. Three temporary Java 25 inventory versions were
+deployed without promotion on 2026-08-06 and deleted after successful
+validation. The live version was deployed on 2023-08-19 and has App Engine
+bundled APIs enabled. A single dynamic instance was observed during the initial
+inventory; instance counts and traffic metrics are transient and are not
+migration capacity targets.
 
 The App Engine application currently owns the production custom-domain front
 door directly:
@@ -270,11 +270,19 @@ and its usage are documented in `backend/README.md`.
 
 The source names the App Engine Search index `AppStoreItem`. It indexes app name
 and description with the app ID as document ID. `refreshIndex` writes all
-current apps but does not delete stale documents. Its exact live document count
-cannot be queried through gcloud or the public service. An admin-only,
-aggregate-only App Engine inventory operation is now implemented and locally
-tested to enumerate and compare it with the 32 source app entities; it has not
-yet been deployed or run against the live index.
+current apps but does not delete stale documents. The production-only inventory
+found exactly 32 live documents matching all 32 source app entities, with no
+missing, stale, duplicate-ID, missing-ID, or content-mismatched documents. Both
+captures produced matching live and expected aggregate SHA-256
+`e89144f61f87285b4b89fd2f718c2891c2aebfc25b213e3ad37f3c7fb4cf46c1`.
+Java 25 does not expose Search storage usage/limit, so those optional metrics
+remain explicitly unavailable.
+
+The same captures read and hashed all 98 Blobstore objects. Every content MD5
+matched its metadata, and the stable aggregate content SHA-256 is
+`dbeb8d33efcb59ddb28e341f483429e7d81b7452a82d1cce50d6f3dee6946aeb`.
+After excluding `generated_at`, both complete reports have normalized SHA-256
+`7ba290376c6641c511c7cd58b4b1a7c745d7ba2780d425903de69da84de4fb71`.
 
 Other stateful dependencies:
 
@@ -316,21 +324,12 @@ default account, the Compute default account, and the Firebase Admin SDK service
 account. The App Engine and Compute default accounts currently hold the broad
 Editor role. No migration-specific or Cloud Run runtime identity exists yet.
 
-## Remaining data-migration validation
+## Remaining data-migration work
 
-Infrastructure discovery and Datastore-side reconciliation are complete enough
-to choose the target topology. Remaining checks require access to bundled App
-Engine services rather than more one-off Datastore queries:
+Infrastructure discovery and Datastore, Blobstore, and Search reconciliation are
+complete enough to choose the target topology. Remaining data work is:
 
-- Authenticate to corrected, non-promoted version
-  `migration-inventory-20260806-112020` and capture two matching Blobstore
-  content hashes and Search comparisons. Datastore alone exposes only Blob
-  metadata. Stop both temporary migration versions after the reviewed artifact
-  is retained.
 - Investigate and classify the eight unreferenced Blobstore objects.
-- Use the captured Search comparison to decide whether stale, missing, or
-  content-mismatched documents require a later reviewed index rebuild. Do not
-  refresh the live index during inventory collection.
 - Decide whether the ten legacy `RetroStoreUser` records become invited
   Firebase identities, disabled historical records, or both. Firebase Auth has
   no existing identities or configuration to merge.
