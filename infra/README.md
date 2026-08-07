@@ -27,3 +27,10 @@ No production archive is checked into this directory. Imports must validate the
 normalized archive before writing, use immutable checksum-addressed objects,
 and emit a reconciliation report into the gitignored `.migration-artifacts/`
 directory.
+
+The importer is documented in `../backend/README.md`. It performs no writes
+unless `--apply` and an exact project confirmation are both supplied. The first
+production-archive dry run on 2026-08-07 targeted these isolated resources and
+reconciled 32 apps, 60 media records, 90 screenshots, and 150 objects totaling
+12,738,856 bytes. The databases and buckets remain empty pending review of the
+implementation and dry-run report.

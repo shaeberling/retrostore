@@ -80,6 +80,13 @@ class ObjectDescriptor:
             raise ValueError("Object sha256 must be a lowercase SHA-256 digest")
         return cls(path, size, digest)
 
+    def to_dict(self) -> dict[str, str | int]:
+        return {
+            "object_path": self.path,
+            "size": self.size,
+            "sha256": self.sha256,
+        }
+
 
 @dataclass(frozen=True, slots=True)
 class NormalizedMedia:
@@ -109,6 +116,17 @@ class NormalizedMedia:
             object=ObjectDescriptor.from_values(value),
         )
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "app_id": self.app_id,
+            "media_type": self.media_type,
+            "filename": self.filename,
+            "description": self.description,
+            "upload_time_ms": self.upload_time_ms,
+            **self.object.to_dict(),
+        }
+
 
 @dataclass(frozen=True, slots=True)
 class NormalizedScreenshot:
@@ -137,6 +155,17 @@ class NormalizedScreenshot:
             legacy_serving_url=legacy_serving_url,
             object=ObjectDescriptor.from_values(value),
         )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "app_id": self.app_id,
+            "filename": self.filename,
+            "content_type": self.content_type,
+            "upload_time_ms": self.upload_time_ms,
+            "legacy_serving_url": self.legacy_serving_url,
+            **self.object.to_dict(),
+        }
 
 
 @dataclass(frozen=True, slots=True)
@@ -218,6 +247,30 @@ class NormalizedApp:
             (api_pb.BASIC, self.basic_media_id),
         )
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "version": self.version,
+            "description": self.description,
+            "release_year": self.release_year,
+            "platform": self.platform,
+            "model": self.model,
+            "categories": list(self.categories),
+            "author_id": self.author_id,
+            "author_name": self.author_name,
+            "publisher_email": self.publisher_email,
+            "first_published_at_ms": self.first_published_at_ms,
+            "updated_at_ms": self.updated_at_ms,
+            "media_slots": {
+                "disks": list(self.disk_media_ids),
+                "cassette": self.cassette_media_id,
+                "command": self.command_media_id,
+                "basic": self.basic_media_id,
+            },
+            "screenshot_ids": list(self.screenshot_ids),
+        }
+
 
 @dataclass(frozen=True, slots=True)
 class CatalogMirror:
@@ -262,6 +315,32 @@ class CatalogMirror:
             screenshots=MappingProxyType(screenshots),
             object_bytes=MappingProxyType(objects),
         )
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return the canonical language-neutral manifest for cloud persistence."""
+
+        objects = dict(self.object_bytes)
+        return {
+            "schema_version": 1,
+            "source": {
+                "project_id": self.source_project_id,
+                "exported_at": self.exported_at,
+                "high_water_mark": self.high_water_mark,
+            },
+            "apps": [app.to_dict() for app in sorted(self.apps, key=lambda item: item.id)],
+            "media": [self.media[item_id].to_dict() for item_id in sorted(self.media)],
+            "screenshots": [
+                self.screenshots[item_id].to_dict() for item_id in sorted(self.screenshots)
+            ],
+            "reconciliation": {
+                "app_count": len(self.apps),
+                "media_count": len(self.media),
+                "screenshot_count": len(self.screenshots),
+                "object_count": len(objects),
+                "total_bytes": sum(len(body) for body in objects.values()),
+                "content_aggregate_sha256": _object_aggregate_sha256(objects),
+            },
+        }
 
 
 def load_catalog_mirror_archive(path: Path) -> CatalogMirror:

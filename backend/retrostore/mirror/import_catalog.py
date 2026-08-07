@@ -1,0 +1,76 @@
+"""Validate and optionally import a normalized catalog archive into isolated cloud resources."""
+
+import argparse
+import json
+from collections.abc import Sequence
+from dataclasses import asdict
+from pathlib import Path
+from typing import Any
+
+from retrostore.mirror.catalog import load_catalog_mirror_archive
+from retrostore.mirror.google_cloud import google_catalog_stores, validate_catalog_target
+from retrostore.mirror.persistence import build_catalog_snapshot, import_catalog_mirror
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("archive", type=Path)
+    parser.add_argument("--project", required=True)
+    parser.add_argument("--database", required=True)
+    parser.add_argument("--bucket", required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--apply", action="store_true")
+    parser.add_argument("--confirm-project")
+    args = parser.parse_args(argv)
+
+    validate_catalog_target(
+        project=args.project,
+        database=args.database,
+        bucket=args.bucket,
+    )
+    mirror = load_catalog_mirror_archive(args.archive)
+    if mirror.source_project_id != args.project:
+        raise ValueError("Archive source project does not match the target project")
+
+    snapshot = build_catalog_snapshot(mirror)
+    if args.apply:
+        if args.confirm_project != args.project:
+            raise ValueError("--confirm-project must exactly match --project when applying")
+        object_store, snapshot_store = google_catalog_stores(
+            project=args.project,
+            database=args.database,
+            bucket=args.bucket,
+        )
+        report: dict[str, Any] = {
+            "schema_version": 1,
+            "applied": True,
+            "target": _target(args.project, args.database, args.bucket),
+            **asdict(import_catalog_mirror(mirror, object_store, snapshot_store)),
+        }
+    else:
+        reconciliation = snapshot.metadata["reconciliation"]
+        report = {
+            "schema_version": 1,
+            "applied": False,
+            "target": _target(args.project, args.database, args.bucket),
+            "snapshot_id": snapshot.id,
+            "manifest_sha256": snapshot.manifest_sha256,
+            "app_count": reconciliation["app_count"],
+            "media_count": reconciliation["media_count"],
+            "screenshot_count": reconciliation["screenshot_count"],
+            "object_count": reconciliation["object_count"],
+            "object_bytes": reconciliation["total_bytes"],
+        }
+
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+    print(json.dumps(report, sort_keys=True, separators=(",", ":")))
+    return 0
+
+
+def _target(project: str, database: str, bucket: str) -> dict[str, str]:
+    return {"project": project, "database": database, "bucket": bucket}
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

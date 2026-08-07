@@ -115,14 +115,22 @@ Completed foundation work:
   and public-access prevention. Durable assets retain seven-day soft-delete
   recovery; state payloads disable soft delete and expire through an eight-day
   lifecycle. All four new resources remain empty.
+- An idempotent catalog importer and production Google Cloud persistence
+  boundary are implemented behind dependency injection. Immutable Storage
+  writes use generation-zero preconditions and verify existing collisions;
+  Firestore stages content-derived snapshots and exposes them only through a
+  final atomic active-pointer batch after complete read-back reconciliation.
+  The operator command is dry-run by default and requires explicit target names,
+  source-project equality, `--apply`, and an exact project confirmation before
+  writing. The validated production archive dry-run reconciled all 150 objects
+  and 12,738,856 bytes against the approved empty targets without writing.
 
 Open foundation work:
 
 - The verified normalized archive now needs to be imported into isolated
   Firestore/Cloud Storage resources and served through the production adapter.
-  The importer, adapter, IAM bindings, and reconciliation gates are not yet
-  implemented; the local archive factory stays explicit and the default
-  deployable factory remains fail-closed.
+  IAM bindings and the reviewed first apply remain; the local archive factory
+  stays explicit and the default deployable factory remains fail-closed.
 - The `native-client-library` Arduino tree is an unfinished prototype: it sends
   a bodyless GET, ignores its configurable host, and has no media
   implementation. It needs an explicit retire-or-modernize decision rather than
@@ -1126,9 +1134,10 @@ Phase 1:
 The unfinished Arduino tree is not a working public API consumer and remains
 outside the compatibility gate; leave it untouched unless a known hardware
 deployment requires a separately scoped repair. The next executable milestone
-is the next Phase 2 slice: implement and test the idempotent Firestore/Storage
-importer, production storage adapter, least-privilege IAM bindings, and
-reconciliation report before importing the validated production archive.
+is the next Phase 2 slice: review the importer commit and aggregate dry-run,
+create the least-privilege migration/runtime identities, perform the first
+controlled import, load it back through the cloud adapter, and rerun the full
+158-scenario compatibility comparison.
 
 No production data, Firebase configuration, or routing should change during this
 milestone.

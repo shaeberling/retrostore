@@ -170,9 +170,37 @@ UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
 The format and its current scope are in `retrostore/mirror/FORMAT.md`. The
 temporary App Engine export route is available only on specially named
 `migration-export-*` default-service versions and additionally enforces the
-RetroStore admin role and explicit confirmation. This implementation does not
-read or mutate Firebase. The production Firestore/Cloud Storage adapter is the
-next persistence piece after the first archive is retained and validated.
+RetroStore admin role and explicit confirmation. The export implementation does
+not read or mutate Firebase. The persistence boundary described below is the
+only path that can copy a validated archive into the isolated replacement
+resources.
+
+## Controlled cloud catalog import
+
+The cloud importer validates the complete archive and target names before it
+constructs cloud clients. It defaults to a zero-write dry run:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.mirror.import_catalog \
+  /path/to/retrostore-catalog-export.zip \
+  --project trs-80 \
+  --database retrostore \
+  --bucket trs-80-retrostore-assets \
+  --output /tmp/retrostore-catalog-import-dry-run.json
+```
+
+An apply additionally requires both `--apply` and an exact
+`--confirm-project trs-80`. Do not apply until the implementation commit and
+dry-run report have been reviewed.
+
+Objects are uploaded with a generation-zero precondition and independently
+verified when an immutable path already exists. Firestore metadata is written
+under a content-derived `catalogSnapshots/{snapshotId}` document. Only after
+all documents reconcile does one atomic batch mark the snapshot ready and move
+`catalogControl/active` to it. Failed or interrupted imports cannot expose a
+partially written snapshot, and retrying the same archive reuses verified
+objects and the same snapshot ID.
 
 ## Read-only production inventory
 
