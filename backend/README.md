@@ -49,6 +49,26 @@ request parsing or response construction. The representative fixture is
 explicitly local-only and verifies its captured media payload by size and
 SHA-256 before use.
 
+## Public client integration
+
+An opt-in consumer harness runs the published JVM SDK through all nine methods,
+compiles the checksum-pinned RetroStore client from the TRS-80 Kotlin
+Multiplatform application through its five production calls, and compiles the
+embedded C client through all three legacy JSON calls and nanopb decoding. The
+clients talk over real loopback HTTP to the representative Flask candidate;
+their synthetic state writes remain in memory.
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.contract.consumer_clients \
+  --trs80-checkout /path/to/TRS-80
+```
+
+The reviewed TRS-80 revision, source checksums, dependency pins, and exact
+coverage split are documented in `consumer-tests/README.md`. CI checks out only
+the reviewed client source paths and runs this command independently of the
+legacy Java build.
+
 ## Protobuf generation
 
 `proto/ApiProtos.proto` is a frozen upstream contract. Do not edit it to change
@@ -85,6 +105,50 @@ The comparator exits nonzero on any transport or semantic difference. Binary
 protobuf fields are represented by size and SHA-256 in semantic observations;
 response bodies over 64 KiB are hashed but not duplicated as base64. The
 reviewed App Engine baseline is versioned under `tests/contract/golden/`.
+During parallel-run diagnosis, an exact reviewed difference file can be passed
+with `--approvals`. The strict format, expiry/staleness rules, and operational
+policy are documented in `retrostore/contract/APPROVED_DIFFERENCES.md`.
+
+For the full read-only data gate, discover every app and media reference from
+App Engine and replay the identical generated corpus against a synchronized
+candidate:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.contract.exhaustive \
+  --reference-url https://retrostore.org \
+  --candidate-url https://next.retrostore.org \
+  --output /tmp/retrostore-exhaustive-comparison.json
+```
+
+This command cannot generate `uploadState`; it covers full catalog pages,
+per-app detail and media responses, media references, and every referenced byte
+range. The first App Engine self-comparison matched all 158 observations across
+32 apps, 60 media objects, and 6,826,237 media bytes. The report contains
+semantic metadata and hashes, not the media binaries.
+
+## Normalized catalog mirror
+
+The first Phase 2 persistence boundary is implemented without creating cloud
+resources. `CatalogMirror` loads versioned, language-neutral app, media, and
+screenshot metadata through an immutable object reader, verifies every object
+size and SHA-256, and rejects unsafe paths or broken/cross-app references.
+`MirrorCompatibilityStorage` projects that normalized shape back into the
+frozen protobuf API, including the exact four-disk/cassette/command/BASIC slot
+order and empty placeholders.
+
+The representative normalized mirror passes all 45 reviewed App Engine
+observations with zero differences. The read-only Java Objectify exporter emits
+a deterministic ZIP containing `manifest.json` and checksum-addressed media and
+screenshot objects. It fails on dangling/cross-app references, conflicting
+media types, orphaned media, or incomplete Blobstore reads; Blobstore keys are
+not serialized. The Python archive loader independently verifies paths, object
+digests, counts, byte totals, and the aggregate digest.
+
+The format and its current scope are in `retrostore/mirror/FORMAT.md`. No export
+route is registered yet, and this implementation does not read or mutate
+Firebase. A controlled non-promoted export operation and the production
+Firestore/Cloud Storage adapter are the next pieces.
 
 ## Read-only production inventory
 

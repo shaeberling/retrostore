@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from retrostore.contract.approvals import evaluate_approvals, load_approvals
 from retrostore.contract.capture import capture
 from retrostore.contract.observations import ResponseObservation, compare_observations
 
@@ -54,17 +55,21 @@ def main() -> None:
     parser.add_argument("--reference-url", required=True)
     parser.add_argument("--candidate-url", required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--approvals", type=Path)
     parser.add_argument("--timeout-seconds", type=float, default=30.0)
     args = parser.parse_args()
 
-    report = compare_captures(
-        capture(args.reference_url, args.timeout_seconds),
-        capture(args.candidate_url, args.timeout_seconds),
+    report = evaluate_approvals(
+        compare_captures(
+            capture(args.reference_url, args.timeout_seconds),
+            capture(args.candidate_url, args.timeout_seconds),
+        ),
+        load_approvals(args.approvals) if args.approvals else (),
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
 
-    if report["summary"]["different"]:
+    if not report["approval_gate"]["passes"]:
         raise SystemExit(1)
 
 

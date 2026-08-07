@@ -58,13 +58,49 @@ Completed foundation work:
   with zero transport or semantic differences. Valid state round-trip, memory
   exclusion, and overlapping-region behavior also have isolated local coverage;
   the default deployable factory remains fail-closed without a real adapter.
+- A separate checksum-verified consumer build now runs the published JVM SDK
+  0.2.13 through all nine methods, compiles the reviewed TRS-80 Kotlin
+  Multiplatform client through its five production calls, and compiles the
+  embedded C client through all three legacy JSON calls and nanopb decoding.
+  All pass over real loopback HTTP against the Flask candidate, including
+  isolated state writes.
+- A dynamic read-only comparator now discovers every public app and media
+  reference from the authoritative host, replays the same requests against a
+  candidate, hashes binary fields, and retrieves every referenced media byte.
+  Its first two independent App Engine captures matched across all 158
+  scenarios: 32 apps, 60 non-empty media objects, and 6,826,237 media bytes.
+- The isolated state suite now covers the exact legacy validation boundaries,
+  declared-length normalization, zero-filled gaps, overlap precedence,
+  concurrent token allocation, the 100–999 token range, wrap/exhaustion, and
+  persistence clone isolation. Matching Java/Python fixtures prove that the
+  legacy contract accepts a 2,000,028-byte valid state, beyond Firestore's 1 MiB
+  document limit. The complete Python suite has 72 passing tests.
+- Comparator reports now include a strict approved-difference gate. An approval
+  pins one scenario field's exact reference/candidate fingerprint and requires
+  a reason, named owner, and expiry. Changed, expired, duplicate, or unused
+  approvals fail instead of masking drift.
+- A versioned normalized catalog mirror now separates app/media/screenshot
+  metadata from immutable object bytes, verifies size and SHA-256, rejects
+  broken or cross-app references, and reconstructs all ordered legacy media
+  slots. Its compatibility adapter matches all 45 reviewed App Engine
+  observations with zero differences without accessing Firebase.
+- A read-only Java Objectify exporter now emits the normalized catalog shard as
+  a deterministic ZIP with checksum-addressed media/screenshots, a supplied
+  high-water mark, and reconciliation counts and digests. It fails on dangling,
+  cross-app, conflicting-type, orphaned, or incomplete binary reads; its Python
+  archive loader independently verifies the artifact before use.
 
 Open foundation work:
 
-- The golden corpus still needs full catalog/media entity coverage,
-  client-library runs, and synthetic state lifecycle cases. Representative real
-  successes, boundaries, every request format, and malformed input for all nine
-  methods are covered.
+- The exhaustive 158-scenario corpus cannot run against a complete local or
+  Cloud candidate until a controlled exporter operation produces the first
+  actual synchronized catalog/media archive. The exporter, normalized schema,
+  archive verifier, and `CompatibilityStorage` adapter now exist, while the
+  representative candidate remains intentionally bounded.
+- The `native-client-library` Arduino tree is an unfinished prototype: it sends
+  a bodyless GET, ignores its configurable host, and has no media
+  implementation. It needs an explicit retire-or-modernize decision rather than
+  being classified as a working contract consumer.
 - No production routing has changed, and no temporary inventory version remains.
 
 ## Executive summary
@@ -268,7 +304,8 @@ RetroStore clients
           ▼
 Flask compatibility API ──► Firestore catalog metadata
                          ├─► Cloud Storage media
-                         └─► Firestore state-token database
+                         ├─► Firestore state-token database
+                         └─► Cloud Storage state payloads
 ```
 
 ### Python repository layout
@@ -577,14 +614,28 @@ product is not justified at the current scale.
 
 ### System-state model
 
-State records live in `retrostore-state`:
+State-token metadata lives in `retrostore-state`; normalized protobuf payloads
+live in a separate private state bucket:
 
 ```text
 states/{token}
-  protobufData: bytes
+  objectPath: string
+  size: integer
+  sha256: string
   createdAt: timestamp
   expiresAt: timestamp
 ```
+
+This split is required for compatibility. The legacy validator caps each memory
+region's data below 1,000,000 bytes but does not cap the region count or
+aggregate payload. Matching isolated Java and Flask tests accept two maximum
+regions in a 2,000,028-byte protobuf request. Thirty-three such regions
+serialize to 33,000,432 bytes. [Cloud Run](https://docs.cloud.google.com/run/quotas)
+documents a 32 MiB HTTP/1 request ceiling, while
+[App Engine](https://docs.cloud.google.com/appengine/docs/standard/how-requests-are-handled)
+documents a 32 MB request limit. A
+[Firestore document is limited to 1 MiB](https://firebase.google.com/docs/firestore/quotas).
+The payload therefore cannot safely be an inline Firestore field.
 
 Allocation should:
 
@@ -593,15 +644,17 @@ Allocation should:
 3. Claim it if it is absent or logically expired.
 4. Retry on collision.
 
-Configure `expiresAt` as a Firestore TTL field, but never rely on physical TTL
-deletion for correctness. The application must treat a document as expired based
-on its timestamp because TTL deletion is asynchronous.
+Upload the normalized state to a unique immutable object before transactionally
+claiming a token that references it. A failed claim may retry with the same
+object; a terminal failure deletes that object. Token reuse must never overwrite
+an older object's path. Downloads reject logically expired documents before
+reading the object and verify its size and checksum.
 
-Valid TRS-80 states are expected to fit within Firestore's document-size limit.
-The compatibility suite must verify the largest request currently accepted by
-App Engine. If a valid state can exceed the Firestore limit, store the protobuf
-payload in Cloud Storage and keep only its object reference and expiry in the
-state document.
+Configure `expiresAt` as a Firestore TTL field, but never rely on physical TTL
+deletion for correctness. The application must treat a document as expired
+based on its timestamp because TTL deletion is asynchronous. Add an eight-day
+Cloud Storage lifecycle rule as eventual cleanup and explicitly delete replaced
+or abandoned objects where practical.
 
 ### Cloud Storage model
 
@@ -617,6 +670,7 @@ that do not depend on user-controlled names:
 media/{appId}/{mediaId}/{sha256}
 screenshots/{appId}/{screenshotId}/{sha256}.{ext}
 firmware/{device}/{revision}/{version}/{sha256}.bin
+states/{objectId}/{sha256}.pb
 imports/{uploadId}
 migration/{runId}
 ```
@@ -627,6 +681,10 @@ be used to construct object paths.
 
 Objects should remain private. Media is returned through the compatibility API,
 and admin access is authorized by the Flask service.
+
+Use a dedicated state-payload bucket so its short lifecycle and API-service
+write permissions cannot affect durable catalog assets. Never place state
+payloads under a publicly cacheable or Firebase download-token URL.
 
 Public screenshot URLs should use a RetroStore-owned stable URL:
 
@@ -651,11 +709,13 @@ retrostore-admin service account:
   retrostore database      read/write
   retrostore-state         no access
   assets bucket            read/write
+  state bucket             no access
 
 retrostore-api service account:
   retrostore database      read-only
   retrostore-state         read/write
   assets bucket            read-only
+  state bucket             read/write/delete
 ```
 
 Use Application Default Credentials in Cloud Run. Do not create or deploy
@@ -724,7 +784,8 @@ Exit criteria:
    databases in the agreed location.
 2. Enable delete protection on the durable database and configure TTL for state
    documents.
-3. Create or designate the private assets bucket and apply service-account IAM.
+3. Create or designate the private durable-assets and ephemeral-state buckets,
+   apply service-account IAM, and configure state-object lifecycle cleanup.
 4. Build a read-only Java exporter that converts Objectify entities into a
    versioned, normalized migration format.
 5. Export app metadata, authors, users, media relationships, firmware, active
@@ -1013,8 +1074,8 @@ Phase 1:
 - [x] Expand the initial safe baseline into representative golden success,
   boundary, malformed, catalog, and media cases.
 - [x] Run and repeat the expanded suite against App Engine with zero differences.
-- [ ] Add every-app/media coverage, client-library runs, and isolated synthetic
-  state lifecycle cases.
+- [x] Add every-app/media coverage, JVM/KMP/embedded-C client runs, and isolated
+  synthetic state lifecycle and oversized-payload cases.
 - [x] Run the expanded suite against the local Flask candidate with zero
   differences across all 45 reviewed scenarios.
 - [x] Produce the route and read-only cloud infrastructure inventory.
@@ -1024,17 +1085,31 @@ Phase 1:
   Blobstore-content and live Search-index inventory operation without promotion.
 - [x] Capture and reconcile two matching reports from the reviewed,
   non-promoted App Engine version, then delete all temporary versions.
-- [ ] Complete the comparison corpus and approved-difference format. The method
-  registry, semantic normalizer, initial baseline, and two-host comparator are
-  already implemented.
+- [x] Add the strict approved-difference format with exact fingerprints, named
+  ownership, expiry, and stale-approval rejection.
+- [x] Define and validate the normalized catalog/media/screenshot mirror format
+  and prove its storage adapter against all 45 reviewed observations.
+- [x] Build the read-only Java Objectify exporter for that format, including
+  binary manifests and explicit dangling-reference reconciliation.
+- [ ] Add a tightly controlled admin-only execution path, deploy it without
+  promotion, capture the first sensitive export locally, validate it through
+  the Python archive loader, and delete the temporary version.
+- [ ] Run the complete 158-scenario corpus against the synchronized candidate
+  mirror. The corpus, method registry, semantic normalizer, baseline, two-host
+  comparator, and approval gate are implemented; two complete App Engine
+  captures matched with zero differences.
 - [ ] Finalize candidate hostnames, the load-balancer URL map, route groups,
   monitoring thresholds, and named rollback owners. Current DNS, certificates,
   HTTP behavior, and absence of an existing load balancer are documented.
 
-The next executable task is to expand the corpus to every app and media record,
-run the JVM and Kotlin Multiplatform clients against the local candidate, and
-complete the isolated synthetic state lifecycle cases. No named database or
-bucket is needed for this work.
+The unfinished Arduino tree is not a working public API consumer and remains
+outside the compatibility gate; leave it untouched unless a known hardware
+deployment requires a separately scoped repair. The next executable milestone
+is the next Phase 2 slice: run the exporter through a controlled non-promoted
+App Engine operation and validate the resulting archive locally. After that,
+connect the normalized adapter to isolated Firestore/Storage resources and run
+the full synchronized candidate comparison. Database and bucket creation
+remains a deliberate operator action after location and naming approval.
 
 No production data, Firebase configuration, or routing should change during this
 milestone.

@@ -9,6 +9,9 @@ from google.protobuf.message import Message
 
 from retrostore.generated import ApiProtos_pb2 as api_pb
 
+_MIN_STATE_TOKEN = 100
+_MAX_STATE_TOKEN = 999
+
 
 def _clone[MessageT: Message](message: MessageT) -> MessageT:
     clone = type(message)()
@@ -57,8 +60,12 @@ class InMemoryCompatibilityStorage:
         media: dict[str, Sequence[MediaSlot]] | None = None,
         states: dict[int, api_pb.SystemState] | None = None,
         *,
-        first_state_token: int = 100,
+        first_state_token: int = _MIN_STATE_TOKEN,
     ) -> None:
+        if not _MIN_STATE_TOKEN <= first_state_token <= _MAX_STATE_TOKEN:
+            raise ValueError(
+                f"first_state_token must be between {_MIN_STATE_TOKEN} and {_MAX_STATE_TOKEN}"
+            )
         self._catalog = {
             entry.app.id: CatalogEntry(_clone(entry.app), frozenset(entry.media_types))
             for entry in catalog
@@ -101,7 +108,9 @@ class InMemoryCompatibilityStorage:
         with self._state_lock:
             token = self._next_available_token()
             self._states[token] = _clone(state)
-            self._next_state_token = token + 1
+            self._next_state_token = (
+                _MIN_STATE_TOKEN if token == _MAX_STATE_TOKEN else token + 1
+            )
             return token
 
     def get_state(self, token: int) -> api_pb.SystemState | None:
@@ -109,7 +118,10 @@ class InMemoryCompatibilityStorage:
         return None if state is None else _clone(state)
 
     def _next_available_token(self) -> int:
-        token = self._next_state_token
-        while token in self._states:
-            token += 1
-        return token
+        token_count = _MAX_STATE_TOKEN - _MIN_STATE_TOKEN + 1
+        start_offset = self._next_state_token - _MIN_STATE_TOKEN
+        for offset in range(token_count):
+            token = _MIN_STATE_TOKEN + ((start_offset + offset) % token_count)
+            if token not in self._states:
+                return token
+        raise RuntimeError("No state token is available")

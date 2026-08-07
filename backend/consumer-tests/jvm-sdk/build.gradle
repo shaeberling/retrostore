@@ -1,0 +1,39 @@
+plugins {
+    id 'java'
+}
+
+repositories {
+    mavenCentral()
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = 'retrostoreClient'
+                url = uri('http://maven.haberling.net')
+                allowInsecureProtocol = true
+            }
+        }
+        filter {
+            includeGroup('org.retrostore')
+        }
+    }
+}
+
+dependencies {
+    testImplementation 'org.retrostore:retrostore-client:0.2.13'
+    // The SDK exposes protobuf-lite classes from its public API but publishes
+    // this dependency with runtime scope, so consumers must add it explicitly.
+    testImplementation 'com.google.protobuf:protobuf-lite:3.0.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter:6.1.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:6.1.2'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    systemProperty 'candidateUrl', providers.gradleProperty('candidateUrl').get()
+}

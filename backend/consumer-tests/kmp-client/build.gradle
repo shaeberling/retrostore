@@ -1,0 +1,44 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.10'
+        classpath 'com.squareup.wire:wire-gradle-plugin:6.4.5'
+    }
+}
+
+apply plugin: 'org.jetbrains.kotlin.jvm'
+apply plugin: 'com.squareup.wire'
+
+repositories {
+    mavenCentral()
+}
+
+def trs80Checkout = providers.gradleProperty('trs80Checkout').get()
+
+kotlin {
+    jvmToolchain(21)
+    sourceSets {
+        main.kotlin.srcDir(file("${trs80Checkout}/shared/src/commonMain/kotlin/org/retrostore"))
+    }
+}
+
+wire {
+    sourcePath {
+        srcDir rootProject.file('../proto')
+    }
+    kotlin {}
+}
+
+dependencies {
+    implementation 'com.squareup.wire:wire-runtime:6.4.5'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter:6.1.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:6.1.2'
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    systemProperty 'candidateUrl', providers.gradleProperty('candidateUrl').get()
+}
