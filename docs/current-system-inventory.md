@@ -18,29 +18,27 @@ collecting it.
 - App Engine application ID: `trs-80`
 
 The selected gcloud account was reauthenticated and the project was verified
-before this inventory. Initial cloud discovery was read-only. Three controlled,
+before this inventory. Initial cloud discovery was read-only. Controlled,
 non-promoted App Engine versions were later deployed and deleted to collect the
-bundled-service evidence described below. No APIs, production data, IAM
-bindings, or routes were changed.
+bundled-service evidence described below. On 2026-08-07, the approved isolated
+Firestore databases and private Storage buckets described below were created;
+they remain empty. No legacy resource, production data, IAM binding, or route
+was changed.
 
 ## Firebase and Firestore
 
 Observed with `firebase firestore:databases:list --project trs-80`:
 
-| Property | Current value |
-| --- | --- |
-| Database ID | `(default)` |
-| Database type | `DATASTORE_MODE` |
-| Location | `nam5` |
-| App Engine integration | `ENABLED` |
-| Edition | `STANDARD` |
-| Concurrency mode | `OPTIMISTIC` |
-| Delete protection | `DISABLED` |
-| Point-in-time recovery | `DISABLED` |
+| Database ID | Mode | Location | Concurrency | Delete protection | Purpose |
+| --- | --- | --- | --- | --- | --- |
+| `(default)` | Datastore | `nam5` | Optimistic | Disabled | Legacy App Engine/Objectify production data |
+| `retrostore` | Firestore Native, Standard | `nam5` | Pessimistic | Enabled | Empty durable migration target |
+| `retrostore-state` | Firestore Native, Standard | `nam5` | Pessimistic | Disabled | Empty ephemeral state target |
 
-There are no named Firestore Native databases yet. The migration must leave
-`(default)` in Datastore mode and create new named databases only after the App
-Engine and bucket locations are confirmed.
+The two named databases were created on 2026-08-07 after topology approval.
+`retrostore-state` has a TTL policy on `states.expiresAt`. The migration must
+leave `(default)` unchanged and authoritative throughout the parallel run and
+rollback window.
 
 Observed Firebase resources:
 
@@ -303,20 +301,23 @@ entities remain in Datastore until overwritten.
 
 ## Cloud Storage and container infrastructure
 
-All current buckets use the `US` multi-region, Standard storage, and a seven-day
-soft-delete policy:
+All five buckets use the `US` multi-region and Standard storage. Durable data
+keeps seven-day soft-delete recovery; the ephemeral state bucket disables soft
+delete so its lifecycle does not retain expired payloads for an extra week:
 
 | Bucket | Objects | Stored bytes | Purpose and notable policy |
 | --- | ---: | ---: | --- |
 | `trs-80.appspot.com` | 0 | 0 | Firebase/App Engine default bucket; no lifecycle rule |
 | `staging.trs-80.appspot.com` | 0 | 0 | App Engine staging; delete objects after 15 days |
 | `us.artifacts.trs-80.appspot.com` | 92 | About 1.35 GiB | Legacy Container Registry artifacts |
+| `trs-80-retrostore-assets` | 0 | 0 | Private durable target; uniform access, public-access prevention, seven-day soft delete |
+| `trs-80-retrostore-state` | 0 | 0 | Private ephemeral target; uniform access, public-access prevention, delete after eight days, soft delete disabled |
 
-Uniform bucket-level access and object versioning are not enabled. The buckets
-retain legacy project-owner/editor/viewer ACLs. None is an appropriate
-least-privilege production asset store without policy changes; creating a new
-private bucket is safer than repurposing the empty default bucket during the
-parallel run.
+The three legacy buckets retain their existing ACL configuration. Uniform
+bucket-level access and public-access prevention are enforced on both new
+buckets; object versioning is disabled. The new buckets have no bucket-level IAM
+bindings; inherited project roles still apply, and no migration-specific
+principal exists yet.
 
 The Artifact Registry API is enabled but has no repositories. The Cloud Run
 Admin API is disabled and was deliberately left disabled during inventory, so
@@ -337,9 +338,7 @@ complete enough to choose the target topology. Remaining data work is:
   Firebase identities, disabled historical records, or both. Firebase Auth has
   no existing identities or configuration to merge.
 
-Recommended target locations based on the observed topology are `nam5` for the
-two named Firestore databases, `US` for the private asset bucket, and
-`us-central1` for Cloud Run. This keeps new persistence aligned with the current
-Datastore and bucket geography while placing compute in the corresponding
-central US region. These locations should be explicitly approved before any
-resource is created.
+The approved target locations are `nam5` for both named Firestore databases,
+`US` for the two private buckets, and `us-central1` for Cloud Run. The databases
+and buckets are provisioned but empty; no Cloud Run candidate or migration IAM
+identity exists yet.

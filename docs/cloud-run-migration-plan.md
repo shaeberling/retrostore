@@ -107,14 +107,22 @@ Completed foundation work:
   replayed all 158 read-only scenarios against `retrostore.org` and this
   production archive: all 32 apps, 60 media objects, 60 byte-range reads, and
   6,826,237 media bytes matched with zero differences and no approvals.
+- The isolated persistence topology is approved and provisioned. Named Standard
+  Firestore Native databases `retrostore` and `retrostore-state` are in `nam5`;
+  deletion protection is enabled on the durable database and
+  `states.expiresAt` TTL is enabled on the state database. Private `US` buckets
+  `trs-80-retrostore-assets` and `trs-80-retrostore-state` enforce uniform IAM
+  and public-access prevention. Durable assets retain seven-day soft-delete
+  recovery; state payloads disable soft delete and expire through an eight-day
+  lifecycle. All four new resources remain empty.
 
 Open foundation work:
 
 - The verified normalized archive now needs to be imported into isolated
   Firestore/Cloud Storage resources and served through the production adapter.
-  Database and bucket location, names, retention, and lifecycle policy remain
-  deliberate operator decisions; the local archive factory stays explicit and
-  the default deployable factory remains fail-closed.
+  The importer, adapter, IAM bindings, and reconciliation gates are not yet
+  implemented; the local archive factory stays explicit and the default
+  deployable factory remains fail-closed.
 - The `native-client-library` Arduino tree is an unfinished prototype: it sends
   a bodyless GET, ignores its configurable host, and has no media
   implementation. It needs an explicit retire-or-modernize decision rather than
@@ -1061,12 +1069,7 @@ the rollback. If a gate fails, traffic stays on or returns to App Engine.
   after all C clients have moved to HTTPS.
 - The public static website bucket's CDN, cache-invalidation, and deployment
   policy. It must remain separate from the private application-assets bucket.
-- Approve the inventory-derived location proposal: `nam5` for named Firestore
-  databases, `US` for the private assets bucket, and `us-central1` for Cloud Run.
-- Whether to use the existing Firebase Storage bucket or create a dedicated
-  private production assets bucket.
-- The retention period for uploaded system states, normalized migration exports,
-  and legacy backups.
+- The retention period for normalized migration exports and legacy backups.
 - Whether application reports continue through email or become an admin queue.
 - Whether stable screenshot URLs are initially served by Flask or routed through
   a CDN from the first release.
@@ -1123,10 +1126,9 @@ Phase 1:
 The unfinished Arduino tree is not a working public API consumer and remains
 outside the compatibility gate; leave it untouched unless a known hardware
 deployment requires a separately scoped repair. The next executable milestone
-is the next Phase 2 slice: define the isolated Firestore/Storage resource names,
-location, lifecycle, and retention policy, then implement the cloud adapter and
-controlled import. Database and bucket creation remains a deliberate operator
-action after those choices are approved.
+is the next Phase 2 slice: implement and test the idempotent Firestore/Storage
+importer, production storage adapter, least-privilege IAM bindings, and
+reconciliation report before importing the validated production archive.
 
 No production data, Firebase configuration, or routing should change during this
 milestone.
