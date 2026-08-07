@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Apps · RetroStore Admin{% endblock %}
+
+{% block content %}
+  <div class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <p class="font-mono text-xs uppercase tracking-[0.22em] text-amber-300">Read-only mirror</p>
+      <h1 class="mt-2 text-3xl font-semibold tracking-tight">Applications</h1>
+      <p class="mt-2 text-sm text-stone-400">{{ apps|length }} matching catalog {{ "entry" if apps|length == 1 else "entries" }}</p>
+    </div>
+    <form class="flex w-full max-w-md gap-2" action="{{ url_for('admin_apps') }}" method="get" role="search">
+      <label class="sr-only" for="app-search">Search applications</label>
+      <input
+        class="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white outline-none placeholder:text-stone-600 focus:border-amber-300/60 focus:ring-2 focus:ring-amber-300/15"
+        id="app-search"
+        name="q"
+        type="search"
+        value="{{ query }}"
+        placeholder="Name, author, publisher, or ID"
+      >
+      <button class="rounded-xl bg-stone-100 px-4 py-2.5 text-sm font-semibold text-stone-950 hover:bg-white" type="submit">Search</button>
+    </form>
+  </div>
+
+  <div class="mt-8 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-[760px] text-left text-sm">
+        <thead class="border-b border-white/10 bg-white/[0.03] text-xs uppercase tracking-wider text-stone-500">
+          <tr>
+            <th class="px-5 py-3 font-medium">Application</th>
+            <th class="px-5 py-3 font-medium">Model</th>
+            <th class="px-5 py-3 font-medium">Release</th>
+            <th class="px-5 py-3 font-medium">Author</th>
+            <th class="px-5 py-3 font-medium">Publisher</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-white/5">
+          {% for app in apps %}
+            <tr class="transition hover:bg-white/[0.035]">
+              <td class="px-5 py-4">
+                <a class="font-medium text-amber-200 hover:text-amber-100 hover:underline" href="{{ url_for('admin_app_detail', app_id=app.id) }}">{{ app.name or "Untitled" }}</a>
+                <div class="mt-1 max-w-sm truncate font-mono text-xs text-stone-600">{{ app.id }}</div>
+              </td>
+              <td class="px-5 py-4 text-stone-300">{{ app.model|replace("MODEL_", "Model ")|replace("UNKNOWN_MODEL", "Unknown") }}</td>
+              <td class="px-5 py-4 text-stone-300">{{ app.release_year or "—" }}</td>
+              <td class="px-5 py-4 text-stone-300">{{ app.author_name or "—" }}</td>
+              <td class="px-5 py-4 text-stone-400">{{ app.publisher_email or "—" }}</td>
+            </tr>
+          {% else %}
+            <tr><td class="px-5 py-12 text-center text-stone-500" colspan="5">No applications match this search.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

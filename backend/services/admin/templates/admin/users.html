@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Users · RetroStore Admin{% endblock %}
+
+{% block content %}
+  <div>
+    <p class="font-mono text-xs uppercase tracking-[0.22em] text-amber-300">Administrator only</p>
+    <h1 class="mt-2 text-3xl font-semibold tracking-tight">Users</h1>
+    <p class="mt-2 text-sm text-stone-400">
+      {{ users|length }} Firebase {{ "identity" if users|length == 1 else "identities" }}.
+      {% if role_changes_enabled %}Changes are audited atomically and apply on the target user's next protected request.{% else %}Role changes are not enabled in this read-only slice.{% endif %}
+    </p>
+  </div>
+
+  {% if role_updated %}
+    <div class="mt-6 rounded-xl border border-emerald-300/25 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100" role="status">
+      The role was updated and is effective immediately for protected requests.
+    </div>
+  {% endif %}
+
+  <div class="mt-8 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-[720px] text-left text-sm">
+        <thead class="border-b border-white/10 bg-white/[0.03] text-xs uppercase tracking-wider text-stone-500">
+          <tr>
+            <th class="px-5 py-3 font-medium">Identity</th>
+            <th class="px-5 py-3 font-medium">Role</th>
+            <th class="px-5 py-3 font-medium">Provider</th>
+            <th class="px-5 py-3 font-medium">Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-white/5">
+          {% for user in users %}
+            <tr>
+              <td class="px-5 py-4">
+                <div class="font-medium text-stone-100">{{ user.email or "No email" }}</div>
+                <div class="mt-1 font-mono text-xs text-stone-600">{{ user.uid }}</div>
+              </td>
+              <td class="px-5 py-4">
+                {% if role_changes_enabled and user.uid != admin_identity.uid %}
+                  <form class="flex items-center gap-2" action="{{ url_for('admin_user_role', uid=user.uid) }}" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}">
+                    <label class="sr-only" for="role-{{ loop.index }}">Role for {{ user.email or user.uid }}</label>
+                    <select class="rounded-lg border border-white/10 bg-stone-900 px-3 py-2 text-sm text-stone-100 outline-none focus:border-amber-300/60 focus:ring-2 focus:ring-amber-300/15" id="role-{{ loop.index }}" name="role">
+                      <option value="none" {{ "selected" if not user.role }}>No access</option>
+                      <option value="publisher" {{ "selected" if user.role == "publisher" }} {{ "disabled" if not user.email_verified and user.role != "publisher" }}>Publisher</option>
+                      <option value="administrator" {{ "selected" if user.role == "administrator" }} {{ "disabled" if not user.email_verified and user.role != "administrator" }}>Administrator</option>
+                    </select>
+                    <button class="rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-stone-200 transition hover:border-white/30 hover:bg-white/5" type="submit">Save</button>
+                  </form>
+                {% elif user.uid == admin_identity.uid %}
+                  <span class="rounded-full border border-amber-300/25 bg-amber-300/10 px-2.5 py-1 text-xs font-medium capitalize text-amber-200">{{ user.role }}</span>
+                  <div class="mt-2 text-xs text-stone-600">Current session · cannot change your own role</div>
+                {% elif user.role %}
+                  <span class="rounded-full border border-amber-300/25 bg-amber-300/10 px-2.5 py-1 text-xs font-medium capitalize text-amber-200">{{ user.role }}</span>
+                {% else %}
+                  <span class="text-stone-500">No access</span>
+                {% endif %}
+              </td>
+              <td class="px-5 py-4 text-stone-400">{{ user.providers|join(", ") or "—" }}</td>
+              <td class="px-5 py-4">
+                {% if user.disabled %}
+                  <span class="text-red-300">Disabled</span>
+                {% elif not user.email_verified %}
+                  <span class="text-amber-200">Email unverified</span>
+                {% else %}
+                  <span class="text-emerald-300">Active</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% else %}
+            <tr><td class="px-5 py-12 text-center text-stone-500" colspan="4">No Firebase users found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

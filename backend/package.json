@@ -1,0 +1,11 @@
+{
+  "name": "retrostore-admin-assets",
+  "private": true,
+  "scripts": {
+    "build:admin-css": "tailwindcss -i services/admin/assets/admin.css -o services/admin/static/admin.css --minify"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.3.3",
+    "tailwindcss": "4.3.3"
+  }
+}

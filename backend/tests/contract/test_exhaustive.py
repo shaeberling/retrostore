@@ -1,7 +1,8 @@
 import httpx
+import pytest
 
 from retrostore.contract.capture import capture_scenarios_with_client
-from retrostore.contract.exhaustive import discover_exhaustive_corpus
+from retrostore.contract.exhaustive import _gcloud_identity_token, discover_exhaustive_corpus
 from services.api_compat.app import create_representative_app
 
 
@@ -56,3 +57,34 @@ def test_exhaustive_corpus_replays_with_semantic_binary_summaries() -> None:
         "size": 3_477,
         "sha256": "312f570af4c76ed5f3ba50a0e68ba02a9188ebc0f49f459f6ffd751812d1f6d3",
     }
+
+
+def test_gcloud_identity_token_is_captured_without_logging_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[list[str]] = []
+
+    def completed(command: list[str], **kwargs: object) -> object:
+        calls.append(command)
+        return type("Result", (), {"stdout": "secret-token\n"})()
+
+    monkeypatch.setattr("retrostore.contract.exhaustive.subprocess.run", completed)
+
+    assert (
+        _gcloud_identity_token(
+            "https://candidate.example/",
+            "candidate@example.iam.gserviceaccount.com",
+        )
+        == "secret-token"
+    )
+    assert calls == [
+        [
+            "gcloud",
+            "auth",
+            "print-identity-token",
+            "--impersonate-service-account=candidate@example.iam.gserviceaccount.com",
+            "--audiences=https://candidate.example",
+            "--include-email",
+            "--quiet",
+        ]
+    ]

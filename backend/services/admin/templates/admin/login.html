@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Sign in · RetroStore Admin{% endblock %}
+
+{% block content %}
+  <section class="mx-auto mt-8 max-w-md rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl shadow-black/30 sm:p-8">
+    <p class="mb-2 font-mono text-xs uppercase tracking-[0.22em] text-amber-300">Private candidate</p>
+    <h1 class="text-2xl font-semibold tracking-tight">Sign in to RetroStore</h1>
+    <p class="mt-3 text-sm leading-6 text-stone-400">
+      Use a verified Firebase account with an administrator or publisher role.
+      This candidate is read-only while App Engine remains authoritative.
+    </p>
+
+    {% if login_configured %}
+      <div id="login-status" class="mt-5 hidden rounded-lg border px-3 py-2 text-sm" role="status" aria-live="polite"></div>
+      <button
+        id="google-sign-in"
+        class="mt-6 flex w-full items-center justify-center gap-3 rounded-xl bg-amber-300 px-4 py-3 font-semibold text-stone-950 transition hover:bg-amber-200 disabled:cursor-wait disabled:opacity-60"
+        type="button"
+        data-api-key="{{ firebase_config.apiKey }}"
+        data-auth-domain="{{ firebase_config.authDomain }}"
+        data-project-id="{{ firebase_config.projectId }}"
+        data-app-id="{{ firebase_config.appId }}"
+        data-csrf-token="{{ csrf_token }}"
+      >
+        Continue with Google
+      </button>
+      <script type="module" src="{{ url_for('static', filename='admin-login.js') }}"></script>
+    {% else %}
+      <div class="mt-6 rounded-xl border border-amber-300/30 bg-amber-300/10 p-4 text-sm leading-6 text-amber-100">
+        Firebase Web authentication has not been configured for this candidate yet.
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

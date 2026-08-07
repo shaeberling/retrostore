@@ -1,15 +1,47 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="h-full bg-stone-950">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
     <title>{% block title %}RetroStore Admin{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+    {% block head %}{% endblock %}
   </head>
-  <body>
-    <header>
-      <a href="/admin">RetroStore Admin</a>
+  <body class="min-h-full bg-stone-950 text-stone-100 antialiased">
+    <header class="border-b border-white/10 bg-stone-950/95">
+      <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+        <div class="flex items-center gap-6">
+          <a class="flex items-center gap-3 font-semibold tracking-tight" href="/admin/apps">
+            <span class="grid size-9 place-items-center rounded-lg bg-amber-300 font-mono text-sm font-black text-stone-950">RS</span>
+            <span>RetroStore Admin</span>
+            <span class="rounded-full border border-amber-300/30 bg-amber-300/10 px-2 py-0.5 text-xs font-medium text-amber-200">candidate</span>
+          </a>
+          {% if admin_identity %}
+            <nav class="hidden items-center gap-1 md:flex" aria-label="Administration">
+              <a class="rounded-lg px-3 py-2 text-sm {{ 'bg-white/10 text-white' if request.endpoint in ('admin_apps', 'admin_app_detail') else 'text-stone-400 hover:bg-white/5 hover:text-white' }}" href="{{ url_for('admin_apps') }}">Applications</a>
+              <a class="rounded-lg px-3 py-2 text-sm {{ 'bg-white/10 text-white' if request.path.startswith('/admin/staging/') else 'text-stone-400 hover:bg-white/5 hover:text-white' }}" href="{{ url_for('admin_staging_apps') }}">Staging</a>
+              {% if admin_identity.is_administrator %}
+                <a class="rounded-lg px-3 py-2 text-sm {{ 'bg-white/10 text-white' if request.endpoint == 'admin_users' else 'text-stone-400 hover:bg-white/5 hover:text-white' }}" href="{{ url_for('admin_users') }}">Users</a>
+              {% endif %}
+            </nav>
+          {% endif %}
+        </div>
+        {% if admin_identity %}
+          <div class="flex items-center gap-4">
+            <div class="hidden text-right text-xs sm:block">
+              <div class="text-stone-200">{{ admin_identity.email }}</div>
+              <div class="capitalize text-stone-500">{{ admin_identity.role }}</div>
+            </div>
+            <form action="{{ url_for('admin_logout') }}" method="post">
+              <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}">
+              <button class="rounded-lg border border-white/15 px-3 py-2 text-sm font-medium text-stone-200 transition hover:border-white/30 hover:bg-white/5" type="submit">Sign out</button>
+            </form>
+          </div>
+        {% endif %}
+      </div>
     </header>
-    <main>
+    <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {% block content %}{% endblock %}
     </main>
   </body>

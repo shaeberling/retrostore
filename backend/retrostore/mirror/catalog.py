@@ -17,6 +17,7 @@ from retrostore.api_compat.storage import (
     CompatibilityStorage,
     InMemoryCompatibilityStorage,
     MediaSlot,
+    StateStorage,
 )
 from retrostore.generated import ApiProtos_pb2 as api_pb
 
@@ -401,7 +402,7 @@ class MirrorCompatibilityStorage(CompatibilityStorage):
         mirror: CatalogMirror,
         *,
         screenshot_url: ScreenshotUrlResolver | None = None,
-        state_storage: InMemoryCompatibilityStorage | None = None,
+        state_storage: StateStorage | None = None,
     ) -> None:
         self._mirror = mirror
         self._screenshot_url = screenshot_url or _default_screenshot_url

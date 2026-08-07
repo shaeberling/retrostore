@@ -35,7 +35,15 @@ class MediaSlot:
     image: api_pb.MediaImage
 
 
-class CompatibilityStorage(Protocol):
+class StateStorage(Protocol):
+    """Persistence operations required by the three public state RPCs."""
+
+    def save_state(self, state: api_pb.SystemState) -> int: ...
+
+    def get_state(self, token: int) -> api_pb.SystemState | None: ...
+
+
+class CompatibilityStorage(StateStorage, Protocol):
     """Persistence operations required by the frozen public API."""
 
     def get_catalog_entry(self, app_id: str) -> CatalogEntry | None: ...
@@ -45,11 +53,6 @@ class CompatibilityStorage(Protocol):
     def search_app_ids(self, query: str) -> set[str]: ...
 
     def get_media_slots(self, app_id: str) -> Sequence[MediaSlot]: ...
-
-    def save_state(self, state: api_pb.SystemState) -> int: ...
-
-    def get_state(self, token: int) -> api_pb.SystemState | None: ...
-
 
 class InMemoryCompatibilityStorage:
     """Deterministic adapter for local compatibility and emulator tests."""

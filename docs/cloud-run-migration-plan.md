@@ -74,7 +74,7 @@ Completed foundation work:
   concurrent token allocation, the 100–999 token range, wrap/exhaustion, and
   persistence clone isolation. Matching Java/Python fixtures prove that the
   legacy contract accepts a 2,000,028-byte valid state, beyond Firestore's 1 MiB
-  document limit. The complete Python suite has 75 passing tests.
+  document limit.
 - Comparator reports now include a strict approved-difference gate. An approval
   pins one scenario field's exact reference/candidate fingerprint and requires
   a reason, named owner, and expiry. Changed, expired, duplicate, or unused
@@ -114,7 +114,8 @@ Completed foundation work:
   `trs-80-retrostore-assets` and `trs-80-retrostore-state` enforce uniform IAM
   and public-access prevention. Durable assets retain seven-day soft-delete
   recovery; state payloads disable soft delete and expire through an eight-day
-  lifecycle. All four new resources remain empty.
+  lifecycle. One synthetic 34-byte smoke-test state now exercises the isolated
+  state path and will expire through the same seven-day/eight-day controls.
 - An idempotent catalog importer and production Google Cloud persistence
   boundary are implemented behind dependency injection. Immutable Storage
   writes use generation-zero preconditions and verify existing collisions;
@@ -122,15 +123,90 @@ Completed foundation work:
   final atomic active-pointer batch after complete read-back reconciliation.
   The operator command is dry-run by default and requires explicit target names,
   source-project equality, `--apply`, and an exact project confirmation before
-  writing. The validated production archive dry-run reconciled all 150 objects
-  and 12,738,856 bytes against the approved empty targets without writing.
+  writing. The validated production archive was imported through the keyless,
+  database-scoped `retrostore-migrator` identity as snapshot
+  `catalog-ec07d9d7c8d47c8a46b745fc82b8d7f231e905dc6b6f7e00f4375547cf303de8`.
+  The first pass created all 150 objects totaling 12,738,856 bytes; an immediate
+  retry created none, downloaded and checksum-verified all 150, and reused the
+  identical snapshot with zero collisions.
+- Separate migrator, public API, and administration service accounts now have
+  exact named-database IAM conditions and bucket-level Storage roles. No new
+  workload identity can access the legacy `(default)` database. The private,
+  unrouted `retrostore-api-compat-candidate` service is deployed in
+  `us-central1` on revision `state1`, using the API identity and
+  immutable image digest
+  `sha256:35cfa574d18696eb89aa2e99868938f9d7782541ff128fcd27dd10eb5da34ff4`.
+  Cloud Run's invoker IAM check is explicitly enabled; unauthenticated probes
+  return HTTP 403 and only the runtime identity and migration operator retain
+  service-scoped invocation.
+- The seven-day public state adapter is implemented and its guarded real-cloud
+  smoke test passed through the runtime identity. Payloads use unique immutable
+  generation-guarded objects; metadata uses transactional random claims in the
+  legacy `100`-`999` token range; downloads enforce logical expiry and verify
+  generation, size, and SHA-256 before parsing the protobuf. A separate guarded
+  external HTTP probe now verifies upload, full download, memory-excluded
+  download, and overlapping-region precedence without recording its token.
+- The complete 158-scenario corpus was replayed against an in-process Flask
+  candidate loaded from the live isolated resources through the exact
+  `retrostore-api` identity. All 32 apps, 60 media objects, 60 byte-range reads,
+  and 6,826,237 media bytes matched App Engine with zero differences and no
+  approvals. This independently revalidated all 150 stored objects.
+- The same 158-scenario corpus then passed through the deployed Cloud Run URL
+  twice: once during the explicitly approved temporary public diagnostic and
+  once after restoring private IAM using an audience-bound token minted for the
+  exact runtime identity. The deployed private state lifecycle gate also passed.
+  The temporary `allUsers` binding was removed and the public API returned HTTP
+  403 afterward. The earlier apparent front-end 404 combined Flask correctly
+  rejecting `/` with Cloud Run's documented reservation of some paths ending in
+  `z`; operational routes now use `/health` and `/ready`. The complete Python
+  suite now has 163 passing tests.
+- The first server-rendered admin slice is implemented and deployed privately
+  as `retrostore-admin-candidate` revision `compact1`. Jinja/Tailwind inventory,
+  search, and detail pages read the same active mirror and expose no mutations.
+  Firebase Authentication is initialized from checked-in configuration with
+  Google Sign-In only; anonymous and password sign-in are disabled. Server
+  sessions require recent sign-in, verified email, an administrator/publisher
+  role, revocation checks, and CSRF validation. The initial custom claim is a
+  bootstrap fallback; once a Firestore user profile exists, its role is
+  authoritative and is re-checked on every protected request. The runtime's
+  custom Firebase role contains only `users.createSession` and `users.get`.
+  Private smoke tests
+  passed health, readiness, login, compiled CSS, and the pre-session redirect;
+  unauthenticated Cloud Run access returns HTTP 403. The browser login was then
+  verified end to end through the private proxy with a Google-verified Firebase
+  user, an explicit `administrator` claim, and a server-created session cookie.
+  The candidate CSP permits only the Google/Firebase origins required by that
+  flow and validates the configured Firebase authentication domain before using
+  it as a frame source. An administrator-only Firebase identity inventory and
+  role workflow are also available; publishers are denied, self-role changes
+  are rejected, and each user-profile role change commits atomically with its
+  audit event in the named `retrostore` database. No Firebase user-update IAM
+  permission was added. The first isolated mutation workflow now creates
+  top-level future-schema app and author documents plus an audit event in one
+  transaction. Publisher ownership, server validation, CSRF, concurrency, and
+  idempotent request IDs are enforced. The staged detail workflow also supports
+  updates guarded by optimistic integer revisions and exact-name-confirmed
+  deletion; every mutation is atomic with its audit event, while author records
+  are retained because they may be shared. The same isolated detail workflow now
+  owns all four disk positions plus cassette, command, and BASIC slots and an
+  explicitly ordered screenshot list. Media and screenshot uploads are bounded,
+  validated, written to private UUID/checksum-addressed immutable object paths,
+  then transactionally linked with an app revision and audit event. Screenshot
+  type is detected from file bytes and SVG is rejected. Replacements and deletes
+  clean up superseded objects, and app deletion cascades through staged assets.
+  These documents are separate from the versioned `catalogSnapshots` mirror and
+  cannot affect public API responses. Media slots are presented as one compact,
+  vertically ordered set of responsive horizontal rows for faster scanning and
+  replacement. No staged record or object was created during deployment. The
+  deployed image digest is
+  `sha256:18d60af5803a168e3132b5315f345e10d9f5c14e7e949b0f206f601b241d836f`.
 
 Open foundation work:
 
-- The verified normalized archive now needs to be imported into isolated
-  Firestore/Cloud Storage resources and served through the production adapter.
-  IAM bindings and the reviewed first apply remain; the local archive factory
-  stays explicit and the default deployable factory remains fail-closed.
+- Exercise the complete staged app/media/screenshot lifecycle through the live
+  browser session and inspect the isolated Firestore documents, private objects,
+  audit events, and cleanup. Then implement the remaining firmware and guarded
+  import administration workflows. The synchronized catalog remains read-only.
 - The `native-client-library` Arduino tree is an unfinished prototype: it sends
   a bodyless GET, ignores its configurable host, and has no media
   implementation. It needs an explicit retire-or-modernize decision rather than
@@ -1127,20 +1203,37 @@ Phase 1:
   mirror. The corpus, method registry, semantic normalizer, baseline, two-host
   comparator, and approval gate are implemented; two complete App Engine
   captures and the archive-backed local candidate matched with zero differences.
+- [x] Deploy the private Cloud Run compatibility candidate and run both the
+  158-scenario read-only corpus and guarded synthetic state lifecycle through
+  its external URL with the keyless runtime identity. Restore and verify private
+  invocation after the temporary public diagnostic.
+- [x] Deploy the private server-rendered admin candidate with Google-only
+  Firebase Authentication, hardened session/CSRF boundaries, compiled Tailwind,
+  and read-only synchronized catalog inventory and detail pages.
+- [x] Add the isolated staged app and author create/edit/delete lifecycle with
+  publisher ownership, optimistic revisions, explicit deletion confirmation,
+  and atomic audit events.
+- [x] Add isolated, private staged media-slot and ordered-screenshot workflows
+  with bounded uploads, checksum-addressed objects, replacement/deletion cleanup,
+  optimistic revisions, ownership enforcement, and atomic audit events.
 - [ ] Finalize candidate hostnames, the load-balancer URL map, route groups,
   monitoring thresholds, and named rollback owners. Current DNS, certificates,
   HTTP behavior, and absence of an existing load balancer are documented.
 
 The unfinished Arduino tree is not a working public API consumer and remains
 outside the compatibility gate; leave it untouched unless a known hardware
-deployment requires a separately scoped repair. The next executable milestone
-is the next Phase 2 slice: review the importer commit and aggregate dry-run,
-create the least-privilege migration/runtime identities, perform the first
-controlled import, load it back through the cloud adapter, and rerun the full
-158-scenario compatibility comparison.
+deployment requires a separately scoped repair. The compatibility API's first
+deployed Phase 2 gate and the admin's first read-only slice are complete. The
+initial Google sign-in, explicit administrator claim, server-session exchange,
+and browser inventory review have passed through the private Cloud Run proxy.
+Administrator/publisher role management is atomically audited in Firestore, and
+the isolated staging app/author create/edit/delete workflow is deployed. The
+isolated media-slot and ordered-screenshot workflows are also deployed. The next
+executable gate is a browser-driven end-to-end staged asset lifecycle and cloud
+reconciliation, followed by firmware and guarded imports; synchronized-catalog
+writes remain disabled.
 
-No production data, Firebase configuration, or routing should change during this
-milestone.
+No production routing or legacy data should change during this milestone.
 
 ## Reference documentation
 

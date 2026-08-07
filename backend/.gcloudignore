@@ -1,0 +1,9 @@
+.gcloudignore
+.venv/
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+tests/
+node_modules/
+**/__pycache__/
+**/*.py[cod]

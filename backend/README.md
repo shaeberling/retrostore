@@ -30,6 +30,61 @@ UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run flask --app services.api_compat.app
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run flask --app services.admin.app run --port 8081
 ```
 
+## Server-rendered admin candidate
+
+The administration service uses Flask/Jinja pages and a Tailwind 4.3.3 asset
+compiled at image-build time. It has no browser-facing JSON API for catalog
+data. Every admin page verifies a revoked-aware Firebase session cookie and an
+administrator or publisher role from the named Firestore database, with the
+initial custom claim retained only as a bootstrap fallback until a user profile
+exists. Session creation additionally requires a verified email, a sign-in less
+than five minutes old, and a matching HTTP-only double-submit CSRF cookie. The
+synchronized catalog remains read-only.
+
+Build the local CSS after changing templates or JavaScript:
+
+```shell
+npm ci
+npm run build:admin-css
+```
+
+The deployed candidate is private. Use the official proxy for the first login
+and operator review without granting public Cloud Run invocation:
+
+```shell
+gcloud run services proxy retrostore-admin-candidate \
+  --project trs-80 \
+  --region us-central1 \
+  --port 8080
+```
+
+Then open `http://localhost:8080/admin/login`. Firebase Authentication is
+managed as code by the root `firebase.json`; only Google Sign-In is enabled.
+The Cloud Run runtime receives a two-permission custom role for session issuance,
+revocation checks, and user inspection. It does not receive Firebase user
+update, creation, deletion, or provider-configuration access. RetroStore roles
+live in the named Firestore database and are re-checked on every protected
+request. Publishers cannot access the user inventory or role mutations. Each
+role change requires CSRF validation and atomically writes both the user profile
+and audit event. Administrators cannot change their own role.
+
+The **Staging** area is the only catalog mutation surface currently enabled. It
+writes future-schema documents to the top-level `apps`, `authors`, `media`, and
+`screenshots` collections with an atomic `auditEvents` record. Those collections
+are separate from the versioned `catalogSnapshots` mirror consumed by the
+compatibility API, so staged records cannot affect public results. App creation
+uses a UUID4 form request ID for idempotent retries and enforces publisher
+ownership server-side. The staged detail page supports edits guarded by an
+optimistic integer revision and deletion guarded by an exact-name confirmation.
+It also manages the exact four disk slots plus cassette, command, and BASIC
+media, and an explicitly ordered screenshot list. Uploads are size-limited,
+checksum-addressed, written to private immutable object paths, and committed to
+Firestore atomically with the app revision and audit event. Screenshot content
+type is detected from its bytes; SVG is not accepted. Replacements and deletes
+remove superseded objects after the metadata transaction. Non-owners and stale
+edits are rejected. Deleting an app cascades through its staged assets but
+intentionally retains its author document because authors may be shared.
+
 The default API factory reports not-ready until a storage adapter is configured.
 Run the explicit representative candidate when exercising the reviewed local
 compatibility corpus:
@@ -127,6 +182,52 @@ range. The first App Engine self-comparison matched all 158 observations across
 32 apps, 60 media objects, and 6,826,237 media bytes. The report contains
 semantic metadata and hashes, not the media binaries.
 
+For a private Cloud Run candidate, add a keyless runtime identity token without
+printing or storing it:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.contract.exhaustive \
+  --reference-url https://retrostore.org \
+  --candidate-url PRIVATE_CLOUD_RUN_URL \
+  --candidate-gcloud-identity-token-service-account \
+    retrostore-api@trs-80.iam.gserviceaccount.com \
+  --output /tmp/retrostore-cloud-comparison.json
+```
+
+Exercise the deployed write path with one synthetic state only. This guarded
+command is a dry run unless `--apply` and an exact URL confirmation are both
+present; its report never includes the allocated state token:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.contract.verify_http_state \
+  --candidate-url PRIVATE_CLOUD_RUN_URL \
+  --candidate-gcloud-identity-token-service-account \
+    retrostore-api@trs-80.iam.gserviceaccount.com \
+  --output /tmp/retrostore-cloud-state-http.json \
+  --apply \
+  --confirm-candidate-url PRIVATE_CLOUD_RUN_URL
+```
+
+If the Cloud Run front end itself is under diagnosis, the same runtime identity
+can load the real isolated resources into the Flask app in-process and run the
+identical read-only corpus without changing service visibility:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.contract.cloud_exhaustive \
+  --reference-url https://retrostore.org \
+  --project trs-80 \
+  --catalog-database retrostore \
+  --assets-bucket trs-80-retrostore-assets \
+  --state-database retrostore-state \
+  --state-bucket trs-80-retrostore-state \
+  --impersonate-service-account \
+    retrostore-api@trs-80.iam.gserviceaccount.com \
+  --output /tmp/retrostore-isolated-cloud-comparison.json
+```
+
 ## Normalized catalog mirror
 
 The first Phase 2 persistence boundary is implemented without creating cloud
@@ -191,8 +292,25 @@ UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
 ```
 
 An apply additionally requires both `--apply` and an exact
-`--confirm-project trs-80`. Do not apply until the implementation commit and
-dry-run report have been reviewed.
+`--confirm-project trs-80`, plus impersonation of the dedicated keyless
+`retrostore-migrator` identity:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.mirror.import_catalog \
+  /path/to/retrostore-catalog-export.zip \
+  --project trs-80 \
+  --database retrostore \
+  --bucket trs-80-retrostore-assets \
+  --output /tmp/retrostore-catalog-import.json \
+  --apply \
+  --confirm-project trs-80 \
+  --impersonate-service-account \
+    retrostore-migrator@trs-80.iam.gserviceaccount.com
+```
+
+The operator receives a short-lived impersonated access token from `gcloud`;
+no service-account key is created or written to disk.
 
 Objects are uploaded with a generation-zero precondition and independently
 verified when an immutable path already exists. Firestore metadata is written
@@ -201,6 +319,31 @@ all documents reconcile does one atomic batch mark the snapshot ready and move
 `catalogControl/active` to it. Failed or interrupted imports cannot expose a
 partially written snapshot, and retrying the same archive reuses verified
 objects and the same snapshot ID.
+
+## Controlled cloud state smoke test
+
+The state adapter stores normalized protobuf bytes in the isolated private state
+bucket and transactionally claims metadata in the `retrostore-state` database.
+The command is a zero-write dry run unless the exact project and API runtime
+identity are confirmed:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.api_compat.verify_cloud_state \
+  --project trs-80 \
+  --database retrostore-state \
+  --bucket trs-80-retrostore-state \
+  --output /tmp/retrostore-state-smoke.json \
+  --apply \
+  --confirm-project trs-80 \
+  --impersonate-service-account \
+    retrostore-api@trs-80.iam.gserviceaccount.com
+```
+
+The fixture contains no production state. A successful run proves an immutable
+object write, transactional legacy-range token claim, checksum-verified
+read-back, and exact protobuf round trip. The test record expires after seven
+days and the bucket lifecycle deletes its object after eight days.
 
 ## Read-only production inventory
 

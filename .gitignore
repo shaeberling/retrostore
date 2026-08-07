@@ -49,6 +49,7 @@ backend/.pytest_cache/
 backend/.ruff_cache/
 backend/.coverage
 backend/htmlcov/
+backend/node_modules/
 __pycache__/
 *.py[cod]
 

@@ -2,11 +2,14 @@
 
 import hashlib
 import json
+import subprocess
 from collections.abc import Iterable, Mapping
 from typing import Any
 
 from google.api_core.exceptions import NotFound, PreconditionFailed
+from google.auth.credentials import Credentials
 from google.cloud import firestore, storage
+from google.oauth2.credentials import Credentials as AccessTokenCredentials
 
 from retrostore.mirror.persistence import CatalogSnapshot, ImmutableObject
 
@@ -160,14 +163,31 @@ class FirestoreCatalogSnapshotStore:
 
 
 def google_catalog_stores(
-    *, project: str, database: str, bucket: str
+    *,
+    project: str,
+    database: str,
+    bucket: str,
+    impersonate_service_account: str | None = None,
+    credentials: Credentials | None = None,
 ) -> tuple[CloudStorageObjectStore, FirestoreCatalogSnapshotStore]:
     """Create production adapters for an explicitly named database and bucket."""
 
     validate_catalog_target(project=project, database=database, bucket=bucket)
+    if impersonate_service_account is not None:
+        if credentials is not None:
+            raise ValueError("Pass credentials or impersonation, not both")
+        validate_migration_identity(project, impersonate_service_account)
+        credentials = gcloud_impersonated_credentials(
+            project=project,
+            service_account=impersonate_service_account,
+        )
 
-    firestore_client = firestore.Client(project=project, database=database)
-    storage_bucket = storage.Client(project=project).bucket(bucket)
+    firestore_client = firestore.Client(
+        project=project,
+        database=database,
+        credentials=credentials,
+    )
+    storage_bucket = storage.Client(project=project, credentials=credentials).bucket(bucket)
     return (
         CloudStorageObjectStore(storage_bucket),
         FirestoreCatalogSnapshotStore(firestore_client),
@@ -187,6 +207,45 @@ def validate_catalog_target(*, project: str, database: str, bucket: str) -> None
         f"us.artifacts.{project}.appspot.com",
     }:
         raise ValueError("Catalog persistence must not target a legacy bucket")
+
+
+def migration_service_account(project: str) -> str:
+    return f"retrostore-migrator@{project}.iam.gserviceaccount.com"
+
+
+def validate_migration_identity(project: str, service_account: str) -> None:
+    if service_account != migration_service_account(project):
+        raise ValueError(
+            "Catalog apply must impersonate the dedicated project migration identity"
+        )
+
+
+def gcloud_impersonated_credentials(
+    *, project: str, service_account: str
+) -> AccessTokenCredentials:
+    """Mint a short-lived operator token without creating a service-account key."""
+
+    try:
+        completed = subprocess.run(
+            [
+                "gcloud",
+                "auth",
+                "print-access-token",
+                f"--impersonate-service-account={service_account}",
+                f"--project={project}",
+                "--quiet",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError as error:
+        detail = error.stderr.strip() or "gcloud exited unsuccessfully"
+        raise RuntimeError(f"Could not impersonate {service_account}: {detail}") from None
+    token = completed.stdout.strip()
+    if not token:
+        raise RuntimeError("gcloud returned an empty impersonated access token")
+    return AccessTokenCredentials(token=token)
 
 
 def _document_data(snapshot: Any) -> dict[str, Any]:

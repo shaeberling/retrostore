@@ -4,6 +4,8 @@ from retrostore.mirror.catalog import (
     CatalogMirror,
     MappingObjectReader,
     MirrorCompatibilityStorage,
+    NormalizedApp,
+    NormalizedMedia,
     NormalizedScreenshot,
     load_catalog_mirror_archive,
 )
@@ -27,6 +29,8 @@ __all__ = [
     "ImmutableObjectStore",
     "MappingObjectReader",
     "MirrorCompatibilityStorage",
+    "NormalizedApp",
+    "NormalizedMedia",
     "NormalizedScreenshot",
     "build_catalog_snapshot",
     "import_catalog_mirror",

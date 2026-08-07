@@ -8,7 +8,12 @@ from pathlib import Path
 from typing import Any
 
 from retrostore.mirror.catalog import load_catalog_mirror_archive
-from retrostore.mirror.google_cloud import google_catalog_stores, validate_catalog_target
+from retrostore.mirror.google_cloud import (
+    google_catalog_stores,
+    migration_service_account,
+    validate_catalog_target,
+    validate_migration_identity,
+)
 from retrostore.mirror.persistence import build_catalog_snapshot, import_catalog_mirror
 
 
@@ -21,6 +26,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--confirm-project")
+    parser.add_argument("--impersonate-service-account")
     args = parser.parse_args(argv)
 
     validate_catalog_target(
@@ -36,14 +42,22 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.apply:
         if args.confirm_project != args.project:
             raise ValueError("--confirm-project must exactly match --project when applying")
+        if args.impersonate_service_account is None:
+            raise ValueError(
+                "--impersonate-service-account is required when applying; expected "
+                f"{migration_service_account(args.project)}"
+            )
+        validate_migration_identity(args.project, args.impersonate_service_account)
         object_store, snapshot_store = google_catalog_stores(
             project=args.project,
             database=args.database,
             bucket=args.bucket,
+            impersonate_service_account=args.impersonate_service_account,
         )
         report: dict[str, Any] = {
             "schema_version": 1,
             "applied": True,
+            "service_account": args.impersonate_service_account,
             "target": _target(args.project, args.database, args.bucket),
             **asdict(import_catalog_mirror(mirror, object_store, snapshot_store)),
         }

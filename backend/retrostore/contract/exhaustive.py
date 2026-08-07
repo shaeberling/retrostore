@@ -2,6 +2,8 @@
 
 import argparse
 import json
+import subprocess
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -139,6 +141,7 @@ def compare_exhaustive(
     reference_url: str,
     candidate_url: str,
     timeout_seconds: float = 30.0,
+    candidate_headers: Mapping[str, str] | None = None,
 ) -> dict[str, object]:
     with httpx.Client(
         base_url=reference_url,
@@ -149,7 +152,12 @@ def compare_exhaustive(
 
     report = compare_captures(
         capture_scenarios(reference_url, corpus.scenarios, timeout_seconds),
-        capture_scenarios(candidate_url, corpus.scenarios, timeout_seconds),
+        capture_scenarios(
+            candidate_url,
+            corpus.scenarios,
+            timeout_seconds,
+            headers=candidate_headers,
+        ),
     )
     report["scope"] = corpus.scope()
     return report
@@ -187,13 +195,25 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--approvals", type=Path)
     parser.add_argument("--timeout-seconds", type=float, default=30.0)
+    parser.add_argument("--candidate-gcloud-identity-token-service-account")
     args = parser.parse_args()
+
+    candidate_headers = None
+    if args.candidate_gcloud_identity_token_service_account:
+        candidate_headers = {
+            "Authorization": "Bearer "
+            + _gcloud_identity_token(
+                args.candidate_url,
+                args.candidate_gcloud_identity_token_service_account,
+            )
+        }
 
     report = evaluate_approvals(
         compare_exhaustive(
             args.reference_url,
             args.candidate_url,
             args.timeout_seconds,
+            candidate_headers,
         ),
         load_approvals(args.approvals) if args.approvals else (),
     )
@@ -201,6 +221,31 @@ def main() -> None:
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     if not report["approval_gate"]["passes"]:
         raise SystemExit(1)
+
+
+def _gcloud_identity_token(audience: str, service_account: str) -> str:
+    try:
+        completed = subprocess.run(
+            [
+                "gcloud",
+                "auth",
+                "print-identity-token",
+                f"--impersonate-service-account={service_account}",
+                f"--audiences={audience.rstrip('/')}",
+                "--include-email",
+                "--quiet",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError as error:
+        detail = error.stderr.strip() or "gcloud exited unsuccessfully"
+        raise RuntimeError(f"Could not impersonate {service_account}: {detail}") from None
+    token = completed.stdout.strip()
+    if not token:
+        raise RuntimeError("gcloud returned an empty identity token")
+    return token
 
 
 if __name__ == "__main__":

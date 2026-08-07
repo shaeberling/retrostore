@@ -13,4 +13,4 @@ RUN uv sync --frozen --no-dev --no-install-project
 COPY retrostore ./retrostore
 COPY services ./services
 
-CMD ["sh", "-c", "exec gunicorn --bind :${PORT:-8080} --workers 2 --threads 8 --timeout 60 'services.api_compat.app:create_app()'"]
+CMD ["sh", "-c", "exec gunicorn --bind :${PORT:-8080} --workers 2 --threads 8 --timeout 60 'services.api_compat.app:create_cloud_app()'"]

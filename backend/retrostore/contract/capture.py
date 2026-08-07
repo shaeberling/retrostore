@@ -2,7 +2,7 @@
 
 import argparse
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -21,10 +21,16 @@ def capture_scenarios(
     base_url: str,
     scenarios: Sequence[ContractScenario],
     timeout_seconds: float = 30.0,
+    headers: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     """Capture an already-reviewed, non-mutating scenario sequence."""
 
-    with httpx.Client(base_url=base_url, follow_redirects=False, timeout=timeout_seconds) as client:
+    with httpx.Client(
+        base_url=base_url,
+        follow_redirects=False,
+        timeout=timeout_seconds,
+        headers=headers,
+    ) as client:
         return capture_scenarios_with_client(base_url, scenarios, client)
 
 

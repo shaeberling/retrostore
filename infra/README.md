@@ -29,8 +29,19 @@ and emit a reconciliation report into the gitignored `.migration-artifacts/`
 directory.
 
 The importer is documented in `../backend/README.md`. It performs no writes
-unless `--apply` and an exact project confirmation are both supplied. The first
-production-archive dry run on 2026-08-07 targeted these isolated resources and
-reconciled 32 apps, 60 media records, 90 screenshots, and 150 objects totaling
-12,738,856 bytes. The databases and buckets remain empty pending review of the
-implementation and dry-run report.
+unless `--apply`, an exact project confirmation, and the dedicated keyless
+migrator identity are all supplied. On 2026-08-07 the production archive was
+imported as content-derived snapshot `catalog-ec07d9d7c8d47c8a46b745fc82b8d7f231e905dc6b6f7e00f4375547cf303de8`.
+The first pass created 150 objects totaling 12,738,856 bytes; an immediate retry
+created zero and checksum-verified/reused all 150. The state database and bucket
+contain four synthetic 34-byte states created by the direct and external
+runtime-identity smoke tests; their metadata expires after seven days and their
+objects are covered by the eight-day lifecycle. No production state was copied.
+
+The additive, database- and bucket-scoped workload IAM configuration is in
+`iam/`. It creates separate migrator, public API, and administration identities
+without service-account keys or access to the legacy default database.
+
+The non-routed Cloud Run candidate build and deployment convention is in
+`cloud-run/`. Candidate containers use the dedicated runtime identities and
+explicit replacement-resource environment variables.

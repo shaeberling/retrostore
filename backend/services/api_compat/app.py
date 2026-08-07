@@ -1,5 +1,6 @@
 """Flask entry point for the public compatibility API candidate."""
 
+import os
 from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
@@ -26,10 +27,12 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
     app.config["RETROSTORE_API_HANDLERS"] = handlers
 
     @app.get("/healthz")
+    @app.get("/health")
     def health() -> tuple[dict[str, str], int]:
         return {"service": "retrostore-api-compat", "status": "alive"}, 200
 
     @app.get("/readyz")
+    @app.get("/ready")
     def readiness() -> tuple[dict[str, object], int]:
         handlers = app.config["RETROSTORE_API_HANDLERS"]
         missing = sorted(set(PUBLIC_API_METHODS) - set(handlers))
@@ -82,6 +85,58 @@ def create_archive_app(
     candidate_config = {"RETROSTORE_API_STORAGE": storage}
     if config:
         candidate_config.update(config)
+    return create_app(candidate_config)
+
+
+def create_cloud_app(config: Mapping[str, Any] | None = None) -> Flask:
+    """Create the deployable candidate from an active isolated cloud snapshot."""
+
+    from retrostore.api_compat.google_cloud_state import google_state_storage
+    from retrostore.mirror import MirrorCompatibilityStorage, load_active_catalog_mirror
+    from retrostore.mirror.google_cloud import google_catalog_stores
+
+    candidate_config: dict[str, Any] = {
+        "RETROSTORE_PROJECT": os.environ.get("RETROSTORE_PROJECT"),
+        "RETROSTORE_CATALOG_DATABASE": os.environ.get(
+            "RETROSTORE_CATALOG_DATABASE"
+        ),
+        "RETROSTORE_ASSETS_BUCKET": os.environ.get("RETROSTORE_ASSETS_BUCKET"),
+        "RETROSTORE_STATE_DATABASE": os.environ.get("RETROSTORE_STATE_DATABASE"),
+        "RETROSTORE_STATE_BUCKET": os.environ.get("RETROSTORE_STATE_BUCKET"),
+        "RETROSTORE_STATE_STORAGE": None,
+    }
+    if config:
+        candidate_config.update(config)
+
+    required = (
+        "RETROSTORE_PROJECT",
+        "RETROSTORE_CATALOG_DATABASE",
+        "RETROSTORE_ASSETS_BUCKET",
+    )
+    if candidate_config["RETROSTORE_STATE_STORAGE"] is None:
+        required = (*required, "RETROSTORE_STATE_DATABASE", "RETROSTORE_STATE_BUCKET")
+    missing = [name for name in required if not candidate_config.get(name)]
+    if missing:
+        raise RuntimeError(f"Cloud catalog configuration is missing: {', '.join(missing)}")
+
+    object_store, snapshot_store = google_catalog_stores(
+        project=candidate_config["RETROSTORE_PROJECT"],
+        database=candidate_config["RETROSTORE_CATALOG_DATABASE"],
+        bucket=candidate_config["RETROSTORE_ASSETS_BUCKET"],
+    )
+    mirror = load_active_catalog_mirror(object_store, snapshot_store)
+    state_storage = candidate_config["RETROSTORE_STATE_STORAGE"]
+    if state_storage is None:
+        state_storage = google_state_storage(
+            project=candidate_config["RETROSTORE_PROJECT"],
+            database=candidate_config["RETROSTORE_STATE_DATABASE"],
+            bucket=candidate_config["RETROSTORE_STATE_BUCKET"],
+        )
+    candidate_config["RETROSTORE_API_STORAGE"] = MirrorCompatibilityStorage(
+        mirror,
+        screenshot_url=lambda screenshot: screenshot.legacy_serving_url or "",
+        state_storage=state_storage,
+    )
     return create_app(candidate_config)
 
 
