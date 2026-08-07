@@ -1,6 +1,10 @@
+from pathlib import Path
+
 from flask import Response
 
-from services.api_compat.app import create_app, create_representative_app
+from retrostore.generated import ApiProtos_pb2 as api_pb
+from services.api_compat.app import create_app, create_archive_app, create_representative_app
+from tests.mirror.test_archive import _write_archive
 
 
 def test_liveness_is_independent_of_implementation_readiness() -> None:
@@ -56,3 +60,21 @@ def test_representative_candidate_has_all_handlers() -> None:
 
     assert response.status_code == 200
     assert response.get_json() == {"ready": True, "missing_methods": []}
+
+
+def test_archive_candidate_loads_only_from_explicit_verified_path(tmp_path: Path) -> None:
+    archive = tmp_path / "catalog.zip"
+    _write_archive(archive)
+    client = create_archive_app(archive, {"TESTING": True}).test_client()
+
+    readiness = client.get("/readyz")
+    response = client.post(
+        "/api/getApp",
+        data=api_pb.GetAppParams(app_id="app-1").SerializeToString(),
+    )
+    app_response = api_pb.ApiResponseApps.FromString(response.data)
+
+    assert readiness.status_code == 200
+    assert app_response.success is True
+    assert app_response.app[0].name == "Armored Patrol"
+    assert app_response.app[0].screenshot_url == ["https://legacy.example/shot-1"]

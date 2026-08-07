@@ -22,6 +22,7 @@ import com.google.gson.Gson;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -31,6 +32,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Simple interface and implementation for serving data of a certain type.
  */
 public class Responder {
+  @FunctionalInterface
+  public interface DownloadWriter {
+    void write(OutputStream output) throws IOException;
+  }
+
   public enum ContentType {
     PLAIN("text/plain"),
     BYTES("application/octet-stream"),
@@ -90,6 +96,29 @@ public class Responder {
       mResponse.getOutputStream().write(content);
     } catch (IOException ex) {
       LOG.log(Level.SEVERE, "Cannot serve data", ex);
+    }
+  }
+
+  /** Streams a sensitive, non-cacheable attachment without adding public CORS headers. */
+  public void respondSensitiveDownload(
+      DownloadWriter writer, String filename, ContentType contentType) {
+    checkNotNull(writer);
+    checkNotNull(contentType);
+    if (filename == null || !filename.matches("[A-Za-z0-9._-]+")) {
+      throw new IllegalArgumentException("Download filename contains unsafe characters");
+    }
+    try {
+      mResponse.setHeader("Cache-Control", "no-store, private, max-age=0");
+      mResponse.setHeader("Pragma", "no-cache");
+      mResponse.setHeader("X-Content-Type-Options", "nosniff");
+      mResponse.setContentType(contentType.str);
+      mResponse.setHeader(
+          "Content-Disposition", String.format("attachment; filename=\"%s\"", filename));
+      OutputStream output = mResponse.getOutputStream();
+      writer.write(output);
+      output.flush();
+    } catch (IOException ex) {
+      LOG.log(Level.SEVERE, "Cannot stream sensitive download", ex);
     }
   }
 

@@ -143,12 +143,36 @@ a deterministic ZIP containing `manifest.json` and checksum-addressed media and
 screenshot objects. It fails on dangling/cross-app references, conflicting
 media types, orphaned media, or incomplete Blobstore reads; Blobstore keys are
 not serialized. The Python archive loader independently verifies paths, object
-digests, counts, byte totals, and the aggregate digest.
+digests, counts, byte totals, and the aggregate digest. Validate a downloaded
+production export and print only aggregate evidence with:
 
-The format and its current scope are in `retrostore/mirror/FORMAT.md`. No export
-route is registered yet, and this implementation does not read or mutate
-Firebase. A controlled non-promoted export operation and the production
-Firestore/Cloud Storage adapter are the next pieces.
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.mirror.verify_archive \
+  /path/to/retrostore-catalog-export.zip
+```
+
+Run an explicitly archive-backed local candidate, then compare its complete
+catalog and media contents with App Engine:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run flask \
+  --app 'services.api_compat.app:create_archive_app("/path/to/retrostore-catalog-export.zip")' \
+  run --port 8080
+
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.contract.exhaustive \
+  --reference-url https://retrostore.org \
+  --candidate-url http://127.0.0.1:8080 \
+  --output /tmp/retrostore-archive-comparison.json
+```
+
+The format and its current scope are in `retrostore/mirror/FORMAT.md`. The
+temporary App Engine export route is available only on specially named
+`migration-export-*` default-service versions and additionally enforces the
+RetroStore admin role and explicit confirmation. This implementation does not
+read or mutate Firebase. The production Firestore/Cloud Storage adapter is the
+next persistence piece after the first archive is retained and validated.
 
 ## Read-only production inventory
 

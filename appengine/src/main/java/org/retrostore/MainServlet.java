@@ -42,6 +42,7 @@ import org.retrostore.data.user.UserServiceImpl;
 import org.retrostore.data.xray.StateManagement;
 import org.retrostore.data.xray.StateManagementImpl;
 import org.retrostore.migration.BundledServicesInventory;
+import org.retrostore.migration.NormalizedCatalogExporter;
 import org.retrostore.request.Cache;
 import org.retrostore.request.DownloadAppRequest;
 import org.retrostore.request.EnsureAdminExistsRequest;
@@ -49,6 +50,7 @@ import org.retrostore.request.FaviconRequest;
 import org.retrostore.request.ForwardingRequest;
 import org.retrostore.request.ImportRpkRequest;
 import org.retrostore.request.LoginRequest;
+import org.retrostore.request.MigrationCatalogExportRequest;
 import org.retrostore.request.MigrationInventoryRequest;
 import org.retrostore.request.PingRequest;
 import org.retrostore.request.PolymerRequest;
@@ -109,6 +111,9 @@ public class MainServlet extends RetroStoreServlet {
     ImagesService imagesService = ImagesServiceFactory.getImagesService();
     ImageServiceWrapper imgServWrapper =
         new CachingImageService(new ImageServiceWrapperImpl(imagesService), memcache);
+    NormalizedCatalogExporter catalogExporter =
+        NormalizedCatalogExporter.forAppEngine(
+            new BlobInfoFactory(), blobstoreService, imgServWrapper);
     Cache cache = new TwoLayerCacheImpl(memcache);
     DefaultResourceLoader defaultResourceLoader = new DefaultResourceLoader(cache);
     MailService mailService = new MailServiceImpl();
@@ -145,7 +150,20 @@ public class MainServlet extends RetroStoreServlet {
             () ->
                 BundledServicesInventory.forAppEngine(
                         new BlobInfoFactory(), m.blobstoreService, m.searchService)
-                    .create(m.appManagement.getAllApps(), Instant.now()))
+                    .create(m.appManagement.getAllApps(), Instant.now())),
+        new MigrationCatalogExportRequest(
+            () ->
+                MigrationCatalogExportRequest.isEnabledEnvironment(
+                    System.getenv("GAE_SERVICE"), System.getenv("GAE_VERSION")),
+            () -> {
+              Instant startedAt = Instant.now();
+              NormalizedCatalogExporter.ExportBundle bundle =
+                  m.catalogExporter.create(
+                      System.getenv("GOOGLE_CLOUD_PROJECT"),
+                      startedAt,
+                      "full:" + startedAt);
+              return bundle::writeZip;
+            })
         // Note: Add more request servers here. Keep in mind that this is in priority-order.
         );
   }

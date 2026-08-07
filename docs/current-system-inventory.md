@@ -2,7 +2,7 @@
 
 Status: Infrastructure, Datastore, Blobstore, and Search validation complete
 
-Last verified: 2026-08-06
+Last verified: 2026-08-07
 
 This document records observed production and source behavior. Unknown values
 remain explicit; no production resources were created or modified while
@@ -70,10 +70,13 @@ Observed Firebase resources:
 Fourteen older versions are Java 8 deployments from 2022, receive no traffic,
 and remain in `SERVING` state. Three temporary Java 25 inventory versions were
 deployed without promotion on 2026-08-06 and deleted after successful
-validation. The live version was deployed on 2023-08-19 and has App Engine
-bundled APIs enabled. A single dynamic instance was observed during the initial
-inventory; instance counts and traffic metrics are transient and are not
-migration capacity targets.
+validation. Java 25 version `migration-export-20260807-1312` was deployed
+without promotion on 2026-08-07 for the controlled catalog export, then deleted
+after the authenticated archive passed independent local verification. The live
+version was deployed on 2023-08-19 and has App Engine bundled APIs enabled. A
+single dynamic instance was observed during the initial inventory; instance
+counts and traffic metrics are transient and are not migration capacity
+targets.
 
 The App Engine application currently owns the production custom-domain front
 door directly:

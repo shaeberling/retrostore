@@ -1,6 +1,7 @@
 """Flask entry point for the public compatibility API candidate."""
 
 from collections.abc import Callable, Mapping
+from pathlib import Path
 from typing import Any
 
 from flask import Flask, Response, request
@@ -61,6 +62,24 @@ def create_representative_app(config: Mapping[str, Any] | None = None) -> Flask:
     from retrostore.api_compat.representative import representative_storage
 
     candidate_config = {"RETROSTORE_API_STORAGE": representative_storage()}
+    if config:
+        candidate_config.update(config)
+    return create_app(candidate_config)
+
+
+def create_archive_app(
+    archive_path: str | Path, config: Mapping[str, Any] | None = None
+) -> Flask:
+    """Create an explicitly configured candidate from a verified migration archive."""
+
+    from retrostore.mirror import MirrorCompatibilityStorage, load_catalog_mirror_archive
+
+    mirror = load_catalog_mirror_archive(Path(archive_path))
+    storage = MirrorCompatibilityStorage(
+        mirror,
+        screenshot_url=lambda screenshot: screenshot.legacy_serving_url or "",
+    )
+    candidate_config = {"RETROSTORE_API_STORAGE": storage}
     if config:
         candidate_config.update(config)
     return create_app(candidate_config)

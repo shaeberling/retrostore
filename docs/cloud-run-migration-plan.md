@@ -2,7 +2,7 @@
 
 Status: In progress
 
-Last updated: 2026-08-06
+Last updated: 2026-08-07
 
 ## Implementation status
 
@@ -74,7 +74,7 @@ Completed foundation work:
   concurrent token allocation, the 100–999 token range, wrap/exhaustion, and
   persistence clone isolation. Matching Java/Python fixtures prove that the
   legacy contract accepts a 2,000,028-byte valid state, beyond Firestore's 1 MiB
-  document limit. The complete Python suite has 72 passing tests.
+  document limit. The complete Python suite has 75 passing tests.
 - Comparator reports now include a strict approved-difference gate. An approval
   pins one scenario field's exact reference/candidate fingerprint and requires
   a reason, named owner, and expiry. Changed, expired, duplicate, or unused
@@ -89,19 +89,37 @@ Completed foundation work:
   high-water mark, and reconciliation counts and digests. It fails on dangling,
   cross-app, conflicting-type, orphaned, or incomplete binary reads; its Python
   archive loader independently verifies the artifact before use.
+- A controlled catalog-export route is implemented and tested. It is hidden
+  unless the default-service App Engine version starts with
+  `migration-export-`, then requires a RetroStore admin session, GET, and an
+  explicit confirmation value. Its ZIP response is private, non-cacheable, and
+  has no public CORS header. Java 25 version
+  `migration-export-20260807-1312` was deployed without promotion on 2026-08-07;
+  an unauthenticated request returned HTTP 403 while production traffic
+  remained 100% on `20230819t145020`. The authenticated export passed the
+  independent Python loader with 32 apps, 60 media records, 90 screenshots,
+  and 150 objects totaling 12,738,856 bytes. The 8,418,142-byte ZIP has SHA-256
+  `3bf584091e59bd5200bc36c8178aa9923148e8999eae0238f5577a5ade4fcefa` and is
+  retained only in `.migration-artifacts/`. The temporary version was deleted
+  after validation, and production traffic remained unchanged.
+- The local Flask candidate now has an explicit archive-backed factory while
+  its default factory remains fail-closed. The full synchronized comparison
+  replayed all 158 read-only scenarios against `retrostore.org` and this
+  production archive: all 32 apps, 60 media objects, 60 byte-range reads, and
+  6,826,237 media bytes matched with zero differences and no approvals.
 
 Open foundation work:
 
-- The exhaustive 158-scenario corpus cannot run against a complete local or
-  Cloud candidate until a controlled exporter operation produces the first
-  actual synchronized catalog/media archive. The exporter, normalized schema,
-  archive verifier, and `CompatibilityStorage` adapter now exist, while the
-  representative candidate remains intentionally bounded.
+- The verified normalized archive now needs to be imported into isolated
+  Firestore/Cloud Storage resources and served through the production adapter.
+  Database and bucket location, names, retention, and lifecycle policy remain
+  deliberate operator decisions; the local archive factory stays explicit and
+  the default deployable factory remains fail-closed.
 - The `native-client-library` Arduino tree is an unfinished prototype: it sends
   a bodyless GET, ignores its configurable host, and has no media
   implementation. It needs an explicit retire-or-modernize decision rather than
   being classified as a working contract consumer.
-- No production routing has changed, and no temporary inventory version remains.
+- No production routing has changed, and no temporary migration version remains.
 
 ## Executive summary
 
@@ -1091,13 +1109,13 @@ Phase 1:
   and prove its storage adapter against all 45 reviewed observations.
 - [x] Build the read-only Java Objectify exporter for that format, including
   binary manifests and explicit dangling-reference reconciliation.
-- [ ] Add a tightly controlled admin-only execution path, deploy it without
+- [x] Add a tightly controlled admin-only execution path, deploy it without
   promotion, capture the first sensitive export locally, validate it through
   the Python archive loader, and delete the temporary version.
-- [ ] Run the complete 158-scenario corpus against the synchronized candidate
+- [x] Run the complete 158-scenario corpus against the synchronized candidate
   mirror. The corpus, method registry, semantic normalizer, baseline, two-host
   comparator, and approval gate are implemented; two complete App Engine
-  captures matched with zero differences.
+  captures and the archive-backed local candidate matched with zero differences.
 - [ ] Finalize candidate hostnames, the load-balancer URL map, route groups,
   monitoring thresholds, and named rollback owners. Current DNS, certificates,
   HTTP behavior, and absence of an existing load balancer are documented.
@@ -1105,11 +1123,10 @@ Phase 1:
 The unfinished Arduino tree is not a working public API consumer and remains
 outside the compatibility gate; leave it untouched unless a known hardware
 deployment requires a separately scoped repair. The next executable milestone
-is the next Phase 2 slice: run the exporter through a controlled non-promoted
-App Engine operation and validate the resulting archive locally. After that,
-connect the normalized adapter to isolated Firestore/Storage resources and run
-the full synchronized candidate comparison. Database and bucket creation
-remains a deliberate operator action after location and naming approval.
+is the next Phase 2 slice: define the isolated Firestore/Storage resource names,
+location, lifecycle, and retention policy, then implement the cloud adapter and
+controlled import. Database and bucket creation remains a deliberate operator
+action after those choices are approved.
 
 No production data, Firebase configuration, or routing should change during this
 milestone.
