@@ -131,17 +131,17 @@ The source dispatch order is significant:
 | `/downloadapp?appId=...&type=...` | Raw media or generated ZIP download | Compatibility service |
 | `/screenshotServe?key=...` | Redirect through App Engine Images service | Stable screenshot asset route |
 | `/reportapp` | Public report form and Mail-service submission | Rebuild or explicitly retire after review |
-| `/card/{revision}/version` | RetroStore Card firmware version | Firmware compatibility route |
-| `/card/{revision}/firmware` | RetroStore Card firmware bytes | Firmware compatibility route |
-| `/trs-io/{revision}/version` | TRS-IO firmware version | Firmware compatibility route |
-| `/trs-io/{revision}/firmware` | TRS-IO firmware bytes | Firmware compatibility route |
-| `/card`, `/trs-io` | Authenticated firmware admin | New Flask admin |
+| `/card/{revision}/version` | RetroStore Card firmware version | Remain unchanged on App Engine; excluded from current migration |
+| `/card/{revision}/firmware` | RetroStore Card firmware bytes | Remain unchanged on App Engine; excluded from current migration |
+| `/trs-io/{revision}/version` | TRS-IO firmware version | Remain unchanged on App Engine; excluded from current migration |
+| `/trs-io/{revision}/firmware` | TRS-IO firmware bytes | Remain unchanged on App Engine; excluded from current migration |
+| `/card`, `/trs-io` | Authenticated firmware admin | Remain unchanged on App Engine; excluded from current migration |
 | `/rpc?m=<method>` | Polymer admin RPC surface | Replace with server-rendered admin forms |
 | `/post/uploadDiskImage` | Admin media upload | New Flask admin upload |
 | `/screenshotUpload*`, `/screenshotUrlForUpload*` | Blobstore screenshot upload | New Flask admin upload |
 | `/import*` | Authenticated RPK import | New Flask admin workflow |
 | `/updateData` | Search-index refresh | Removed after search migration |
-| `/ping` | One-minute App Engine warmup cron | Remove only at App Engine retirement |
+| `/ping` | One-minute App Engine warmup cron | Retain unless independently proven unnecessary for the surviving hardware routes |
 
 The legacy `/rpc` registry contains:
 

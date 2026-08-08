@@ -5,6 +5,11 @@ approved `nam5` Firestore databases and the closest supported region for the
 `US` multi-region buckets. Candidate services use dedicated runtime identities
 and are not connected to the `retrostore.org` URL map.
 
+The RetroStore Card and TRS-IO hardware update subsystem is not a Cloud Run
+candidate. `/card`, `/card/*`, `/trs-io`, and `/trs-io/*`, including their
+administration and Datastore-backed images, remain unchanged on App Engine. A
+future production URL map must keep those route groups pinned to App Engine.
+
 The compatibility API image is built from `backend/` with
 `services/api_compat/cloudbuild.yaml` and stored in the dedicated
 `us-central1-docker.pkg.dev/trs-80/retrostore` repository. A candidate deploy

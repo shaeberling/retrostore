@@ -2,7 +2,7 @@
 
 Status: In progress
 
-Last updated: 2026-08-07
+Last updated: 2026-08-08
 
 ## Implementation status
 
@@ -205,8 +205,8 @@ Open foundation work:
 
 - Exercise the complete staged app/media/screenshot lifecycle through the live
   browser session and inspect the isolated Firestore documents, private objects,
-  audit events, and cleanup. Then implement the remaining firmware and guarded
-  import administration workflows. The synchronized catalog remains read-only.
+  audit events, and cleanup. Then implement the guarded import administration
+  workflow. The synchronized catalog remains read-only.
 - The `native-client-library` Arduino tree is an unfinished prototype: it sends
   a bodyless GET, ignores its configurable host, and has no media
   implementation. It needs an explicit retire-or-modernize decision rather than
@@ -221,15 +221,15 @@ compatibility-first, incremental migration. The agreed target is:
 - A dedicated Python/Flask Cloud Run service for the existing public RetroStore
   API.
 - A separate Python/Flask Cloud Run service that serves the admin HTML and owns
-  all administrative operations.
+  the in-scope administrative operations.
 - A server-rendered admin interface using Jinja, compiled Tailwind CSS, and
   optional htmx enhancements rather than a single-page application.
 - Firebase Authentication for admin and publisher identities, exchanged for
   secure server-side session cookies.
 - A new named Firestore Native database for normalized catalog metadata.
 - A separate named Firestore Native database for ephemeral system states.
-- Private Cloud Storage for Firebase buckets for media images, screenshots,
-  firmware, and migration artifacts.
+- Private Cloud Storage for Firebase buckets for media images, screenshots, and
+  migration artifacts.
 - A one-time normalized export from Objectify into the new Firestore and Storage
   model, leaving the existing Datastore-mode database untouched for rollback.
 - A mandatory parallel-run period in which App Engine remains authoritative and
@@ -267,6 +267,12 @@ authorization and business rules server-side.
 - Keep Firestore and Storage inaccessible to browser clients by default.
 - Keep App Engine authoritative throughout implementation and the comparison
   soak; the existing production URLs are the last thing to move.
+- Keep the RetroStore Card and TRS-IO hardware update subsystem unchanged on
+  App Engine. `/card`, `/card/*`, `/trs-io`, and `/trs-io/*`, their legacy
+  administration, and their Datastore entities are outside this migration.
+  Any load-balancer URL map must keep these paths pinned to App Engine. Moving
+  them requires a new, explicitly approved project; it is not a later phase of
+  this plan.
 - Expose the candidate services on separate hostnames and do not allow both
   admin applications to write production catalog data concurrently.
 - Put a global external Application Load Balancer in front of App Engine and
@@ -277,7 +283,9 @@ authorization and business rules server-side.
 
 ## Goals
 
-- Remove the runtime dependency on App Engine and its legacy bundled services.
+- Remove the runtime dependency on App Engine for the public RetroStore API,
+  catalog administration, and other explicitly migrated surfaces while
+  retaining the legacy hardware update route island.
 - Preserve the public API contract for existing Android, iOS, web, JVM, C, and
   embedded clients.
 - Modernize the admin interface and authentication model without creating a
@@ -300,6 +308,8 @@ authorization and business rules server-side.
 - Changing existing app IDs, media order, filenames, or protobuf field numbers.
 - Building a public direct-to-Firestore or direct-to-Storage client.
 - Building a React, Next.js, or other SPA-based admin interface.
+- Reimplementing, exporting, importing, or modernizing the RetroStore Card or
+  TRS-IO hardware update routes, administration, or stored images.
 - Migrating every subsystem and every stored entity in a single release.
 - Deleting or converting the existing Datastore-mode database during the
   migration or rollback window.
@@ -451,7 +461,7 @@ backend/
 
 Use a locked `pyproject.toml` dependency set and a pinned Python runtime. The
 Flask application-factory pattern and Blueprints should separate apps, users,
-firmware, authentication, and other admin concerns.
+authentication, imports, and other in-scope admin concerns.
 
 ### Request routing
 
@@ -463,6 +473,7 @@ firmware, authentication, and other admin concerns.
 | `/api/*` | `retrostore-api-compat` Flask service on Cloud Run |
 | `/admin/*` | `retrostore-admin` Flask service on Cloud Run |
 | `/assets/screenshots/*` | Stable RetroStore asset handler, optionally CDN-cached |
+| `/card`, `/card/*`, `/trs-io`, `/trs-io/*` | Existing App Engine service; permanently excluded from this plan |
 | Legacy public dynamic routes | Compatibility service until migrated |
 
 Use a global external Application Load Balancer as the production front door.
@@ -608,9 +619,6 @@ POST /admin/apps/{appId}/delete
 GET  /admin/users
 POST /admin/users
 POST /admin/users/{uid}/role
-
-GET  /admin/firmware
-POST /admin/firmware
 ```
 
 Mutations use POST followed by a redirect. Server-side validation rerenders the
@@ -650,7 +658,7 @@ Create two named Firestore Standard edition databases in Native mode:
 
 | Database ID | Purpose |
 | --- | --- |
-| `retrostore` | Durable catalog, users, firmware metadata, and audit events |
+| `retrostore` | Durable catalog, users, and audit events |
 | `retrostore-state` | Ephemeral public system-state tokens and payloads |
 
 The database location must be selected only after the current App Engine,
@@ -672,7 +680,6 @@ authors/{authorId}
 media/{mediaId}
 screenshots/{screenshotId}
 users/{firebaseUid}
-firmware/{firmwareId}
 auditEvents/{eventId}
 ```
 
@@ -779,7 +786,6 @@ that do not depend on user-controlled names:
 ```text
 media/{appId}/{mediaId}/{sha256}
 screenshots/{appId}/{screenshotId}/{sha256}.{ext}
-firmware/{device}/{revision}/{version}/{sha256}.bin
 states/{objectId}/{sha256}.pb
 imports/{uploadId}
 migration/{runId}
@@ -898,8 +904,8 @@ Exit criteria:
    apply service-account IAM, and configure state-object lifecycle cleanup.
 4. Build a read-only Java exporter that converts Objectify entities into a
    versioned, normalized migration format.
-5. Export app metadata, authors, users, media relationships, firmware, active
-   states, and Blobstore references.
+5. Export app metadata, authors, users, media relationships, active states, and
+   Blobstore references. Do not export the hardware update entities.
 6. Copy binaries into immutable Cloud Storage paths and calculate checksums.
 7. Import normalized documents into Firestore while preserving IDs and ordering.
 8. Verify entity counts, byte counts, checksums, references, and generated API
@@ -912,8 +918,9 @@ Exit criteria:
 
 Exit criteria:
 
-- Every referenced binary is present and checksum-verified in Cloud Storage.
-- Every durable entity has a normalized Firestore representation.
+- Every in-scope referenced binary is present and checksum-verified in Cloud
+  Storage.
+- Every in-scope durable entity has a normalized Firestore representation.
 - Active state records can be migrated without token collisions.
 - Referential-integrity and API-fixture comparisons pass.
 - Repeated syncs converge without duplicates, lost updates, or unexplained
@@ -926,8 +933,8 @@ Exit criteria:
 2. Configure Firebase Authentication, ID-token exchange, session cookies,
    logout, revocation handling, and CSRF protection.
 3. Implement explicit administrator/publisher authorization and ownership.
-4. Implement app, author, media, screenshot, user, firmware, and import workflows
-   against the new Firestore and Storage model.
+4. Implement app, author, media, screenshot, user, and import workflows against
+   the new Firestore and Storage model.
 5. Add audit events and integration tests for every mutation.
 6. Implement all legacy endpoints in `retrostore-api-compat`, including legacy
    JSON parsing and protobuf response behavior.
@@ -982,18 +989,19 @@ Exit criteria:
 
 1. Confirm every production go/no-go gate and record the approval and comparison
    report versions used for the decision.
-2. Put the legacy admin into read-only mode and run a final incremental sync,
-   checksum reconciliation, and API comparison.
+2. Put the legacy catalog admin into read-only mode and run a final incremental
+   sync, checksum reconciliation, and API comparison. Leave the hardware update
+   administration unchanged.
 3. Move the static website, then catalog reads, then media reads/assets. Use
    controlled traffic increments where the load balancer supports safe canaries.
 4. After those read groups are stable, enable the new admin as the sole catalog
-   writer and permanently disable legacy admin mutations.
+   writer and permanently disable legacy catalog mutations.
 5. Continue comparison against a frozen or safely refreshed legacy reference and
    monitor new catalog writes through the Flask API.
 6. Migrate and verify every active state, briefly quiesce state writes if needed,
    and switch upload, download, and region endpoints atomically.
-7. Move firmware and remaining legacy routes only after their route-specific
-   compatibility gates pass.
+7. Keep `/card`, `/card/*`, `/trs-io`, and `/trs-io/*` routed to App Engine;
+   they are not cutover candidates.
 8. Preserve HTTP, HTTPS, CORS-simple POST, custom-domain behavior, legacy data,
    and reverse-sync capability throughout the observation window.
 
@@ -1005,22 +1013,28 @@ group. No rollback relies on a destructive reverse migration.
 
 Exit criteria:
 
-- All public traffic is served by Cloud Run for the agreed observation period.
+- All in-scope public traffic is served by Cloud Run for the agreed observation
+  period; the excluded hardware update routes remain on App Engine.
 - Error rates and latency remain within agreed thresholds.
 - Current KMP/JVM, web, C, and embedded JSON clients pass end-to-end production
   smoke tests.
 - No unexpected writes occur in the legacy database.
 - Routing and data rollback remain available until the observation window ends.
 
-### Phase 6: App Engine retirement
+### Phase 6: Retire migrated App Engine surfaces
 
-1. Confirm no traffic remains on App Engine-only routes.
-2. Remove the cron keep-alive ping.
-3. Permanently disable the legacy admin and upload handlers.
+1. Confirm that only the explicitly excluded RetroStore Card and TRS-IO route
+   groups and any dependencies they require remain on App Engine.
+2. Keep those route groups pinned to App Engine in the production URL map.
+3. Permanently disable only the superseded catalog administration and upload
+   handlers; do not alter the hardware update handlers or administration.
 4. Archive deployment configuration, normalized exports, and migration reports.
 5. Retain legacy database and object backups for the agreed recovery period.
-6. Disable App Engine only after the rollback window closes.
-7. Delete legacy data only under a separate reviewed retention plan.
+6. Keep the App Engine service operational for the hardware update subsystem.
+   Full App Engine shutdown is incompatible with the approved scope and would
+   require a separate decision and migration plan.
+7. Delete legacy data only under a separate reviewed retention plan, explicitly
+   excluding data still required by the hardware update subsystem.
 
 ## Compatibility test matrix
 
@@ -1062,7 +1076,6 @@ The server-rendered admin requires tests for:
 - Four-disk slot ordering plus cassette, command, and BASIC media.
 - Upload validation, checksums, replacement, deletion, and orphan cleanup.
 - Screenshot upload, ordering, stable URLs, and deletion.
-- Firmware upload and version handling.
 - Audit-event creation for successful and rejected sensitive operations.
 
 ## Production go/no-go gates
@@ -1071,9 +1084,10 @@ The server-rendered admin requires tests for:
 issue remains; it does not mean relying on an uneventful small canary. Before
 the first production backend route moves from App Engine, require:
 
-- 100% of expected durable entities and active states are accounted for.
-- Every referenced object exists with matching size and checksum, with zero
-  broken or orphaned references outside a reviewed cleanup list.
+- 100% of expected in-scope durable entities and active states are accounted
+  for.
+- Every in-scope referenced object exists with matching size and checksum, with
+  zero broken or orphaned references outside a reviewed cleanup list.
 - The complete comparison corpus has zero unexplained API differences.
 - Scheduled comparisons have zero unexplained differences for an agreed
   continuous soak, provisionally two to four weeks. Any material fix restarts
@@ -1230,8 +1244,9 @@ Administrator/publisher role management is atomically audited in Firestore, and
 the isolated staging app/author create/edit/delete workflow is deployed. The
 isolated media-slot and ordered-screenshot workflows are also deployed. The next
 executable gate is a browser-driven end-to-end staged asset lifecycle and cloud
-reconciliation, followed by firmware and guarded imports; synchronized-catalog
-writes remain disabled.
+reconciliation, followed by guarded imports; synchronized-catalog writes remain
+disabled. The RetroStore Card and TRS-IO hardware update subsystem stays
+unchanged on App Engine and is not part of that work queue.
 
 No production routing or legacy data should change during this milestone.
 
