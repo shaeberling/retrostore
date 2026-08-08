@@ -9,7 +9,6 @@ from retrostore.admin.auth import (
     SessionCookie,
 )
 from retrostore.admin.catalog import AdminCatalogDetail
-from retrostore.admin.firmware import StagedFirmware
 from retrostore.admin.staging import StagedApp, StagedAppDetail, StagedAppDraft
 from retrostore.admin.users import AdminUser
 from retrostore.mirror import NormalizedApp
@@ -190,48 +189,11 @@ class FakeUserRoleManager:
         return FakeUserDirectory().users[1]
 
 
-@dataclass
-class FakeFirmwareStore:
-    records: tuple[StagedFirmware, ...] = (
-        StagedFirmware(
-            id="card-1-1",
-            product="card",
-            revision=1,
-            version=1,
-            filename="card.bin",
-            content_type="application/octet-stream",
-            object_path="firmware-staging/card/1/1/" + "a" * 64 + ".bin",
-            size=8,
-            sha256="a" * 64,
-            uploaded_by_uid="user-1",
-            uploaded_by_email="admin@example.test",
-        ),
-    )
-    uploads: list[tuple[AdminIdentity, str, int, ValidatedAssetUpload]] = field(
-        default_factory=list
-    )
-
-    def list_firmware(self, identity):
-        return self.records
-
-    def upload_firmware(self, *, identity, product, revision, upload):
-        self.uploads.append((identity, product, revision, upload))
-        return self.records[0]
-
-    def read_firmware(self, identity, firmware_id):
-        record = next((item for item in self.records if item.id == firmware_id), None)
-        return None if record is None else (record, b"firmware")
-
-
 _DEFAULT_MANAGER = object()
 
 
 def _configured_app(
-    *,
-    authenticator=None,
-    role_manager=_DEFAULT_MANAGER,
-    staging_catalog=None,
-    firmware_store=None,
+    *, authenticator=None, role_manager=_DEFAULT_MANAGER, staging_catalog=None
 ):
     if role_manager is _DEFAULT_MANAGER:
         role_manager = FakeUserRoleManager()
@@ -241,7 +203,6 @@ def _configured_app(
             "ADMIN_AUTHENTICATOR": authenticator or FakeAuthenticator(),
             "ADMIN_CATALOG": FakeCatalog(),
             "ADMIN_FIREBASE_WEB_CONFIG": FIREBASE_WEB_CONFIG,
-            "ADMIN_FIRMWARE_STORE": firmware_store or FakeFirmwareStore(),
             "ADMIN_SESSION_COOKIE_SECURE": False,
             "ADMIN_STAGING_CATALOG": staging_catalog or FakeStagingCatalog(),
             "ADMIN_USER_DIRECTORY": FakeUserDirectory(),
@@ -278,7 +239,6 @@ def test_admin_is_not_ready_until_auth_persistence_and_web_config_exist() -> Non
         "checks": {
             "authentication": False,
             "firebase_web": False,
-            "firmware_management": False,
             "persistence": False,
             "staging_catalog": False,
             "user_directory": False,
@@ -623,75 +583,6 @@ def test_publisher_cannot_view_user_inventory() -> None:
     assert response.status_code == 403
     assert mutation.status_code == 403
     assert manager.changes == []
-
-
-def test_administrator_can_list_upload_and_download_staged_firmware() -> None:
-    store = FakeFirmwareStore()
-    client = _configured_app(firmware_store=store).test_client()
-    csrf_token = _csrf_token(client)
-    client.post(
-        "/admin/session",
-        json={"id_token": "valid-id-token", "csrf_token": csrf_token},
-    )
-
-    listing = client.get("/admin/firmware")
-    rejected = client.post(
-        "/admin/firmware",
-        data={
-            "csrf_token": csrf_token,
-            "product": "card",
-            "revision": "invalid",
-            "file": (BytesIO(b"firmware"), "card.bin"),
-        },
-        content_type="multipart/form-data",
-    )
-    uploaded = client.post(
-        "/admin/firmware",
-        data={
-            "csrf_token": csrf_token,
-            "product": "trs-io",
-            "revision": "2",
-            "file": (BytesIO(b"new firmware"), "C:\\uploads\\trs-io.bin"),
-        },
-        content_type="multipart/form-data",
-    )
-    download = client.get("/admin/firmware/card-1-1/content")
-
-    assert listing.status_code == 200
-    assert b"Staged firmware" in listing.data
-    assert b"cannot change the current Card or TRS-IO" in listing.data
-    assert rejected.status_code == 400
-    assert b"integer from 0 to 65535" in rejected.data
-    assert uploaded.status_code == 302
-    assert uploaded.headers["Location"].endswith(
-        "/admin/firmware?firmware_uploaded=1"
-    )
-    assert store.uploads[0][1:3] == ("trs-io", 2)
-    assert store.uploads[0][3].filename == "trs-io.bin"
-    assert download.status_code == 200
-    assert download.data == b"firmware"
-    assert "attachment" in download.headers["Content-Disposition"]
-
-
-def test_publisher_cannot_access_firmware_management() -> None:
-    store = FakeFirmwareStore()
-    client = _configured_app(
-        authenticator=PublisherAuthenticator(), firmware_store=store
-    ).test_client()
-    csrf_token = _csrf_token(client)
-    client.post(
-        "/admin/session",
-        json={"id_token": "valid-id-token", "csrf_token": csrf_token},
-    )
-
-    assert client.get("/admin/firmware").status_code == 403
-    assert client.get("/admin/firmware/card-1-1/content").status_code == 403
-    mutation = client.post(
-        "/admin/firmware",
-        data={"csrf_token": csrf_token, "product": "card", "revision": "1"},
-    )
-    assert mutation.status_code == 403
-    assert store.uploads == []
 
 
 def test_invalid_session_is_cleared_before_redirect() -> None:

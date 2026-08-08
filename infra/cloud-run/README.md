@@ -111,14 +111,14 @@ region retrieval. No production routing changed.
 
 - Service: `retrostore-admin-candidate`
 - Region: `us-central1`
-- Revision: `retrostore-admin-candidate-firmware1`
+- Revision: `retrostore-admin-candidate-compact1`
 - Runtime identity: `retrostore-admin@trs-80.iam.gserviceaccount.com`
-- Image digest: `sha256:23faa571926c36506be78c94d1aca228fedb673c3c51cdd604e2bb1293d832f8`
+- Image digest: `sha256:18d60af5803a168e3132b5315f345e10d9f5c14e7e949b0f206f601b241d836f`
 - Authentication: private Cloud Run invocation followed by Firebase server
   session verification; no `allUsers` invoker binding
 - Data mode: synchronized catalog read-only; Firestore user-profile roles and
-  isolated top-level staging apps/authors/media/screenshots/firmware plus their
-  atomic audit events are mutable
+  isolated top-level staging apps/authors/media/screenshots plus their atomic
+  audit events are mutable
 - Production URL map: unchanged
 
 The authenticated runtime-identity smoke passed `/health`, `/ready`, the
@@ -138,10 +138,6 @@ asset ordering use optimistic revisions, deletions require explicit
 confirmation, and every metadata mutation is atomically audited. Media and
 screenshots use private checksum-addressed paths in the durable assets bucket;
 replacement, individual deletion, and app cascade deletion clean up the old
-objects. Administrator-only Card and TRS-IO firmware candidates use the same
-private bucket under a separate `firmware-staging/` prefix, transactional
-append-only version tracks, verified downloads, and atomic audit events; they
-are not visible to the compatibility API. The post-deployment smoke reports all
-readiness checks healthy, including firmware management,
+objects. The post-deployment smoke reports all readiness checks healthy,
 confirms the expected pre-session login redirect, and confirms that anonymous
 Cloud Run invocation remains HTTP 403.

@@ -9,10 +9,6 @@ from retrostore.admin.auth import (
     SessionCookie,
 )
 from retrostore.admin.catalog import AdminCatalogDetail, MirrorAdminCatalog
-from retrostore.admin.firmware import (
-    FirestoreAdminFirmwareStore,
-    StagedFirmware,
-)
 from retrostore.admin.staging import (
     FirestoreAdminStagingCatalog,
     StagedApp,
@@ -35,7 +31,6 @@ __all__ = [
     "AuthorizationError",
     "FirebaseAdminAuthenticator",
     "FirebaseAdminUserDirectory",
-    "FirestoreAdminFirmwareStore",
     "FirestoreAdminRoleStore",
     "FirestoreAdminStagingCatalog",
     "MirrorAdminCatalog",
@@ -43,6 +38,5 @@ __all__ = [
     "SessionCookie",
     "StagedApp",
     "StagedAppDraft",
-    "StagedFirmware",
     "UserRoleChangeError",
 ]

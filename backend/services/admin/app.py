@@ -24,13 +24,11 @@ from flask import (
 )
 
 from retrostore.admin.assets import (
-    FIRMWARE_MAX_BYTES,
     MEDIA_MAX_BYTES,
     SCREENSHOT_MAX_BYTES,
     STAGED_MEDIA_SLOTS,
     CloudStagingObjectStore,
     StagingAssetValidationError,
-    validate_firmware_upload,
     validate_media_slot,
     validate_media_upload,
     validate_screenshot_upload,
@@ -44,15 +42,6 @@ from retrostore.admin.auth import (
     FirebaseAdminAuthenticator,
 )
 from retrostore.admin.catalog import AdminCatalog, MirrorAdminCatalog
-from retrostore.admin.firmware import (
-    FIRMWARE_PRODUCTS,
-    AdminFirmwareStore,
-    FirestoreAdminFirmwareStore,
-    FirmwareAuthorizationError,
-    FirmwareConflictError,
-    validate_firmware_product,
-    validate_firmware_revision,
-)
 from retrostore.admin.staging import (
     STAGED_APP_CATEGORIES,
     STAGED_APP_MODELS,
@@ -91,7 +80,6 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
         ADMIN_AUTHENTICATOR=None,
         ADMIN_CATALOG=None,
         ADMIN_FIREBASE_WEB_CONFIG=None,
-        ADMIN_FIRMWARE_STORE=None,
         ADMIN_SESSION_COOKIE_SECURE=True,
         ADMIN_STAGING_CATALOG=None,
         ADMIN_USER_DIRECTORY=None,
@@ -187,7 +175,6 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
             "firebase_web": _valid_firebase_web_config(
                 app.config["ADMIN_FIREBASE_WEB_CONFIG"]
             ),
-            "firmware_management": app.config["ADMIN_FIRMWARE_STORE"] is not None,
         }
         ready = all(checks.values())
         return {"ready": ready, "checks": checks}, 200 if ready else 503
@@ -614,73 +601,6 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
             abort(400, str(error))
         return redirect(url_for("admin_users", role_updated="1"))
 
-    @app.get("/admin/firmware")
-    def admin_firmware() -> str:
-        identity = _require_administrator()
-        return _render_firmware(
-            _firmware_store_or_error().list_firmware(identity),
-            firmware_uploaded=request.args.get("firmware_uploaded") == "1",
-        )
-
-    @app.post("/admin/firmware")
-    def admin_firmware_upload() -> Response | tuple[str, int]:
-        identity = _require_administrator()
-        product_value = request.form.get("product", "")
-        revision_value = request.form.get("revision", "")
-        try:
-            product = validate_firmware_product(product_value)
-            revision = validate_firmware_revision(revision_value)
-            uploaded_file = request.files.get("file")
-            if uploaded_file is None:
-                raise StagingAssetValidationError("Choose a firmware file to upload.")
-            upload = validate_firmware_upload(
-                filename=uploaded_file.filename or "",
-                body=uploaded_file.stream.read(FIRMWARE_MAX_BYTES + 1),
-            )
-        except (StagingAssetValidationError, ValueError) as error:
-            records = _firmware_store_or_error().list_firmware(identity)
-            return (
-                _render_firmware(
-                    records,
-                    error=str(error),
-                    product_value=product_value,
-                    revision_value=revision_value,
-                ),
-                400,
-            )
-        try:
-            _firmware_store_or_error().upload_firmware(
-                identity=identity,
-                product=product,
-                revision=revision,
-                upload=upload,
-            )
-        except FirmwareAuthorizationError:
-            abort(403)
-        except FirmwareConflictError as error:
-            abort(409, str(error))
-        return redirect(url_for("admin_firmware", firmware_uploaded="1"))
-
-    @app.get("/admin/firmware/<firmware_id>/content")
-    def admin_firmware_content(firmware_id: str) -> Response:
-        identity = _require_administrator()
-        try:
-            result = _firmware_store_or_error().read_firmware(identity, firmware_id)
-        except FirmwareAuthorizationError:
-            abort(403)
-        if result is None:
-            abort(404)
-        firmware, body = result
-        return send_file(
-            BytesIO(body),
-            mimetype=firmware.content_type,
-            download_name=firmware.filename,
-            as_attachment=True,
-            conditional=True,
-            etag=firmware.sha256,
-            max_age=0,
-        )
-
     @app.post("/admin/logout")
     def admin_logout() -> Response:
         response = make_response(redirect(url_for("admin_login")))
@@ -701,7 +621,6 @@ def create_cloud_app(config: Mapping[str, Any] | None = None) -> Flask:
         "RETROSTORE_CATALOG_DATABASE": os.environ.get("RETROSTORE_CATALOG_DATABASE"),
         "RETROSTORE_ASSETS_BUCKET": os.environ.get("RETROSTORE_ASSETS_BUCKET"),
         "ADMIN_FIREBASE_WEB_CONFIG": _firebase_web_config_from_environment(),
-        "ADMIN_FIRMWARE_STORE": None,
         "ADMIN_AUTHENTICATOR": None,
         "ADMIN_CATALOG": None,
         "ADMIN_STAGING_CATALOG": None,
@@ -744,23 +663,12 @@ def create_cloud_app(config: Mapping[str, Any] | None = None) -> Flask:
 
     firestore_client = firestore.Client(project=project, database=database)
     role_store = FirestoreAdminRoleStore(firestore_client)
-    if (
-        candidate_config["ADMIN_STAGING_OBJECT_STORE"] is None
-        and (
-            candidate_config["ADMIN_STAGING_CATALOG"] is None
-            or candidate_config["ADMIN_FIRMWARE_STORE"] is None
-        )
-    ):
-        candidate_config["ADMIN_STAGING_OBJECT_STORE"] = CloudStagingObjectStore(
-            storage.Client(project=project).bucket(bucket)
-        )
     if candidate_config["ADMIN_STAGING_CATALOG"] is None:
+        if candidate_config["ADMIN_STAGING_OBJECT_STORE"] is None:
+            candidate_config["ADMIN_STAGING_OBJECT_STORE"] = CloudStagingObjectStore(
+                storage.Client(project=project).bucket(bucket)
+            )
         candidate_config["ADMIN_STAGING_CATALOG"] = FirestoreAdminStagingCatalog(
-            firestore_client,
-            candidate_config["ADMIN_STAGING_OBJECT_STORE"],
-        )
-    if candidate_config["ADMIN_FIRMWARE_STORE"] is None:
-        candidate_config["ADMIN_FIRMWARE_STORE"] = FirestoreAdminFirmwareStore(
             firestore_client,
             candidate_config["ADMIN_STAGING_OBJECT_STORE"],
         )
@@ -869,33 +777,6 @@ def _staging_catalog_or_error() -> AdminStagingCatalog:
     if catalog is None:
         abort(503, "Staging catalog is not configured")
     return catalog
-
-
-def _firmware_store_or_error() -> AdminFirmwareStore:
-    store = current_app.config["ADMIN_FIRMWARE_STORE"]
-    if store is None:
-        abort(503, "Firmware management is not configured")
-    return store
-
-
-def _render_firmware(
-    firmware: object,
-    *,
-    error: str | None = None,
-    product_value: str = "card",
-    revision_value: str = "1",
-    firmware_uploaded: bool = False,
-) -> str:
-    return render_template(
-        "admin/firmware.html",
-        firmware=firmware,
-        products=FIRMWARE_PRODUCTS,
-        product_value=product_value,
-        revision_value=revision_value,
-        error=error,
-        firmware_uploaded=firmware_uploaded,
-        firmware_max_mib=FIRMWARE_MAX_BYTES // (1024 * 1024),
-    )
 
 
 def _staged_app_or_error(app_id: str) -> StagedApp:

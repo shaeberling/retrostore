@@ -59,7 +59,6 @@ public class LoginRequest implements Request {
     // Public routes and the migration operation perform any required authorization themselves.
     if (url.equals("/")
         || url.equals(MigrationCatalogExportRequest.PATH)
-        || url.equals(MigrationFirmwareExportRequest.PATH)
         || url.equals(MigrationInventoryRequest.PATH)
         || matchesPrefix(requestData.getUrl())) {
       return false;

@@ -11,7 +11,6 @@ from google.cloud import storage
 
 MEDIA_MAX_BYTES = 16 * 1024 * 1024
 SCREENSHOT_MAX_BYTES = 5 * 1024 * 1024
-FIRMWARE_MAX_BYTES = 4 * 1024 * 1024
 STAGED_MEDIA_SLOTS: Mapping[str, tuple[str, int | None]] = {
     "disk-1": ("DISK", 0),
     "disk-2": ("DISK", 1),
@@ -145,20 +144,6 @@ def validate_screenshot_upload(
         content_type=content_type,
         extension=extension,
         label="Screenshot",
-    )
-
-
-def validate_firmware_upload(
-    *, filename: str, body: bytes
-) -> ValidatedAssetUpload:
-    return _validated_upload(
-        filename=filename,
-        body=body,
-        description="",
-        maximum=FIRMWARE_MAX_BYTES,
-        content_type="application/octet-stream",
-        extension="bin",
-        label="Firmware",
     )
 
 

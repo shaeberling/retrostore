@@ -43,7 +43,6 @@ import org.retrostore.data.xray.StateManagement;
 import org.retrostore.data.xray.StateManagementImpl;
 import org.retrostore.migration.BundledServicesInventory;
 import org.retrostore.migration.NormalizedCatalogExporter;
-import org.retrostore.migration.NormalizedFirmwareExporter;
 import org.retrostore.request.Cache;
 import org.retrostore.request.DownloadAppRequest;
 import org.retrostore.request.EnsureAdminExistsRequest;
@@ -52,7 +51,6 @@ import org.retrostore.request.ForwardingRequest;
 import org.retrostore.request.ImportRpkRequest;
 import org.retrostore.request.LoginRequest;
 import org.retrostore.request.MigrationCatalogExportRequest;
-import org.retrostore.request.MigrationFirmwareExportRequest;
 import org.retrostore.request.MigrationInventoryRequest;
 import org.retrostore.request.PingRequest;
 import org.retrostore.request.PolymerRequest;
@@ -116,7 +114,6 @@ public class MainServlet extends RetroStoreServlet {
     NormalizedCatalogExporter catalogExporter =
         NormalizedCatalogExporter.forAppEngine(
             new BlobInfoFactory(), blobstoreService, imgServWrapper);
-    NormalizedFirmwareExporter firmwareExporter = NormalizedFirmwareExporter.forAppEngine();
     Cache cache = new TwoLayerCacheImpl(memcache);
     DefaultResourceLoader defaultResourceLoader = new DefaultResourceLoader(cache);
     MailService mailService = new MailServiceImpl();
@@ -162,19 +159,6 @@ public class MainServlet extends RetroStoreServlet {
               Instant startedAt = Instant.now();
               NormalizedCatalogExporter.ExportBundle bundle =
                   m.catalogExporter.create(
-                      System.getenv("GOOGLE_CLOUD_PROJECT"),
-                      startedAt,
-                      "full:" + startedAt);
-              return bundle::writeZip;
-            }),
-        new MigrationFirmwareExportRequest(
-            () ->
-                MigrationCatalogExportRequest.isEnabledEnvironment(
-                    System.getenv("GAE_SERVICE"), System.getenv("GAE_VERSION")),
-            () -> {
-              Instant startedAt = Instant.now();
-              NormalizedFirmwareExporter.ExportBundle bundle =
-                  m.firmwareExporter.create(
                       System.getenv("GOOGLE_CLOUD_PROJECT"),
                       startedAt,
                       "full:" + startedAt);

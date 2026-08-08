@@ -2,7 +2,7 @@
 
 Status: In progress
 
-Last updated: 2026-08-08
+Last updated: 2026-08-07
 
 ## Implementation status
 
@@ -158,7 +158,8 @@ Completed foundation work:
   The temporary `allUsers` binding was removed and the public API returned HTTP
   403 afterward. The earlier apparent front-end 404 combined Flask correctly
   rejecting `/` with Cloud Run's documented reservation of some paths ending in
-  `z`; operational routes now use `/health` and `/ready`.
+  `z`; operational routes now use `/health` and `/ready`. The complete Python
+  suite now has 163 passing tests.
 - The first server-rendered admin slice is implemented and deployed privately
   as `retrostore-admin-candidate` revision `compact1`. Jinja/Tailwind inventory,
   search, and detail pages read the same active mirror and expose no mutations.
@@ -196,54 +197,21 @@ Completed foundation work:
   These documents are separate from the versioned `catalogSnapshots` mirror and
   cannot affect public API responses. Media slots are presented as one compact,
   vertically ordered set of responsive horizontal rows for faster scanning and
-  replacement. No staged record or object was created during that deployment.
-  The administration candidate now also has an administrator-only staged
-  firmware workflow for RetroStore Card and TRS-IO. It validates bounded
-  binary uploads, allocates the next version per hardware revision with a
-  Firestore transaction, writes private immutable objects below
-  `firmware-staging/`, records an atomic audit event, verifies downloads by
-  size and SHA-256, and cleans up a newly created object if version allocation
-  loses a race. Only `STAGING` records are shown; this workflow cannot alter
-  the current public firmware routes or the future synchronized firmware
-  mirror. It is deployed as
-  private revision `retrostore-admin-candidate-firmware1`, using image digest
-  `sha256:23faa571926c36506be78c94d1aca228fedb673c3c51cdd604e2bb1293d832f8`.
-- A deterministic read-only Java firmware exporter now covers all legacy
-  `RetroCardFirmware` and `TrsIoFirmware` entities. Its admin-only ZIP route is
-  hidden outside specially named `migration-export-*` default-service versions,
-  requires GET plus an exact confirmation, returns a non-cacheable private
-  attachment, and never exposes binary bytes in errors. Java and Python pin the
-  same language-neutral aggregate fixture. The Python loader independently
-  verifies canonical product/revision/version identities and paths, every size
-  and checksum, total reconciliation, archive bounds, and absence of hidden or
-  unreferenced objects. The guarded importer stages content-derived
-  `firmwareSnapshots`, reads them back, and only then atomically moves
-  `firmwareControl/active`; staged admin uploads remain in a separate namespace.
-  Exact `/card/*` and `/trs-io/*` Flask handlers and a 16-scenario binary-safe
-  comparator cover both products, latest/missing revisions, raw downloads,
-  Java integer parsing, malformed paths, exact text/status/content-type behavior,
-  POST compatibility, and firmware-only CORS. The full Python suite now has 207
-  passing tests and the complete legacy Java test task passes. Non-promoted App
-  Engine version `migration-export-20260808-firmware` is awaiting the one
-  authenticated archive download; production traffic remains 100% on
-  `20230819t145020`.
+  replacement. No staged record or object was created during deployment. The
+  deployed image digest is
+  `sha256:18d60af5803a168e3132b5315f345e10d9f5c14e7e949b0f206f601b241d836f`.
 
 Open foundation work:
 
-- Download the authenticated firmware archive from the non-promoted exporter,
-  validate it locally, import and reconcile it through the dedicated migrator,
-  run the 16-scenario comparison, and delete the temporary App Engine version.
-- Exercise the complete staged app/media/screenshot lifecycle and the staged
-  firmware page through the live browser session, then inspect the isolated
-  Firestore documents, private objects, audit events, and cleanup.
-- Implement guarded application imports. The synchronized catalog remains
-  read-only.
+- Exercise the complete staged app/media/screenshot lifecycle through the live
+  browser session and inspect the isolated Firestore documents, private objects,
+  audit events, and cleanup. Then implement the remaining firmware and guarded
+  import administration workflows. The synchronized catalog remains read-only.
 - The `native-client-library` Arduino tree is an unfinished prototype: it sends
   a bodyless GET, ignores its configurable host, and has no media
   implementation. It needs an explicit retire-or-modernize decision rather than
   being classified as a working contract consumer.
-- No production routing has changed. One non-promoted, strictly gated firmware
-  export version exists only until its authenticated archive is captured.
+- No production routing has changed, and no temporary migration version remains.
 
 ## Executive summary
 
@@ -705,7 +673,6 @@ media/{mediaId}
 screenshots/{screenshotId}
 users/{firebaseUid}
 firmware/{firmwareId}
-firmwareStagingTracks/{device}-{revision}
 auditEvents/{eventId}
 ```
 
@@ -750,15 +717,6 @@ Design rules:
   only at the API boundary.
 - Store checksums, object paths, sizes, content types, upload timestamps, and
   descriptions on media and screenshot documents.
-
-Staged firmware uses `firmware/{device}-{revision}-{version}` with
-`status: STAGING` and a separate `firmwareStagingTracks` allocator. The legacy
-firmware migration must not mix partially imported authoritative records with
-those candidates: import it into a versioned `firmwareSnapshots` namespace and
-expose it only through one final active-pointer update after complete count,
-size, and checksum reconciliation. The public compatibility service reads only
-that active firmware snapshot. A future writer cutover can promote an explicitly
-reviewed staged version; uploading it does not promote it.
 
 Catalog search can initially load the small catalog and reproduce the existing
 deterministic filtering, sorting, and pagination in Python. A dedicated search
@@ -822,7 +780,6 @@ that do not depend on user-controlled names:
 media/{appId}/{mediaId}/{sha256}
 screenshots/{appId}/{screenshotId}/{sha256}.{ext}
 firmware/{device}/{revision}/{version}/{sha256}.bin
-firmware-staging/{device}/{revision}/{version}/{sha256}.bin
 states/{objectId}/{sha256}.pb
 imports/{uploadId}
 migration/{runId}
@@ -1259,12 +1216,6 @@ Phase 1:
 - [x] Add isolated, private staged media-slot and ordered-screenshot workflows
   with bounded uploads, checksum-addressed objects, replacement/deletion cleanup,
   optimistic revisions, ownership enforcement, and atomic audit events.
-- [x] Add administrator-only staged Card/TRS-IO firmware upload and verified
-  download with bounded binaries, transactional append-only version allocation,
-  isolated object paths, concurrency cleanup, and atomic audit events.
-- [x] Implement the deterministic legacy firmware exporter, independently
-  verified archive format, atomic active-snapshot importer, exact compatibility
-  handlers, and binary-safe 16-scenario comparison gate.
 - [ ] Finalize candidate hostnames, the load-balancer URL map, route groups,
   monitoring thresholds, and named rollback owners. Current DNS, certificates,
   HTTP behavior, and absence of an existing load balancer are documented.
@@ -1277,12 +1228,10 @@ initial Google sign-in, explicit administrator claim, server-session exchange,
 and browser inventory review have passed through the private Cloud Run proxy.
 Administrator/publisher role management is atomically audited in Firestore, and
 the isolated staging app/author create/edit/delete workflow is deployed. The
-isolated media-slot, ordered-screenshot, and firmware workflows are also
-deployed. The next executable gate is a browser-driven end-to-end staged asset
-lifecycle and cloud reconciliation. In parallel, the next implementation slice
-is the authenticated firmware archive capture, guarded cloud import,
-reconciliation, and exact `/card/*` and `/trs-io/*` comparison, followed by
-guarded application imports; synchronized-catalog writes remain disabled.
+isolated media-slot and ordered-screenshot workflows are also deployed. The next
+executable gate is a browser-driven end-to-end staged asset lifecycle and cloud
+reconciliation, followed by firmware and guarded imports; synchronized-catalog
+writes remain disabled.
 
 No production routing or legacy data should change during this milestone.
 
