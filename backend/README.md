@@ -85,7 +85,18 @@ remove superseded objects after the metadata transaction. Non-owners and stale
 edits are rejected. Deleting an app cascades through its staged assets but
 intentionally retains its author document because authors may be shared.
 
-The default API factory reports not-ready until a storage adapter is configured.
+The administrator-only **Firmware** area is a similarly isolated mutation
+surface for RetroStore Card and TRS-IO candidates. A bounded multipart binary is
+stored under a private, immutable
+`firmware-staging/{product}/{revision}/{version}/{sha256}.bin` path. A Firestore
+transaction compares the current `firmwareStagingTracks` version, creates the
+append-only `firmware` metadata record with `status: STAGING`, advances the
+track, and creates its audit event. A concurrent loser cleans up only an object
+it created. Admin downloads re-check both byte length and SHA-256. These records
+are not read by the compatibility API and upload never means promotion.
+
+The default API factory reports not-ready until both the nine-method storage
+adapter and a firmware mirror adapter are configured.
 Run the explicit representative candidate when exercising the reviewed local
 compatibility corpus:
 
@@ -276,6 +287,13 @@ not read or mutate Firebase. The persistence boundary described below is the
 only path that can copy a validated archive into the isolated replacement
 resources.
 
+Firmware has an independent, smaller archive described in
+`retrostore/firmware_mirror/FORMAT.md`. Its protected App Engine path is
+`/internal/migration/firmware-export` and it reads all `RetroCardFirmware` and
+`TrsIoFirmware` entities without modifying them. It remains separate from the
+catalog artifact so neither active pointer can expose a partially completed
+migration.
+
 ## Controlled cloud catalog import
 
 The cloud importer validates the complete archive and target names before it
@@ -319,6 +337,28 @@ all documents reconcile does one atomic batch mark the snapshot ready and move
 `catalogControl/active` to it. Failed or interrupted imports cannot expose a
 partially written snapshot, and retrying the same archive reuses verified
 objects and the same snapshot ID.
+
+The firmware importer uses the same guarded target and keyless migrator, but
+stages `firmwareSnapshots` and atomically updates `firmwareControl/active`:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.firmware_mirror.import_firmware \
+  /path/to/retrostore-firmware-export.zip \
+  --project trs-80 \
+  --database retrostore \
+  --bucket trs-80-retrostore-assets \
+  --output /tmp/retrostore-firmware-import.json \
+  --apply \
+  --confirm-project trs-80 \
+  --impersonate-service-account \
+    retrostore-migrator@trs-80.iam.gserviceaccount.com
+```
+
+Omit `--apply`, the confirmation, and impersonation for a zero-write validation
+report. Once imported, `retrostore.contract.cloud_firmware` runs the 16-scenario
+read-only version/download corpus against production and an in-process cloud
+candidate. Binary firmware is represented only by size and SHA-256 in reports.
 
 ## Controlled cloud state smoke test
 

@@ -1,8 +1,10 @@
 import pytest
 
 from retrostore.admin.assets import (
+    FIRMWARE_MAX_BYTES,
     MEDIA_MAX_BYTES,
     StagingAssetValidationError,
+    validate_firmware_upload,
     validate_media_slot,
     validate_media_upload,
     validate_screenshot_upload,
@@ -64,4 +66,21 @@ def test_screenshot_rejects_extension_only_and_unsafe_formats() -> None:
     with pytest.raises(StagingAssetValidationError, match="valid PNG"):
         validate_screenshot_upload(
             filename="active.svg", body=b"<svg><script>alert(1)</script></svg>"
+        )
+
+
+def test_firmware_upload_is_bounded_binary_with_a_safe_name() -> None:
+    upload = validate_firmware_upload(
+        filename="C:\\fakepath\\card-v10.bin", body=b"firmware"
+    )
+
+    assert upload.filename == "card-v10.bin"
+    assert upload.content_type == "application/octet-stream"
+    assert upload.extension == "bin"
+    assert upload.description == ""
+    with pytest.raises(StagingAssetValidationError, match="empty"):
+        validate_firmware_upload(filename="firmware.bin", body=b"")
+    with pytest.raises(StagingAssetValidationError, match="4 MiB"):
+        validate_firmware_upload(
+            filename="firmware.bin", body=b"x" * (FIRMWARE_MAX_BYTES + 1)
         )
