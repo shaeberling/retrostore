@@ -10,16 +10,33 @@ The two suites cover different portions of the frozen API:
 | Consumer | Source under test | Coverage |
 | --- | --- | --- |
 | JVM SDK | Published `org.retrostore:retrostore-client:0.2.13` artifact | All nine public methods, including both raw byte-range responses |
-| TRS-80 KMP | `RetrostoreClient.kt` and `ApiException.kt` from TRS-80 revision `79a8e5869aa1de2bfd896182abdf09fb557a261b` | The five methods used by the Android, iOS, and web application |
+| TRS-80 KMP | Shared client, protobuf, application wiring, and Android/iOS/web transports from TRS-80 revision `aecbddcc7f5515fb844bb7a1fc350d8ffaaf5ce5` | The five methods exposed to the Android, iOS, and web application |
 | TRS-80 embedded C | `backend.cpp`, its checked-in nanopb bindings, and cJSON from the same reviewed revision | All three legacy JSON request forms and nanopb catalog/detail/media decoding |
 
-The Python runner verifies SHA-256 for the reviewed KMP and embedded C contract
-sources before compiling them. The C test replaces only the hardcoded socket
-connection with a loopback transport; its request generation, cJSON, nanopb
-bindings, and response parsing remain upstream code. This intentionally avoids
-copying either client and silently letting that copy drift from the application.
-The upstream application's unrelated UI/resource build does not enter this test
-build.
+The Python runner requires that exact Git revision and verifies SHA-256 for the
+reviewed KMP client, protobuf, shared application wiring, all three platform
+HTTP transports, and every embedded C source compiled by the harness. The C test
+replaces only the hardcoded socket connection with a loopback transport; its
+request generation, cJSON, nanopb bindings, and response parsing remain upstream
+code. This intentionally avoids copying either client and silently letting that
+copy drift from the application. The upstream application's unrelated
+UI/resource build does not enter this test build.
+
+The platform behavior is part of the gate even though the shared KMP client is
+executed on the JVM in this fast integration suite:
+
+| Application target | Production transport behavior protected by the reviewed sources |
+| --- | --- |
+| Android | HTTPS `HttpURLConnection` POST with an unlabelled protobuf body |
+| iOS | HTTPS `NSURLSession` POST with an unlabelled protobuf body |
+| Web | Browser `fetch` simple POST with no custom headers; requires wildcard CORS without preflight |
+| Native C | Plain HTTP on port 80, form-labelled legacy JSON request, raw nanopb response decoding |
+
+The TRS-80 repository's own Android/web build and macOS iOS build remain the
+authoritative platform compilation gates. Before production cutover, all three
+application targets must also complete an end-to-end run through the candidate
+hostname and through the production load balancer; this loopback suite is not a
+substitute for those platform runs.
 
 Clone or check out the reviewed TRS-80 revision, then run from `backend/`:
 

@@ -53,12 +53,18 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: apuder/TRS-80
-          ref: 79a8e5869aa1de2bfd896182abdf09fb557a261b
+          ref: aecbddcc7f5515fb844bb7a1fc350d8ffaaf5ce5
           path: .consumer-sources/TRS-80
           persist-credentials: false
           sparse-checkout: |
             shared/src/commonMain/kotlin/org/retrostore/RetrostoreClient.kt
             shared/src/commonMain/kotlin/org/retrostore/ApiException.kt
+            shared/src/commonMain/proto/org/retrostore/client/common/proto/ApiProtos.proto
+            shared/src/commonMain/kotlin/org/puder/trs80/shared/io/HttpGet.kt
+            shared/src/commonMain/kotlin/org/puder/trs80/shared/store/RetroStore.kt
+            shared/src/androidMain/kotlin/org/puder/trs80/shared/io/HttpGet.android.kt
+            shared/src/iosMain/kotlin/org/puder/trs80/shared/io/HttpGet.ios.kt
+            shared/src/wasmJsMain/kotlin/org/puder/trs80/shared/io/HttpGet.wasmJs.kt
             app/src/main/c/retrostore
           sparse-checkout-cone-mode: false
 

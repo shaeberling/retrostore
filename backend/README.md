@@ -107,10 +107,11 @@ SHA-256 before use.
 ## Public client integration
 
 An opt-in consumer harness runs the published JVM SDK through all nine methods,
-compiles the checksum-pinned RetroStore client from the TRS-80 Kotlin
-Multiplatform application through its five production calls, and compiles the
-embedded C client through all three legacy JSON calls and nanopb decoding. The
-clients talk over real loopback HTTP to the representative Flask candidate;
+compiles the revision- and checksum-pinned RetroStore client from the TRS-80
+Kotlin Multiplatform application through its five calls, and compiles the native
+C client through all three legacy JSON calls and nanopb decoding. The reviewed
+source set also freezes the application's Android, iOS, and browser transports.
+The clients talk over real loopback HTTP to the representative Flask candidate;
 their synthetic state writes remain in memory.
 
 ```shell
@@ -119,10 +120,10 @@ UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
   --trs80-checkout /path/to/TRS-80
 ```
 
-The reviewed TRS-80 revision, source checksums, dependency pins, and exact
-coverage split are documented in `consumer-tests/README.md`. CI checks out only
-the reviewed client source paths and runs this command independently of the
-legacy Java build.
+The reviewed TRS-80 revision, platform transports, source checksums, dependency
+pins, and exact coverage split are documented in `consumer-tests/README.md`. CI
+checks out only the reviewed client source paths and runs this command
+independently of the legacy Java build.
 
 ## Protobuf generation
 

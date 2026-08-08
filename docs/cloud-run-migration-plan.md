@@ -58,12 +58,18 @@ Completed foundation work:
   with zero transport or semantic differences. Valid state round-trip, memory
   exclusion, and overlapping-region behavior also have isolated local coverage;
   the default deployable factory remains fail-closed without a real adapter.
-- A separate checksum-verified consumer build now runs the published JVM SDK
-  0.2.13 through all nine methods, compiles the reviewed TRS-80 Kotlin
-  Multiplatform client through its five production calls, and compiles the
-  embedded C client through all three legacy JSON calls and nanopb decoding.
-  All pass over real loopback HTTP against the Flask candidate, including
-  isolated state writes.
+- A separate revision- and checksum-verified consumer build now runs the
+  published JVM SDK 0.2.13 through all nine methods, compiles the reviewed
+  TRS-80 Kotlin Multiplatform client through its five calls, and compiles the
+  native C client through all three legacy JSON calls and nanopb decoding. The
+  exact reviewed TRS-80 application revision also pins its protobuf, shared
+  wiring, and Android, iOS, and browser HTTP transports. All pass over real
+  loopback HTTP against the Flask candidate, including isolated state writes.
+  The canonical local checkout at
+  `/Users/sascha/source/TRS-80` was audited at revision
+  `aecbddcc7f5515fb844bb7a1fc350d8ffaaf5ce5` on 2026-08-08. Its iOS simulator
+  tests, Android shared/app compilation, and production web distribution all
+  passed without changing that worktree.
 - A dynamic read-only comparator now discovers every public app and media
   reference from the authoritative host, replays the same requests against a
   candidate, hashes binary fields, and retrieves every referenced media byte.
@@ -159,7 +165,7 @@ Completed foundation work:
   403 afterward. The earlier apparent front-end 404 combined Flask correctly
   rejecting `/` with Cloud Run's documented reservation of some paths ending in
   `z`; operational routes now use `/health` and `/ready`. The complete Python
-  suite now has 163 passing tests.
+  suite now has 166 passing tests.
 - The first server-rendered admin slice is implemented and deployed privately
   as `retrostore-admin-candidate` revision `compact1`. Jinja/Tailwind inventory,
   search, and detail pages read the same active mirror and expose no mutations.
@@ -207,10 +213,11 @@ Open foundation work:
   browser session and inspect the isolated Firestore documents, private objects,
   audit events, and cleanup. Then implement the guarded import administration
   workflow. The synchronized catalog remains read-only.
-- The `native-client-library` Arduino tree is an unfinished prototype: it sends
-  a bodyless GET, ignores its configurable host, and has no media
-  implementation. It needs an explicit retire-or-modernize decision rather than
-  being classified as a working contract consumer.
+- The `native-client-library` Arduino tree in this repository is an unfinished
+  prototype: it sends a bodyless GET, ignores its configurable host, and has no
+  media implementation. It is distinct from the working native C/ESP32 source
+  in the reviewed TRS-80 repository and is not evidence for that deployed
+  consumer. It needs an explicit retire-or-modernize decision.
 - No production routing has changed, and no temporary migration version remains.
 
 ## Executive summary
@@ -392,7 +399,11 @@ Compatibility includes more than message field definitions:
 
 The actively maintained
 [TRS-80 Kotlin Multiplatform application](https://github.com/apuder/TRS-80)
-uses Wire-generated protobuf messages and currently calls:
+is a mandatory compatibility consumer, with the local canonical checkout at
+`/Users/sascha/source/TRS-80`. Revision
+`aecbddcc7f5515fb844bb7a1fc350d8ffaaf5ce5` is the currently reviewed pin. It
+uses Wire-generated protobuf messages and exposes these calls to the shared
+Android, iOS, and web application:
 
 - `getApp`
 - `listApps`
@@ -404,6 +415,15 @@ The same repository also contains an
 [embedded C client](https://github.com/apuder/TRS-80/blob/master/app/src/main/c/retrostore/backend.cpp)
 that sends legacy JSON requests to `getApp`, `listApps`, and
 `fetchMediaImages`, then parses protobuf responses.
+
+The KMP targets have distinct observable transports: Android uses
+`HttpURLConnection`, iOS uses `NSURLSession`, and web uses a headerless browser
+`fetch` simple request that depends on wildcard CORS without preflight. The
+native C client uses plain HTTP on port 80 and labels its JSON as form data.
+Those behaviors are contract inputs, not implementation details to clean up
+during the server migration. The exact client sources and platform transports
+are checksum-gated, and cutover requires end-to-end Android, iOS, and web runs
+against both the candidate route and the production load balancer.
 
 Other SDKs and deployed clients may use all nine methods. Unused methods must not
 be removed without a separately versioned API and an explicit deprecation plan.
@@ -1195,6 +1215,10 @@ Phase 1:
 - [x] Run and repeat the expanded suite against App Engine with zero differences.
 - [x] Add every-app/media coverage, JVM/KMP/embedded-C client runs, and isolated
   synthetic state lifecycle and oversized-payload cases.
+- [x] Pin and checksum-audit the canonical TRS-80 application revision,
+  including its shared protobuf/client wiring and Android, iOS, web, and native
+  C transports; compile all three KMP targets and execute its KMP/native clients
+  against the local candidate.
 - [x] Run the expanded suite against the local Flask candidate with zero
   differences across all 45 reviewed scenarios.
 - [x] Produce the route and read-only cloud infrastructure inventory.
@@ -1234,9 +1258,9 @@ Phase 1:
   monitoring thresholds, and named rollback owners. Current DNS, certificates,
   HTTP behavior, and absence of an existing load balancer are documented.
 
-The unfinished Arduino tree is not a working public API consumer and remains
-outside the compatibility gate; leave it untouched unless a known hardware
-deployment requires a separately scoped repair. The compatibility API's first
+The unfinished Arduino tree in this repository is not the reviewed native
+C/ESP32 consumer and remains outside the compatibility gate; leave it untouched
+unless it receives a separately scoped repair. The compatibility API's first
 deployed Phase 2 gate and the admin's first read-only slice are complete. The
 initial Google sign-in, explicit administrator claim, server-session exchange,
 and browser inventory review have passed through the private Cloud Run proxy.

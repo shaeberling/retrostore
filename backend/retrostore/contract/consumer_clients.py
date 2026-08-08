@@ -15,7 +15,11 @@ from werkzeug.serving import make_server
 
 from services.api_compat.app import create_representative_app
 
-TRS80_REVISION = "79a8e5869aa1de2bfd896182abdf09fb557a261b"
+TRS80_REVISION = "aecbddcc7f5515fb844bb7a1fc350d8ffaaf5ce5"
+TRS80_KMP_METHODS = frozenset(
+    {"getApp", "listApps", "fetchMediaImages", "uploadState", "downloadState"}
+)
+TRS80_EMBEDDED_C_METHODS = frozenset({"getApp", "listApps", "fetchMediaImages"})
 TRS80_CLIENT_FILES = {
     "shared/src/commonMain/kotlin/org/retrostore/RetrostoreClient.kt": (
         "97e3fc33179a4e2ad27216ebfcd02188db93c76b9462aa71ed748c93d3fd9f9c"
@@ -23,11 +27,35 @@ TRS80_CLIENT_FILES = {
     "shared/src/commonMain/kotlin/org/retrostore/ApiException.kt": (
         "6b3f7955683a4a4559051286fede8ca97e495bdd01a88cca1752617048c544c5"
     ),
+    "shared/src/commonMain/proto/org/retrostore/client/common/proto/ApiProtos.proto": (
+        "d8921090ba2851ab1c102a447aa60066695bdf43c4d5808ff31cd090d7f5c70d"
+    ),
+    "shared/src/commonMain/kotlin/org/puder/trs80/shared/io/HttpGet.kt": (
+        "8127ebd5e5cb246c6beb2c363899873f2f7e45ae8e3d142ea8818043bcb3b975"
+    ),
+    "shared/src/commonMain/kotlin/org/puder/trs80/shared/store/RetroStore.kt": (
+        "edb83ad16ae1d2fcc5207031c25de5d250003cbc2821b21642c3edfcd7c4f019"
+    ),
+    "shared/src/androidMain/kotlin/org/puder/trs80/shared/io/HttpGet.android.kt": (
+        "39aa6e16c7168efcc713a7f1609df6cb229737bdeae86f4ac680dca7a62bfabd"
+    ),
+    "shared/src/iosMain/kotlin/org/puder/trs80/shared/io/HttpGet.ios.kt": (
+        "e0388a49734804358ba68aa5722d716da15bb2c66c6d85f181283579042b380b"
+    ),
+    "shared/src/wasmJsMain/kotlin/org/puder/trs80/shared/io/HttpGet.wasmJs.kt": (
+        "0a479e0d2194a6cb238a7b0e1b3fe4b8c46792fc491bf5aafeffbcfb1284dd1c"
+    ),
     "app/src/main/c/retrostore/backend.cpp": (
         "f75d6b0b901c6cf9d678ecdf2b0f85577e178983c029ff36ea919c6b1922f455"
     ),
     "app/src/main/c/retrostore/include/utils.h": (
         "cec9d86bd39a47ab20cb9bb947304ae932451f1626585ff2aa0cfa7a5528bb0b"
+    ),
+    "app/src/main/c/retrostore/include/retrostore.h": (
+        "95187f7e476a2ec3624b9d04bfd16023f5c7c5b40ecfd590cd844ce56fe946e5"
+    ),
+    "app/src/main/c/retrostore/include/defs.h": (
+        "5f5d9d6e688e27b21d66be081f3806862fcb8364ab69ede3cb28163e1263a297"
     ),
     "app/src/main/c/retrostore/ApiProtos.pb.c": (
         "a137df01f697587dd200d6e73ea2887bb9227f9e31f12e641df7cf36d80fdc05"
@@ -35,7 +63,50 @@ TRS80_CLIENT_FILES = {
     "app/src/main/c/retrostore/include/ApiProtos.pb.h": (
         "68a443d7bdb8f9ec01fa2ffe742b16e4c6149cec85db379f3390d97b1087c5fb"
     ),
+    "app/src/main/c/retrostore/pb_common.cpp": (
+        "6aea3a943f2666460bc649331e2115b00c929b3781ce60e66ee224d9681880b1"
+    ),
+    "app/src/main/c/retrostore/pb_decode.cpp": (
+        "5feece706eb0436d1b17b54a6dc2a5bfb386b6e7a66f99cd86170a1c1a6e4fe7"
+    ),
+    "app/src/main/c/retrostore/cJSON.cpp": (
+        "b72bade720884d04ba9373d5aff6e1510f64dbeb0eba21ad8c9e1e5116c3517a"
+    ),
+    "app/src/main/c/retrostore/include/backend.h": (
+        "a66fdab0ec17525c0eb31f3d40ded66f63a396b1fcf7f519bb72d402eb4cd040"
+    ),
+    "app/src/main/c/retrostore/include/pb.h": (
+        "2af2a74a759bea16836988701aeedde5c7d25b309cae4e385a3d8f374e2aba12"
+    ),
+    "app/src/main/c/retrostore/include/pb_common.h": (
+        "3ed0e7518cd2c604f2631f38ba8d3119daaeeb3c5b39cb6db968ca54032d7541"
+    ),
+    "app/src/main/c/retrostore/include/pb_decode.h": (
+        "212da3877a0b3926d3170c0495b3ae840699187932b273db57126c631d9e55fe"
+    ),
+    "app/src/main/c/retrostore/include/cJSON.h": (
+        "9ac55e0231128972c5713d63fff408bb9c98d187d44c21cb0581cbbd4c746d23"
+    ),
 }
+
+
+def validate_trs80_revision(
+    checkout: Path, expected_revision: str = TRS80_REVISION
+) -> None:
+    """Require the exact application revision reviewed for this compatibility gate."""
+
+    completed = subprocess.run(
+        ["git", "-C", str(checkout), "rev-parse", "HEAD"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    actual_revision = completed.stdout.strip()
+    if completed.returncode or actual_revision != expected_revision:
+        detail = actual_revision or completed.stderr.strip() or "unknown revision"
+        raise ValueError(
+            f"TRS-80 checkout must be reviewed revision {expected_revision}, found {detail}"
+        )
 
 
 def validate_trs80_client(
@@ -132,6 +203,7 @@ def run_embedded_c_client(checkout: Path, candidate_url: str, build_directory: P
 
 def run(checkout: Path) -> int:
     checkout = checkout.resolve()
+    validate_trs80_revision(checkout)
     validate_trs80_client(checkout)
 
     backend_directory = Path(__file__).resolve().parents[2]
