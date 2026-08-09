@@ -35,6 +35,10 @@ class StagingConflictError(RuntimeError):
     """A staging write conflicts with a concurrent or reused identifier."""
 
 
+class StagingReadOnlyError(StagingConflictError):
+    """A materialized published record cannot be changed in place."""
+
+
 class StagingNotFoundError(LookupError):
     """The requested staged app does not exist."""
 
@@ -64,6 +68,7 @@ class StagedApp:
     publisher_uid: str
     publisher_email: str
     revision: int
+    status: str = "STAGING"
     disk_media_ids: tuple[str | None, str | None, str | None, str | None] = (
         None,
         None,
@@ -225,7 +230,7 @@ class FirestoreAdminStagingCatalog:
 
     def get_app(self, identity: AdminIdentity, app_id: str) -> StagedApp | None:
         try:
-            app_id = _canonical_app_id(app_id)
+            app_id = _working_document_id(app_id)
         except ValueError:
             return None
         snapshot = self._client.collection(_APPS_COLLECTION).document(app_id).get()
@@ -505,7 +510,7 @@ class FirestoreAdminStagingCatalog:
         draft: StagedAppDraft,
     ) -> StagedApp:
         try:
-            app_id = _request_id(app_id)
+            app_id = _working_document_id(app_id)
         except ValueError as error:
             raise StagingNotFoundError("Staged app does not exist") from error
         if expected_revision < 1:
@@ -521,6 +526,7 @@ class FirestoreAdminStagingCatalog:
                 raise StagingNotFoundError("Staged app does not exist")
             current = _staged_app(snapshot.id, _document_data(snapshot))
             _require_owner(identity, current)
+            _require_mutable(current)
             if current.revision != expected_revision:
                 raise StagingConflictError(
                     "The staged app changed concurrently; reload before trying again"
@@ -532,8 +538,8 @@ class FirestoreAdminStagingCatalog:
                 author_id
             )
             _ensure_author(transaction, author_reference, author_name)
-            updated = StagedApp(
-                id=current.id,
+            updated = replace(
+                current,
                 name=draft.name,
                 version=draft.version,
                 description=draft.description,
@@ -542,8 +548,6 @@ class FirestoreAdminStagingCatalog:
                 category=draft.category,
                 author_id=author_id,
                 author_name=author_name,
-                publisher_uid=current.publisher_uid,
-                publisher_email=current.publisher_email,
                 revision=current.revision + 1,
             )
             transaction.set(
@@ -1163,7 +1167,7 @@ def _app_document(app: StagedApp, *, request_id: str) -> dict[str, Any]:
         "publisherEmail": app.publisher_email,
         "mediaSlots": _media_slots_document(app),
         "screenshotIds": list(app.screenshot_ids),
-        "status": "STAGING",
+        "status": app.status,
         "creationRequestId": request_id,
     }
     digest = hashlib.sha256(
@@ -1195,6 +1199,7 @@ def _mutable_app_document(app: StagedApp) -> dict[str, Any]:
 
 
 def _staged_app(app_id: str, value: Mapping[str, Any]) -> StagedApp:
+    app_id = _working_document_id(app_id)
     categories = value.get("categories")
     category = categories[0] if isinstance(categories, list) and categories else ""
     fields = {
@@ -1215,6 +1220,9 @@ def _staged_app(app_id: str, value: Mapping[str, Any]) -> StagedApp:
     revision = value.get("revision", 1)
     if isinstance(revision, bool) or not isinstance(revision, int) or revision < 1:
         raise ValueError("Staged app document has an invalid revision")
+    status = value.get("status", "STAGING")
+    if status not in {"STAGING", "PUBLISHED"}:
+        raise ValueError("Staged app document has an invalid status")
     media_slots = value.get(
         "mediaSlots",
         {
@@ -1245,6 +1253,7 @@ def _staged_app(app_id: str, value: Mapping[str, Any]) -> StagedApp:
         category=category,
         release_year=release_year,
         revision=revision,
+        status=status,
         disk_media_ids=disk_media_ids,  # type: ignore[arg-type]
         cassette_media_id=_optional_asset_id(media_slots.get("cassette"), "media"),
         command_media_id=_optional_asset_id(media_slots.get("command"), "media"),
@@ -1309,14 +1318,25 @@ def _staged_screenshot(
     except KeyError as error:
         raise ValueError("Staged screenshot content type is invalid") from error
     size = _asset_size(value.get("size"))
-    _validate_asset_object_path(
-        kind="screenshots",
-        app_id=string_fields["app_id"],
-        asset_id=screenshot_id,
-        digest=string_fields["sha256"],
-        extension=extension,
-        actual=string_fields["object_path"],
-    )
+    try:
+        _validate_asset_object_path(
+            kind="screenshots",
+            app_id=string_fields["app_id"],
+            asset_id=screenshot_id,
+            digest=string_fields["sha256"],
+            extension=extension,
+            actual=string_fields["object_path"],
+        )
+    except ValueError:
+        # The normalized App Engine mirror predates extension-bearing staged paths.
+        _validate_asset_object_path(
+            kind="screenshots",
+            app_id=string_fields["app_id"],
+            asset_id=screenshot_id,
+            digest=string_fields["sha256"],
+            extension=None,
+            actual=string_fields["object_path"],
+        )
     return StagedScreenshot(id=screenshot_id, size=size, **string_fields)
 
 
@@ -1331,6 +1351,7 @@ def _transaction_app(
         raise StagingNotFoundError("Staged app does not exist")
     current = _staged_app(snapshot.id, _document_data(snapshot))
     _require_owner(identity, current)
+    _require_mutable(current)
     if current.revision != expected_revision:
         raise StagingConflictError(
             "The staged app changed concurrently; reload before trying again"
@@ -1386,14 +1407,14 @@ def _media_slots_document(app: StagedApp) -> dict[str, object]:
 
 def _existing_app_id(value: str) -> str:
     try:
-        return _canonical_app_id(value)
+        return _working_document_id(value)
     except ValueError as error:
         raise StagingNotFoundError("Staged app does not exist") from error
 
 
 def _existing_asset_id(value: str, label: str) -> str:
     try:
-        return _request_id(value)
+        return _working_document_id(value)
     except ValueError as error:
         raise StagingNotFoundError(f"{label} does not exist") from error
 
@@ -1404,7 +1425,7 @@ def _optional_asset_id(value: object, label: str) -> str | None:
     if not isinstance(value, str):
         raise ValueError(f"Staged {label} ID is invalid")
     try:
-        return _request_id(value)
+        return _working_document_id(value)
     except ValueError as error:
         raise ValueError(f"Staged {label} ID is invalid") from error
 
@@ -1460,6 +1481,13 @@ def _require_owner(identity: AdminIdentity, app: StagedApp) -> None:
         raise StagingAuthorizationError("Publisher does not own this staged app")
 
 
+def _require_mutable(app: StagedApp) -> None:
+    if app.status != "STAGING":
+        raise StagingReadOnlyError(
+            "Published baseline records are read-only; create a staged revision instead"
+        )
+
+
 def _request_id(value: str) -> str:
     parsed = uuid.UUID(value)
     if parsed.version != 4 or str(parsed) != value:
@@ -1471,6 +1499,16 @@ def _canonical_app_id(value: str) -> str:
     parsed = uuid.UUID(value)
     if str(parsed) != value:
         raise ValueError("Staged app ID must be a lowercase canonical UUID")
+    return value
+
+
+def _working_document_id(value: str) -> str:
+    if not value or value in {".", ".."} or "/" in value:
+        raise ValueError("Working catalog document ID is invalid")
+    if len(value.encode("utf-8")) > 1_500:
+        raise ValueError("Working catalog document ID is too long")
+    if value.startswith("__") and value.endswith("__"):
+        raise ValueError("Working catalog document ID uses a reserved form")
     return value
 
 

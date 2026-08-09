@@ -539,6 +539,8 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
     @app.get("/admin/staging/apps/<app_id>/edit")
     def admin_staging_app_edit(app_id: str) -> str:
         app_record = _staged_app_or_error(app_id)
+        if app_record.status != "STAGING":
+            abort(409, "Published baseline records are read-only")
         return _render_staging_app_form(
             values=_staged_app_form_values(app_record),
             errors={},

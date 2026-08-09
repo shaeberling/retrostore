@@ -116,14 +116,14 @@ region retrieval. No production routing changed.
 
 - Service: `retrostore-admin-candidate`
 - Region: `us-central1`
-- Revision: `retrostore-admin-candidate-rpk1`
+- Revision: `retrostore-admin-candidate-working1`
 - Runtime identity: `retrostore-admin@trs-80.iam.gserviceaccount.com`
-- Image digest: `sha256:29f340e38fc92375c624262586866cc47887f2988c97453ece48d9218977a424`
+- Image digest: `sha256:fed3a29ce5b3b82d2f2208c4bc6b2d8f0843a408936b9e70df8a6aaf9b9d072e`
 - Authentication: private Cloud Run invocation followed by Firebase server
   session verification; no `allUsers` invoker binding
-- Data mode: synchronized catalog read-only; Firestore user-profile roles and
-  isolated top-level staging apps/authors/media/screenshots plus their atomic
-  audit events and guarded RPK imports are mutable
+- Data mode: the materialized synchronized baseline is read-only; Firestore
+  user-profile roles and isolated `STAGING` apps/authors/media/screenshots plus
+  their atomic audit events and guarded RPK imports are mutable
 - Production URL map: unchanged
 
 The authenticated runtime-identity smoke passed `/health`, `/ready`, the
@@ -169,3 +169,15 @@ removed every staged document and object while retaining the import and delete
 audit events; a second post-cleanup public comparison also matched 158/158 with
 zero approvals or differences. Production routing and the active synchronized
 snapshot are unchanged.
+
+Revision `working1` adds the materialized working-catalog view and enforces its
+`PUBLISHED` baseline as read-only in both service methods and rendered UI. It
+supports the exact legacy application, media, and screenshot identifier forms
+and normalized extensionless screenshot paths without granting Firebase
+ownership from legacy email. All six readiness checks, login/CSS smoke tests,
+pre-session redirect, private IAM, and anonymous HTTP 403 passed. The dedicated
+migrator atomically materialized 32 apps, 18 authors, 60 media records, and 90
+screenshots. A follow-up reconciled all 200 documents, source fingerprints,
+active object checksums, control metadata, and exactly one audit event. The
+active snapshot pointer did not move, and the post-materialization public
+comparison matched 158/158 with zero differences.

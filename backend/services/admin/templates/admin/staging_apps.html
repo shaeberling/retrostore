@@ -5,9 +5,9 @@
 {% block content %}
   <div class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
     <div>
-      <p class="font-mono text-xs uppercase tracking-[0.22em] text-sky-300">Isolated future schema</p>
-      <h1 class="mt-2 text-3xl font-semibold tracking-tight">Staged applications</h1>
-      <p class="mt-2 max-w-2xl text-sm leading-6 text-stone-400">These records use the future top-level Firestore model. They are not part of the synchronized mirror and cannot appear in the public API.</p>
+      <p class="font-mono text-xs uppercase tracking-[0.22em] text-sky-300">Future catalog working set</p>
+      <h1 class="mt-2 text-3xl font-semibold tracking-tight">Applications</h1>
+      <p class="mt-2 max-w-2xl text-sm leading-6 text-stone-400">Published baseline records are materialized from the active immutable snapshot and remain read-only. New staged records cannot appear in the public API.</p>
     </div>
     <div class="flex flex-wrap gap-3">
       <a class="w-fit rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold text-stone-200 hover:border-white/30 hover:bg-white/5" href="{{ url_for('admin_staging_rpk_import') }}">Import RPK</a>
@@ -28,6 +28,7 @@
         <thead class="border-b border-white/10 bg-white/[0.03] text-xs uppercase tracking-wider text-stone-500">
           <tr>
             <th class="px-5 py-3 font-medium">Application</th>
+            <th class="px-5 py-3 font-medium">Status</th>
             <th class="px-5 py-3 font-medium">Model</th>
             <th class="px-5 py-3 font-medium">Author</th>
             <th class="px-5 py-3 font-medium">Publisher</th>
@@ -40,12 +41,13 @@
                 <a class="font-medium text-sky-100 hover:text-sky-50 hover:underline" href="{{ url_for('admin_staging_app_detail', app_id=app.id) }}">{{ app.name }}</a>
                 <div class="mt-1 font-mono text-xs text-stone-600">{{ app.id }}</div>
               </td>
+              <td class="px-5 py-4"><span class="rounded-full border px-2 py-1 text-[0.65rem] font-medium uppercase tracking-wide {{ 'border-amber-300/25 bg-amber-300/10 text-amber-100' if app.status == 'PUBLISHED' else 'border-sky-300/25 bg-sky-300/10 text-sky-100' }}">{{ "Baseline" if app.status == "PUBLISHED" else "Staging" }}</span></td>
               <td class="px-5 py-4 text-stone-300">{{ app.model|replace("MODEL_", "Model ") }}</td>
               <td class="px-5 py-4 text-stone-300">{{ app.author_name }}</td>
               <td class="px-5 py-4 text-stone-400">{{ app.publisher_email }}</td>
             </tr>
           {% else %}
-            <tr><td class="px-5 py-12 text-center text-stone-500" colspan="4">No staged applications yet.</td></tr>
+            <tr><td class="px-5 py-12 text-center text-stone-500" colspan="5">No applications in the working catalog yet.</td></tr>
           {% endfor %}
         </tbody>
       </table>

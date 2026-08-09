@@ -257,6 +257,65 @@ def test_publishers_list_only_owned_staged_apps() -> None:
     assert [app.id for app in admin_apps] == ["other", "owned"]
 
 
+def test_materialized_baseline_supports_legacy_ids_and_object_paths() -> None:
+    app_id = "0FA9D58E-9B99-11E7-B002-5B6133CA5F0C"
+    media_id = "42"
+    screenshot_id = f"screenshot-{'b' * 64}"
+    media_path = f"media/{app_id}/{media_id}/{'a' * 64}"
+    screenshot_path = f"screenshots/{app_id}/{screenshot_id}/{'b' * 64}"
+    app_document = {
+        **_app_document(publisher_uid="", name="Published Game"),
+        "status": "PUBLISHED",
+        "mediaSlots": {
+            "disks": [media_id, None, None, None],
+            "cassette": None,
+            "command": None,
+            "basic": None,
+        },
+        "screenshotIds": [screenshot_id],
+    }
+    client = FakeFirestore(
+        apps=(FakeSnapshot(app_id, app_document),),
+        media=(
+            FakeSnapshot(
+                media_id,
+                {
+                    "appId": app_id,
+                    "mediaType": "DISK",
+                    "slot": "disk-1",
+                    "filename": "game.dmk",
+                    "description": "",
+                    "contentType": "application/octet-stream",
+                    "objectPath": media_path,
+                    "size": 1,
+                    "sha256": "a" * 64,
+                },
+            ),
+        ),
+        screenshots=(
+            FakeSnapshot(
+                screenshot_id,
+                {
+                    "appId": app_id,
+                    "filename": "screen.png",
+                    "contentType": "image/png",
+                    "objectPath": screenshot_path,
+                    "size": 1,
+                    "sha256": "b" * 64,
+                },
+            ),
+        ),
+    )
+
+    detail = staging.FirestoreAdminStagingCatalog(client).get_app_detail(ADMIN, app_id)
+
+    assert detail is not None
+    assert detail.app.status == "PUBLISHED"
+    assert detail.app.disk_media_ids[0] == media_id
+    assert detail.media[0].object_path == media_path
+    assert detail.screenshots[0].object_path == screenshot_path
+
+
 def test_staged_creation_writes_author_app_and_audit_atomically(monkeypatch) -> None:
     monkeypatch.setattr(staging.firestore, "transactional", lambda function: function)
     client = FakeFirestore()
@@ -415,6 +474,14 @@ def test_staged_update_checks_ownership_revision_and_audits_atomically(
                 {
                     **_app_document(publisher_uid="publisher-1", name="Old Name"),
                     "revision": 3,
+                    "status": "STAGING",
+                    "mediaSlots": {
+                        "disks": ["legacy-media", None, None, None],
+                        "cassette": None,
+                        "command": None,
+                        "basic": None,
+                    },
+                    "screenshotIds": ["legacy-screenshot"],
                 },
             ),
         )
@@ -431,6 +498,9 @@ def test_staged_update_checks_ownership_revision_and_audits_atomically(
     assert updated.name == "New Name"
     assert updated.publisher_uid == "publisher-1"
     assert updated.revision == 4
+    assert updated.status == "STAGING"
+    assert updated.disk_media_ids[0] == "legacy-media"
+    assert updated.screenshot_ids == ("legacy-screenshot",)
     assert len(client.transaction_value.sets) == 1
     update_id, document, merge = client.transaction_value.sets[0]
     assert update_id == app_id
@@ -470,6 +540,42 @@ def test_staged_update_rejects_non_owner_and_stale_revision(monkeypatch) -> None
         )
 
     assert client.transaction_value.sets == []
+    assert client.transaction_value.creates == []
+
+
+def test_materialized_published_app_refuses_in_place_mutation(monkeypatch) -> None:
+    monkeypatch.setattr(staging.firestore, "transactional", lambda function: function)
+    app_id = "0FA9D58E-9B99-11E7-B002-5B6133CA5F0C"
+    client = FakeFirestore(
+        apps=(
+            FakeSnapshot(
+                app_id,
+                {
+                    **_app_document(publisher_uid="", name="Published Game"),
+                    "revision": 1,
+                    "status": "PUBLISHED",
+                },
+            ),
+        )
+    )
+    catalog = staging.FirestoreAdminStagingCatalog(client)
+
+    with pytest.raises(staging.StagingReadOnlyError, match="read-only"):
+        catalog.update_app(
+            identity=ADMIN,
+            app_id=app_id,
+            expected_revision=1,
+            draft=_draft(),
+        )
+    with pytest.raises(staging.StagingReadOnlyError, match="read-only"):
+        catalog.delete_app(
+            identity=ADMIN,
+            app_id=app_id,
+            expected_revision=1,
+        )
+
+    assert client.transaction_value.sets == []
+    assert client.transaction_value.deletes == []
     assert client.transaction_value.creates == []
 
 

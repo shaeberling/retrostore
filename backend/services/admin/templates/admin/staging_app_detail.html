@@ -6,6 +6,11 @@
   {% if rpk_imported %}
     <div class="mb-6 rounded-xl border border-emerald-300/25 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100" role="status">The validated RPK metadata and all assets were imported into isolated staging as one catalog transaction.</div>
   {% endif %}
+  {% if app.status == "PUBLISHED" %}
+    <div class="mb-6 rounded-xl border border-amber-300/25 bg-amber-300/10 px-4 py-3 text-sm leading-6 text-amber-100" role="status">
+      This is the materialized published baseline. It is read-only and continues to be served from the active immutable catalog snapshot.
+    </div>
+  {% endif %}
   <a class="text-sm text-stone-400 hover:text-white" href="{{ url_for('admin_staging_apps') }}">← Staged applications</a>
   {% if media_updated or media_deleted or screenshot_added or screenshot_deleted %}
     <div class="mt-5 rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100">
@@ -17,11 +22,13 @@
   {% endif %}
   <div class="mt-5 flex flex-col gap-4 border-b border-white/10 pb-8 sm:flex-row sm:items-start sm:justify-between">
     <div>
-      <p class="font-mono text-xs uppercase tracking-[0.22em] text-sky-300">Isolated staged record · revision {{ app.revision }}</p>
+      <p class="font-mono text-xs uppercase tracking-[0.22em] text-sky-300">{{ "Published baseline" if app.status == "PUBLISHED" else "Isolated staged record" }} · revision {{ app.revision }}</p>
       <h1 class="mt-2 text-3xl font-semibold tracking-tight">{{ app.name }}</h1>
       <p class="mt-2 font-mono text-xs text-stone-600">{{ app.id }}</p>
     </div>
-    <a class="w-fit rounded-xl bg-sky-300 px-4 py-2.5 text-sm font-semibold text-stone-950 hover:bg-sky-200" href="{{ url_for('admin_staging_app_edit', app_id=app.id) }}">Edit staged app</a>
+    {% if app.status == "STAGING" %}
+      <a class="w-fit rounded-xl bg-sky-300 px-4 py-2.5 text-sm font-semibold text-stone-950 hover:bg-sky-200" href="{{ url_for('admin_staging_app_edit', app_id=app.id) }}">Edit staged app</a>
+    {% endif %}
   </div>
 
   <div class="mt-8 grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
@@ -37,7 +44,7 @@
         <dt class="text-stone-500">Category</dt><dd>{{ app.category }}</dd>
         <dt class="text-stone-500">Release year</dt><dd>{{ app.release_year }}</dd>
         <dt class="text-stone-500">Author</dt><dd>{{ app.author_name }}</dd>
-        <dt class="text-stone-500">Publisher</dt><dd class="break-all">{{ app.publisher_email }}</dd>
+        <dt class="text-stone-500">Publisher</dt><dd class="break-all">{{ app.publisher_email or "Not linked to a Firebase account" }}</dd>
       </dl>
     </aside>
   </div>
@@ -46,7 +53,7 @@
     <div class="max-w-3xl">
       <p class="font-mono text-xs uppercase tracking-[0.2em] text-sky-300">Private durable assets</p>
       <h2 class="mt-2 text-xl font-semibold">Media slots</h2>
-      <p class="mt-2 text-sm leading-6 text-stone-400">Each upload occupies one legacy-compatible slot. Replacing a slot updates Firestore atomically, then removes the superseded private object. Media files are limited to 16 MiB.</p>
+      <p class="mt-2 text-sm leading-6 text-stone-400">{% if app.status == "STAGING" %}Each upload occupies one legacy-compatible slot. Replacing a slot updates Firestore atomically, then removes the superseded private object. Media files are limited to 16 MiB.{% else %}These are the exact legacy-compatible slots represented by the active catalog baseline.{% endif %}</p>
     </div>
     <div class="mt-6 overflow-hidden rounded-xl border border-white/10 bg-stone-950/50 divide-y divide-white/10">
       {% for slot, definition in media_slots.items() %}
@@ -63,25 +70,31 @@
                 <p class="truncate text-xs font-medium text-stone-200" title="{{ media.filename }}">{{ media.filename }}</p>
               </div>
               <p class="mt-1 truncate text-[0.65rem] text-stone-600" title="SHA-256 {{ media.sha256 }}">{{ media.size }} bytes · {{ media.sha256[:12] }}…</p>
-              <form class="mt-1" action="{{ url_for('admin_staging_media_delete', app_id=app.id, media_id=media.id) }}" method="post">
-                <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}">
-                <input type="hidden" name="revision" value="{{ app.revision }}">
-                <button class="text-[0.65rem] font-medium text-red-300 hover:text-red-200" type="submit">Remove</button>
-              </form>
+              {% if app.status == "STAGING" %}
+                <form class="mt-1" action="{{ url_for('admin_staging_media_delete', app_id=app.id, media_id=media.id) }}" method="post">
+                  <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}">
+                  <input type="hidden" name="revision" value="{{ app.revision }}">
+                  <button class="text-[0.65rem] font-medium text-red-300 hover:text-red-200" type="submit">Remove</button>
+                </form>
+              {% endif %}
             </div>
           {% else %}
             <div class="flex items-center gap-2 text-xs text-stone-600"><span class="size-1.5 rounded-full bg-stone-700"></span>Empty</div>
           {% endif %}
-          <form class="grid min-w-0 gap-2 sm:grid-cols-[minmax(10rem,1.2fr)_minmax(8rem,1fr)_auto] sm:items-center" action="{{ url_for('admin_staging_media_upload', app_id=app.id) }}" method="post" enctype="multipart/form-data">
-            <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}">
-            <input type="hidden" name="revision" value="{{ app.revision }}">
-            <input type="hidden" name="slot" value="{{ slot }}">
-            <label class="sr-only" for="media-{{ slot }}">{{ 'Replace' if media else 'Upload' }} {{ slot|replace('-', ' ') }} media image</label>
-            <input class="block w-full text-xs text-stone-400 file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-xs file:font-medium file:text-stone-200 hover:file:bg-white/15" id="media-{{ slot }}" name="file" type="file" required>
-            <label class="sr-only" for="media-description-{{ slot }}">Media description</label>
-            <input class="w-full rounded-lg border border-white/10 bg-stone-900 px-3 py-2 text-xs outline-none placeholder:text-stone-600 focus:border-sky-300/50" id="media-description-{{ slot }}" name="description" maxlength="2000" placeholder="Optional description" value="{{ media.description if media else '' }}">
-            <button class="whitespace-nowrap rounded-lg border border-sky-300/25 bg-sky-300/10 px-3 py-2 text-xs font-semibold text-sky-100 hover:bg-sky-300/20" type="submit">{{ 'Replace' if media else 'Upload' }}</button>
-          </form>
+          {% if app.status == "STAGING" %}
+            <form class="grid min-w-0 gap-2 sm:grid-cols-[minmax(10rem,1.2fr)_minmax(8rem,1fr)_auto] sm:items-center" action="{{ url_for('admin_staging_media_upload', app_id=app.id) }}" method="post" enctype="multipart/form-data">
+              <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}">
+              <input type="hidden" name="revision" value="{{ app.revision }}">
+              <input type="hidden" name="slot" value="{{ slot }}">
+              <label class="sr-only" for="media-{{ slot }}">{{ 'Replace' if media else 'Upload' }} {{ slot|replace('-', ' ') }} media image</label>
+              <input class="block w-full text-xs text-stone-400 file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-xs file:font-medium file:text-stone-200 hover:file:bg-white/15" id="media-{{ slot }}" name="file" type="file" required>
+              <label class="sr-only" for="media-description-{{ slot }}">Media description</label>
+              <input class="w-full rounded-lg border border-white/10 bg-stone-900 px-3 py-2 text-xs outline-none placeholder:text-stone-600 focus:border-sky-300/50" id="media-description-{{ slot }}" name="description" maxlength="2000" placeholder="Optional description" value="{{ media.description if media else '' }}">
+              <button class="whitespace-nowrap rounded-lg border border-sky-300/25 bg-sky-300/10 px-3 py-2 text-xs font-semibold text-sky-100 hover:bg-sky-300/20" type="submit">{{ 'Replace' if media else 'Upload' }}</button>
+            </form>
+          {% else %}
+            <p class="text-xs text-stone-600">Read-only</p>
+          {% endif %}
         </article>
       {% endfor %}
     </div>
@@ -94,13 +107,15 @@
         <h2 class="mt-2 text-xl font-semibold">Screenshots</h2>
         <p class="mt-2 text-sm leading-6 text-stone-400">PNG, JPEG, GIF, and WebP content is detected from the file bytes. Screenshots are private, checksum-addressed, limited to 5 MiB, and ordered explicitly.</p>
       </div>
-      <form class="w-full max-w-md space-y-3" action="{{ url_for('admin_staging_screenshot_upload', app_id=app.id) }}" method="post" enctype="multipart/form-data">
-        <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}">
-        <input type="hidden" name="revision" value="{{ app.revision }}">
-        <label class="block text-xs font-medium text-stone-300" for="screenshot-file">Add screenshot</label>
-        <input class="block w-full text-xs text-stone-400 file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-xs file:font-medium file:text-stone-200 hover:file:bg-white/15" id="screenshot-file" name="file" type="file" accept="image/png,image/jpeg,image/gif,image/webp" required>
-        <button class="rounded-lg bg-amber-300 px-3 py-2 text-xs font-semibold text-stone-950 hover:bg-amber-200" type="submit">Upload screenshot</button>
-      </form>
+      {% if app.status == "STAGING" %}
+        <form class="w-full max-w-md space-y-3" action="{{ url_for('admin_staging_screenshot_upload', app_id=app.id) }}" method="post" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}">
+          <input type="hidden" name="revision" value="{{ app.revision }}">
+          <label class="block text-xs font-medium text-stone-300" for="screenshot-file">Add screenshot</label>
+          <input class="block w-full text-xs text-stone-400 file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-xs file:font-medium file:text-stone-200 hover:file:bg-white/15" id="screenshot-file" name="file" type="file" accept="image/png,image/jpeg,image/gif,image/webp" required>
+          <button class="rounded-lg bg-amber-300 px-3 py-2 text-xs font-semibold text-stone-950 hover:bg-amber-200" type="submit">Upload screenshot</button>
+        </form>
+      {% endif %}
     </div>
     {% if screenshots %}
       <ol class="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
@@ -112,7 +127,7 @@
             <div class="p-4">
               <p class="truncate text-sm text-stone-200" title="{{ screenshot.filename }}">{{ loop.index }}. {{ screenshot.filename }}</p>
               <p class="mt-1 text-xs text-stone-600">{{ screenshot.content_type }} · {{ screenshot.size }} bytes</p>
-              <div class="mt-4 flex flex-wrap gap-2">
+              {% if app.status == "STAGING" %}<div class="mt-4 flex flex-wrap gap-2">
                 {% if not loop.first %}
                   <form action="{{ url_for('admin_staging_screenshot_move', app_id=app.id, screenshot_id=screenshot.id) }}" method="post">
                     <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}"><input type="hidden" name="revision" value="{{ app.revision }}"><input type="hidden" name="direction" value="up">
@@ -129,17 +144,17 @@
                   <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}"><input type="hidden" name="revision" value="{{ app.revision }}">
                   <button class="rounded-lg border border-red-300/20 px-2.5 py-1.5 text-xs text-red-300 hover:bg-red-300/10" type="submit">Delete</button>
                 </form>
-              </div>
+              </div>{% endif %}
             </div>
           </li>
         {% endfor %}
       </ol>
     {% else %}
-      <div class="mt-6 rounded-xl border border-dashed border-white/10 px-4 py-8 text-center text-sm text-stone-600">No staged screenshots yet.</div>
+      <div class="mt-6 rounded-xl border border-dashed border-white/10 px-4 py-8 text-center text-sm text-stone-600">No screenshots.</div>
     {% endif %}
   </section>
 
-  <section class="mt-8 rounded-2xl border border-red-300/20 bg-red-300/[0.04] p-6">
+  {% if app.status == "STAGING" %}<section class="mt-8 rounded-2xl border border-red-300/20 bg-red-300/[0.04] p-6">
     <h2 class="text-lg font-semibold text-red-100">Delete staged record</h2>
     <p class="mt-2 text-sm leading-6 text-stone-400">This removes the staged app plus its staged media and screenshots. Its audit history and potentially shared author record are retained. Enter the exact app name to confirm.</p>
     <form class="mt-4 flex max-w-2xl flex-col gap-3 sm:flex-row" action="{{ url_for('admin_staging_app_delete', app_id=app.id) }}" method="post">
@@ -149,5 +164,5 @@
       <input class="min-w-0 flex-1 rounded-xl border border-red-300/20 bg-stone-900 px-4 py-2.5 text-sm outline-none placeholder:text-stone-600 focus:border-red-300/50 focus:ring-2 focus:ring-red-300/10" id="confirm-name" name="confirm_name" placeholder="{{ app.name }}" required autocomplete="off">
       <button class="rounded-xl border border-red-300/30 bg-red-300/10 px-4 py-2.5 text-sm font-semibold text-red-100 hover:bg-red-300/20" type="submit">Delete staged app</button>
     </form>
-  </section>
+  </section>{% endif %}
 {% endblock %}

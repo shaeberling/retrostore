@@ -240,6 +240,33 @@ Completed foundation work:
   document, and all three objects; the import and delete audit events remain. A
   second post-cleanup comparison again matched 158/158 with no approvals or
   differences.
+- The initial catalog working-set bridge is implemented. It deterministically
+  converts the exact active immutable mirror into top-level app, author, media,
+  and screenshot documents while preserving historical IDs, slots, ordering,
+  timestamps, checksums, object paths, legacy screenshot URLs, and publisher
+  email. No Firebase ownership is inferred from legacy email. Every source
+  document is fingerprinted and marked `PUBLISHED`; the admin service and UI
+  treat that baseline as read-only, including uppercase legacy application IDs,
+  numeric media IDs, checksum-derived screenshot IDs, and extensionless legacy
+  screenshot object paths. Materialization requires the dedicated migrator,
+  exact project confirmation, and an archive that independently matches the
+  active checksum-verified cloud snapshot. One atomic batch creates the source
+  documents, `catalogWorkingControl/current`, and a sanitized audit event. It
+  does not write objects or move `catalogControl/active`.
+- The read-only guard is deployed privately on admin revision `working1`, image
+  digest `sha256:fed3a29ce5b3b82d2f2208c4bc6b2d8f0843a408936b9e70df8a6aaf9b9d072e`.
+  All readiness checks pass and anonymous invocation remains HTTP 403. The real
+  active archive dry run produced 32 apps, 18 authors, 60 media records, and 90
+  screenshots under materialization
+  `working-85d72e7e7473dd9bb865ee08d7166acff00b7576074b4fc56eed47c7c1097b6e`.
+  The dedicated migrator created the 200 source documents, control record, and
+  one audit event atomically. An idempotent follow-up independently reloaded the
+  active cloud mirror, verified every object checksum, reconciled all 200
+  documents plus the single audit event, and created nothing. The active public
+  snapshot remains
+  `catalog-ec07d9d7c8d47c8a46b745fc82b8d7f231e905dc6b6f7e00f4375547cf303de8`.
+  A post-materialization deployed comparison matched all 158 observations with
+  zero differences and no approvals.
 
 Open foundation work:
 
@@ -1310,6 +1337,13 @@ Phase 1:
 - [x] Deploy and exercise one disposable RPK through the authenticated private
   admin, reconcile its staged metadata/assets/audit record and cleanup, then
   repeat the public 158-scenario comparison with zero differences.
+- [x] Implement the deterministic active-snapshot-to-working-catalog bridge,
+  source fingerprints, atomic control/audit record, legacy-ID support, and
+  service/UI read-only guards. Keep the operation private and leave the active
+  public snapshot unchanged.
+- [x] Deploy the read-only guard, run the real archive dry run, materialize the
+  live working set through the dedicated migrator, reconcile it, and repeat the
+  158-scenario public comparison without changing the active snapshot.
 - [ ] Finalize candidate hostnames, the load-balancer URL map, route groups,
   monitoring thresholds, and named rollback owners. Current DNS, certificates,
   HTTP behavior, and absence of an existing load balancer are documented.
@@ -1324,8 +1358,10 @@ Administrator/publisher role management is atomically audited in Firestore, and
 the isolated staging app/author create/edit/delete workflow is deployed. The
 isolated media-slot, ordered-screenshot, and guarded RPK import workflows are
 also deployed and have passed complete authenticated lifecycle proofs. The next
-executable gate is finalizing candidate hostnames, load-balancer route groups,
-monitoring and rollback ownership; synchronized-catalog writes remain disabled.
+executable gate is implementing and privately rehearsing the explicit
+working-set-to-immutable-snapshot publication boundary without activation,
+followed by the candidate hostname and load-balancer gate. Synchronized-catalog
+activation remains disabled.
 The RetroStore Card and TRS-IO hardware update subsystem stays unchanged on App
 Engine and is not part of that work queue.
 

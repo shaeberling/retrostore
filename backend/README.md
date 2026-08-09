@@ -69,13 +69,17 @@ role change requires CSRF validation and atomically writes both the user profile
 and audit event. Administrators cannot change their own role.
 
 The **Staging** area is the only catalog mutation surface currently enabled. It
-writes future-schema documents to the top-level `apps`, `authors`, `media`, and
-`screenshots` collections with an atomic `auditEvents` record. Those collections
-are separate from the versioned `catalogSnapshots` mirror consumed by the
-compatibility API, so staged records cannot affect public results. App creation
-uses a UUID4 form request ID for idempotent retries and enforces publisher
-ownership server-side. The staged detail page supports edits guarded by an
-optimistic integer revision and deletion guarded by an exact-name confirmation.
+uses the top-level `apps`, `authors`, `media`, and `screenshots` working
+collections. Materialized `PUBLISHED` baseline records preserve the exact IDs
+and metadata of the active immutable snapshot, are visible only to
+administrators until explicitly linked to an account, and are read-only in both
+the service layer and UI. New `STAGING` records are separate from the versioned
+`catalogSnapshots` mirror consumed by the compatibility API, so they cannot
+affect public results. Their writes include an atomic `auditEvents` record. App
+creation uses a UUID4 form request ID for idempotent retries and enforces
+publisher ownership server-side. The staged detail page supports edits guarded
+by an optimistic integer revision and deletion guarded by exact-name
+confirmation.
 It also manages the exact four disk slots plus cassette, command, and BASIC
 media, and an explicitly ordered screenshot list. Uploads are size-limited,
 checksum-addressed, written to private immutable object paths, and committed to
@@ -360,6 +364,54 @@ all documents reconcile does one atomic batch mark the snapshot ready and move
 `catalogControl/active` to it. Failed or interrupted imports cannot expose a
 partially written snapshot, and retrying the same archive reuses verified
 objects and the same snapshot ID.
+
+## Controlled working-catalog materialization
+
+The initial admin working set is derived deterministically from the same
+validated archive and its active immutable snapshot. It preserves historical
+application, author, media, and screenshot IDs, exact media slots and screenshot
+order, timestamps, checksums, object paths, legacy screenshot URLs, and source
+publisher email. It deliberately assigns no Firebase publisher ownership.
+Source fingerprints on every document and a content-derived
+`catalogWorkingControl/current` record make the operation independently
+reconcilable.
+
+The command is a zero-write dry run by default:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.admin.materialize_working_catalog \
+  /path/to/retrostore-catalog-export.zip \
+  --project trs-80 \
+  --database retrostore \
+  --bucket trs-80-retrostore-assets \
+  --output /tmp/retrostore-working-catalog-dry-run.json
+```
+
+Apply requires the exact project confirmation and dedicated keyless migrator:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.admin.materialize_working_catalog \
+  /path/to/retrostore-catalog-export.zip \
+  --project trs-80 \
+  --database retrostore \
+  --bucket trs-80-retrostore-assets \
+  --output /tmp/retrostore-working-catalog.json \
+  --apply \
+  --confirm-project trs-80 \
+  --impersonate-service-account \
+    retrostore-migrator@trs-80.iam.gserviceaccount.com
+```
+
+Before writing, apply reloads the active cloud snapshot through the migrator
+identity and verifies that it exactly matches the archive, including every
+object checksum. All source documents, the control record, and one sanitized
+`CATALOG_WORKING_SET_MATERIALIZED` audit event are then created in one Firestore
+batch. Any pre-existing source ID is treated as a conflict unless the matching
+control record already proves an idempotent completed operation. The command
+does not upload, replace, or delete objects and never moves
+`catalogControl/active`.
 
 ## Controlled cloud state smoke test
 

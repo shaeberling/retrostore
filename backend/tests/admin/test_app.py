@@ -607,6 +607,32 @@ def test_staging_detail_edit_and_confirmed_delete_lifecycle() -> None:
     )
 
 
+def test_published_baseline_detail_is_read_only() -> None:
+    baseline = replace(
+        FakeStagingCatalog().apps[0],
+        id="0FA9D58E-9B99-11E7-B002-5B6133CA5F0C",
+        publisher_uid="",
+        status="PUBLISHED",
+    )
+    catalog = FakeStagingCatalog(apps=(baseline,))
+    client = _configured_app(staging_catalog=catalog).test_client()
+    csrf_token = _csrf_token(client)
+    client.post(
+        "/admin/session",
+        json={"id_token": "valid-id-token", "csrf_token": csrf_token},
+    )
+
+    detail = client.get(f"/admin/staging/apps/{baseline.id}")
+    edit = client.get(f"/admin/staging/apps/{baseline.id}/edit")
+
+    assert detail.status_code == 200
+    assert b"materialized published baseline" in detail.data
+    assert b"Edit staged app" not in detail.data
+    assert b"Upload screenshot" not in detail.data
+    assert b"Delete staged app" not in detail.data
+    assert edit.status_code == 409
+
+
 def test_staging_media_and_screenshot_upload_routes_validate_and_delegate() -> None:
     catalog = FakeStagingCatalog()
     app_id = catalog.apps[0].id
