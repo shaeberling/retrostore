@@ -408,8 +408,8 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
             form_action=url_for("admin_published_app_draft_update", app_id=app_id),
             heading=f"Draft changes to {draft.name}",
             submit_label="Save draft",
-            back_url=url_for("admin_staging_app_detail", app_id=app_id),
-            cancel_url=url_for("admin_staging_app_detail", app_id=app_id),
+            back_url=url_for("admin_published_app_draft_detail", app_id=app_id),
+            cancel_url=url_for("admin_published_app_draft_detail", app_id=app_id),
             eyebrow="Copy-on-write published draft",
             intro=(
                 "This editable overlay leaves the published baseline and active "
@@ -421,6 +421,10 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
             discard_name=draft.name,
             draft_created=request.args.get("draft_created") == "1",
         )
+
+    @app.get("/admin/staging/apps/<app_id>/draft")
+    def admin_published_app_draft_detail(app_id: str) -> str:
+        return _render_published_app_draft_detail(app_id)
 
     @app.post("/admin/staging/apps/<app_id>/draft")
     def admin_published_app_draft_update(app_id: str) -> Response | tuple[str, int]:
@@ -443,8 +447,12 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
                     ),
                     heading="Edit published app draft",
                     submit_label="Save draft",
-                    back_url=url_for("admin_staging_app_detail", app_id=app_id),
-                    cancel_url=url_for("admin_staging_app_detail", app_id=app_id),
+                    back_url=url_for(
+                        "admin_published_app_draft_detail", app_id=app_id
+                    ),
+                    cancel_url=url_for(
+                        "admin_published_app_draft_detail", app_id=app_id
+                    ),
                     eyebrow="Copy-on-write published draft",
                     intro=(
                         "This editable overlay leaves the published baseline and "
@@ -497,6 +505,204 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
             abort(409, str(error))
         return redirect(
             url_for("admin_staging_app_detail", app_id=app_id, draft_discarded="1")
+        )
+
+    @app.post("/admin/staging/apps/<app_id>/draft/media")
+    def admin_published_app_draft_media_upload(
+        app_id: str,
+    ) -> Response | tuple[str, int]:
+        catalog = _draft_catalog_or_error()
+        _published_app_draft_or_error(app_id)
+        try:
+            expected_revision = _positive_revision(request.form.get("revision"))
+            slot = request.form.get("slot", "")
+            validate_media_slot(slot)
+            uploaded_file = request.files.get("file")
+            if uploaded_file is None:
+                raise StagingAssetValidationError("Choose a media image to upload.")
+            body = uploaded_file.stream.read(MEDIA_MAX_BYTES + 1)
+            upload = validate_media_upload(
+                filename=uploaded_file.filename or "",
+                body=body,
+                description=request.form.get("description", ""),
+            )
+        except (StagingAssetValidationError, ValueError) as error:
+            return (
+                _render_published_app_draft_detail(
+                    app_id, asset_error=str(error)
+                ),
+                400,
+            )
+        try:
+            catalog.upload_media(
+                identity=g.admin_identity,
+                app_id=app_id,
+                expected_revision=expected_revision,
+                slot=slot,
+                upload=upload,
+            )
+        except StagingAuthorizationError:
+            abort(403)
+        except StagingNotFoundError:
+            abort(404)
+        except StagingConflictError as error:
+            abort(409, str(error))
+        return redirect(
+            url_for(
+                "admin_published_app_draft_detail",
+                app_id=app_id,
+                media_updated="1",
+            )
+        )
+
+    @app.post("/admin/staging/apps/<app_id>/draft/media/<media_id>/delete")
+    def admin_published_app_draft_media_delete(
+        app_id: str, media_id: str
+    ) -> Response:
+        try:
+            _draft_catalog_or_error().delete_media(
+                identity=g.admin_identity,
+                app_id=app_id,
+                media_id=media_id,
+                expected_revision=_positive_revision(request.form.get("revision")),
+            )
+        except StagingAuthorizationError:
+            abort(403)
+        except StagingNotFoundError:
+            abort(404)
+        except StagingConflictError as error:
+            abort(409, str(error))
+        except ValueError as error:
+            abort(400, str(error))
+        return redirect(
+            url_for(
+                "admin_published_app_draft_detail",
+                app_id=app_id,
+                media_deleted="1",
+            )
+        )
+
+    @app.post("/admin/staging/apps/<app_id>/draft/screenshots")
+    def admin_published_app_draft_screenshot_upload(
+        app_id: str,
+    ) -> Response | tuple[str, int]:
+        catalog = _draft_catalog_or_error()
+        _published_app_draft_or_error(app_id)
+        try:
+            expected_revision = _positive_revision(request.form.get("revision"))
+            uploaded_file = request.files.get("file")
+            if uploaded_file is None:
+                raise StagingAssetValidationError("Choose a screenshot to upload.")
+            upload = validate_screenshot_upload(
+                filename=uploaded_file.filename or "",
+                body=uploaded_file.stream.read(SCREENSHOT_MAX_BYTES + 1),
+            )
+        except (StagingAssetValidationError, ValueError) as error:
+            return (
+                _render_published_app_draft_detail(
+                    app_id, asset_error=str(error)
+                ),
+                400,
+            )
+        try:
+            catalog.upload_screenshot(
+                identity=g.admin_identity,
+                app_id=app_id,
+                expected_revision=expected_revision,
+                upload=upload,
+            )
+        except StagingAuthorizationError:
+            abort(403)
+        except StagingNotFoundError:
+            abort(404)
+        except StagingConflictError as error:
+            abort(409, str(error))
+        return redirect(
+            url_for(
+                "admin_published_app_draft_detail",
+                app_id=app_id,
+                screenshot_added="1",
+            )
+        )
+
+    @app.post(
+        "/admin/staging/apps/<app_id>/draft/screenshots/<screenshot_id>/move"
+    )
+    def admin_published_app_draft_screenshot_move(
+        app_id: str, screenshot_id: str
+    ) -> Response:
+        try:
+            _draft_catalog_or_error().move_screenshot(
+                identity=g.admin_identity,
+                app_id=app_id,
+                screenshot_id=screenshot_id,
+                expected_revision=_positive_revision(request.form.get("revision")),
+                direction=request.form.get("direction", ""),
+            )
+        except StagingAuthorizationError:
+            abort(403)
+        except StagingNotFoundError:
+            abort(404)
+        except StagingConflictError as error:
+            abort(409, str(error))
+        except ValueError as error:
+            abort(400, str(error))
+        return redirect(
+            url_for("admin_published_app_draft_detail", app_id=app_id)
+        )
+
+    @app.post(
+        "/admin/staging/apps/<app_id>/draft/screenshots/<screenshot_id>/delete"
+    )
+    def admin_published_app_draft_screenshot_delete(
+        app_id: str, screenshot_id: str
+    ) -> Response:
+        try:
+            _draft_catalog_or_error().delete_screenshot(
+                identity=g.admin_identity,
+                app_id=app_id,
+                screenshot_id=screenshot_id,
+                expected_revision=_positive_revision(request.form.get("revision")),
+            )
+        except StagingAuthorizationError:
+            abort(403)
+        except StagingNotFoundError:
+            abort(404)
+        except StagingConflictError as error:
+            abort(409, str(error))
+        except ValueError as error:
+            abort(400, str(error))
+        return redirect(
+            url_for(
+                "admin_published_app_draft_detail",
+                app_id=app_id,
+                screenshot_deleted="1",
+            )
+        )
+
+    @app.get(
+        "/admin/staging/apps/<app_id>/draft/screenshots/<screenshot_id>/content"
+    )
+    def admin_published_app_draft_screenshot_content(
+        app_id: str, screenshot_id: str
+    ) -> Response:
+        try:
+            result = _draft_catalog_or_error().read_screenshot(
+                g.admin_identity, app_id, screenshot_id
+            )
+        except StagingAuthorizationError:
+            abort(403)
+        if result is None:
+            abort(404)
+        screenshot, body = result
+        return send_file(
+            BytesIO(body),
+            mimetype=screenshot.content_type,
+            download_name=screenshot.filename,
+            as_attachment=False,
+            conditional=True,
+            etag=screenshot.sha256,
+            max_age=0,
         )
 
     @app.post("/admin/staging/apps/<app_id>/media")
@@ -835,15 +1041,16 @@ def create_cloud_app(config: Mapping[str, Any] | None = None) -> Flask:
 
     firestore_client = firestore.Client(project=project, database=database)
     role_store = FirestoreAdminRoleStore(firestore_client)
+    if candidate_config["ADMIN_STAGING_OBJECT_STORE"] is None:
+        candidate_config["ADMIN_STAGING_OBJECT_STORE"] = CloudStagingObjectStore(
+            storage.Client(project=project).bucket(bucket)
+        )
     if candidate_config["ADMIN_PUBLISHED_APP_DRAFTS"] is None:
         candidate_config["ADMIN_PUBLISHED_APP_DRAFTS"] = FirestorePublishedAppDrafts(
-            firestore_client
+            firestore_client,
+            candidate_config["ADMIN_STAGING_OBJECT_STORE"],
         )
     if candidate_config["ADMIN_STAGING_CATALOG"] is None:
-        if candidate_config["ADMIN_STAGING_OBJECT_STORE"] is None:
-            candidate_config["ADMIN_STAGING_OBJECT_STORE"] = CloudStagingObjectStore(
-                storage.Client(project=project).bucket(bucket)
-            )
         candidate_config["ADMIN_STAGING_CATALOG"] = FirestoreAdminStagingCatalog(
             firestore_client,
             candidate_config["ADMIN_STAGING_OBJECT_STORE"],
@@ -937,6 +1144,48 @@ def _render_staged_app_detail(app_id: str, *, asset_error: str | None = None) ->
         rpk_imported=request.args.get("rpk_imported") == "1",
         draft_record=draft_record,
         draft_discarded=request.args.get("draft_discarded") == "1",
+        media_upload_endpoint="admin_staging_media_upload",
+        media_delete_endpoint="admin_staging_media_delete",
+        screenshot_upload_endpoint="admin_staging_screenshot_upload",
+        screenshot_move_endpoint="admin_staging_screenshot_move",
+        screenshot_delete_endpoint="admin_staging_screenshot_delete",
+        screenshot_content_endpoint="admin_staging_screenshot_content",
+    )
+
+
+def _render_published_app_draft_detail(
+    app_id: str, *, asset_error: str | None = None
+) -> str:
+    try:
+        detail = _draft_catalog_or_error().get_detail(g.admin_identity, app_id)
+    except StagingAuthorizationError:
+        abort(403)
+    except ValueError:
+        abort(500, "Published app draft asset metadata failed validation")
+    if detail is None:
+        abort(404)
+    if not isinstance(detail, StagedAppDetail) or detail.app.status != "DRAFT":
+        abort(500, "Published app draft catalog returned invalid detail")
+    return render_template(
+        "admin/staging_app_detail.html",
+        app=detail.app,
+        media_by_slot={item.slot: item for item in detail.media},
+        media_slots=STAGED_MEDIA_SLOTS,
+        screenshots=detail.screenshots,
+        asset_error=asset_error,
+        media_updated=request.args.get("media_updated") == "1",
+        media_deleted=request.args.get("media_deleted") == "1",
+        screenshot_added=request.args.get("screenshot_added") == "1",
+        screenshot_deleted=request.args.get("screenshot_deleted") == "1",
+        rpk_imported=False,
+        draft_record=detail.app,
+        draft_discarded=False,
+        media_upload_endpoint="admin_published_app_draft_media_upload",
+        media_delete_endpoint="admin_published_app_draft_media_delete",
+        screenshot_upload_endpoint="admin_published_app_draft_screenshot_upload",
+        screenshot_move_endpoint="admin_published_app_draft_screenshot_move",
+        screenshot_delete_endpoint="admin_published_app_draft_screenshot_delete",
+        screenshot_content_endpoint="admin_published_app_draft_screenshot_content",
     )
 
 

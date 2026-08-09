@@ -270,3 +270,90 @@ def test_publication_candidate_overlays_published_metadata_copy_on_write() -> No
     draft["baseSourceFingerprint"] = "b" * 64
     with pytest.raises(ValueError, match="another snapshot"):
         build_working_catalog_candidate(baseline, changes, _reader())
+
+
+def test_publication_candidate_applies_copy_on_write_asset_replacements() -> None:
+    mirror = _mirror()
+    baseline = build_working_catalog_materialization(mirror, build_catalog_snapshot(mirror))
+    app_id = mirror.apps[0].id
+    source = baseline.collections["apps"][app_id]
+    created = datetime(2026, 8, 10, 3, 4, 5, tzinfo=UTC)
+    media_id = "draft-media"
+    screenshot_id = "draft-shot"
+    media_body = b"replacement disk"
+    screenshot_body = b"\x89PNG\r\n\x1a\nreplacement"
+    media_sha = hashlib.sha256(media_body).hexdigest()
+    screenshot_sha = hashlib.sha256(screenshot_body).hexdigest()
+    media_path = f"media/{app_id}/{media_id}/{media_sha}"
+    screenshot_path = (
+        f"screenshots/{app_id}/{screenshot_id}/{screenshot_sha}.png"
+    )
+    draft = {
+        **{
+            key: deepcopy(value)
+            for key, value in source.items()
+            if key not in {"sourceKind", "sourceSnapshotId", "sourceFingerprint"}
+        },
+        "status": "DRAFT",
+        "publisherUid": "admin-1",
+        "baseSnapshotId": baseline.source["snapshotId"],
+        "baseSourceFingerprint": source["sourceFingerprint"],
+        "mediaSlots": {
+            **deepcopy(source["mediaSlots"]),
+            "disks": [media_id, None, None, None],
+        },
+        "screenshotIds": [screenshot_id],
+        "createdAt": created,
+        "updatedAt": created,
+    }
+    changes = {
+        "apps": {app_id: draft},
+        "authors": {},
+        "media": {
+            media_id: {
+                "schemaVersion": 1,
+                "appId": app_id,
+                "mediaType": "DISK",
+                "slot": "disk-1",
+                "filename": "replacement.dmk",
+                "description": "Draft replacement",
+                "contentType": "application/octet-stream",
+                "objectPath": media_path,
+                "size": len(media_body),
+                "sha256": media_sha,
+                "publisherUid": "admin-1",
+                "createdAt": created,
+            }
+        },
+        "screenshots": {
+            screenshot_id: {
+                "schemaVersion": 1,
+                "appId": app_id,
+                "filename": "replacement.png",
+                "contentType": "image/png",
+                "objectPath": screenshot_path,
+                "size": len(screenshot_body),
+                "sha256": screenshot_sha,
+                "publisherUid": "admin-1",
+                "position": 0,
+                "createdAt": created,
+            }
+        },
+    }
+    reader = MappingObjectReader(
+        {
+            **dict(_reader().objects),
+            media_path: media_body,
+            screenshot_path: screenshot_body,
+        }
+    )
+
+    candidate = build_working_catalog_candidate(baseline, changes, reader)
+
+    app = candidate.apps[0]
+    assert app.disk_media_ids[0] == media_id
+    assert app.screenshot_ids == (screenshot_id,)
+    assert media_id in candidate.media
+    assert "media-disk" not in candidate.media
+    assert screenshot_id in candidate.screenshots
+    assert "shot-1" not in candidate.screenshots

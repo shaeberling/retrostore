@@ -157,6 +157,12 @@ class FakeDraftCatalog:
         default_factory=list
     )
     discards: list[tuple[AdminIdentity, str, int]] = field(default_factory=list)
+    media_uploads: list[
+        tuple[AdminIdentity, str, int, str, ValidatedAssetUpload]
+    ] = field(default_factory=list)
+    screenshot_uploads: list[
+        tuple[AdminIdentity, str, int, ValidatedAssetUpload]
+    ] = field(default_factory=list)
 
     def create(self, *, identity, app_id):
         self.creations.append((identity, app_id))
@@ -174,6 +180,10 @@ class FakeDraftCatalog:
 
     def get(self, identity, app_id):
         return self.drafts.get(app_id)
+
+    def get_detail(self, identity, app_id):
+        value = self.get(identity, app_id)
+        return None if value is None else StagedAppDetail(value, (), ())
 
     def update(self, *, identity, app_id, expected_revision, draft):
         self.updates.append((identity, app_id, expected_revision, draft))
@@ -195,6 +205,36 @@ class FakeDraftCatalog:
     def discard(self, *, identity, app_id, expected_revision):
         self.discards.append((identity, app_id, expected_revision))
         self.drafts.pop(app_id)
+
+    def upload_media(
+        self, *, identity, app_id, expected_revision, slot, upload
+    ):
+        self.media_uploads.append(
+            (identity, app_id, expected_revision, slot, upload)
+        )
+        updated = replace(self.drafts[app_id], revision=expected_revision + 1)
+        self.drafts[app_id] = updated
+        return updated
+
+    def delete_media(self, **kwargs):
+        return replace(self.drafts[kwargs["app_id"]], revision=kwargs["expected_revision"] + 1)
+
+    def upload_screenshot(self, *, identity, app_id, expected_revision, upload):
+        self.screenshot_uploads.append(
+            (identity, app_id, expected_revision, upload)
+        )
+        updated = replace(self.drafts[app_id], revision=expected_revision + 1)
+        self.drafts[app_id] = updated
+        return updated
+
+    def move_screenshot(self, **kwargs):
+        return replace(self.drafts[kwargs["app_id"]], revision=kwargs["expected_revision"] + 1)
+
+    def delete_screenshot(self, **kwargs):
+        return replace(self.drafts[kwargs["app_id"]], revision=kwargs["expected_revision"] + 1)
+
+    def read_screenshot(self, identity, app_id, screenshot_id):
+        return None
 
 
 class FakeAuthenticator:
@@ -744,6 +784,57 @@ def test_published_baseline_copy_on_write_draft_lifecycle() -> None:
     assert discarded.status_code == 302
     assert drafts.discards == [(FakeAuthenticator.identity, baseline.id, 2)]
     assert drafts.drafts == {}
+
+
+def test_published_draft_detail_has_copy_on_write_asset_routes() -> None:
+    baseline = replace(
+        FakeStagingCatalog().apps[0],
+        id="0FA9D58E-9B99-11E7-B002-5B6133CA5F0C",
+        publisher_uid="",
+        status="PUBLISHED",
+    )
+    draft_catalog = FakeDraftCatalog()
+    draft_catalog.create(identity=FakeAuthenticator.identity, app_id=baseline.id)
+    client = _configured_app(
+        staging_catalog=FakeStagingCatalog(apps=(baseline,)),
+        draft_catalog=draft_catalog,
+    ).test_client()
+    csrf_token = _csrf_token(client)
+    client.post(
+        "/admin/session",
+        json={"id_token": "valid-id-token", "csrf_token": csrf_token},
+    )
+
+    detail = client.get(f"/admin/staging/apps/{baseline.id}/draft")
+    media = client.post(
+        f"/admin/staging/apps/{baseline.id}/draft/media",
+        data={
+            "csrf_token": csrf_token,
+            "revision": "1",
+            "slot": "disk-1",
+            "description": "Draft disk",
+            "file": (BytesIO(b"draft disk"), "draft.dmk"),
+        },
+        content_type="multipart/form-data",
+    )
+    screenshot = client.post(
+        f"/admin/staging/apps/{baseline.id}/draft/screenshots",
+        data={
+            "csrf_token": csrf_token,
+            "revision": "2",
+            "file": (BytesIO(b"\x89PNG\r\n\x1a\ndraft"), "draft.png"),
+        },
+        content_type="multipart/form-data",
+    )
+
+    assert detail.status_code == 200
+    assert b"Edit draft metadata" in detail.data
+    assert b"Discard copy-on-write draft" in detail.data
+    assert f"/{baseline.id}/draft/media".encode() in detail.data
+    assert media.status_code == 302
+    assert draft_catalog.media_uploads[0][2:4] == (1, "disk-1")
+    assert screenshot.status_code == 302
+    assert draft_catalog.screenshot_uploads[0][2] == 2
 
 
 def test_staging_media_and_screenshot_upload_routes_validate_and_delegate() -> None:

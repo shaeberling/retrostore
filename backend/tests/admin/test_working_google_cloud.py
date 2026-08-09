@@ -231,3 +231,29 @@ def test_load_staged_changes_includes_published_app_drafts() -> None:
     changes = store.load_staged_changes()
 
     assert set(changes["apps"]) == {app_id}
+
+
+def test_load_staged_changes_merges_separate_draft_asset_collections() -> None:
+    client = FakeFirestore()
+    store = FirestoreWorkingCatalogStore(client)  # type: ignore[arg-type]
+    materialization = _materialization()
+    store.materialize(materialization, actor="migrator@example.test")
+    app_id = next(iter(materialization.collections["apps"]))
+    client.documents[("appDrafts", app_id)] = {
+        "schemaVersion": 1,
+        "status": "DRAFT",
+        "authorId": next(iter(materialization.collections["authors"])),
+    }
+    client.documents[("appDraftMedia", "draft-media")] = {
+        "schemaVersion": 1,
+        "appId": app_id,
+    }
+    client.documents[("appDraftScreenshots", "draft-shot")] = {
+        "schemaVersion": 1,
+        "appId": app_id,
+    }
+
+    changes = store.load_staged_changes()
+
+    assert set(changes["media"]) == {"draft-media"}
+    assert set(changes["screenshots"]) == {"draft-shot"}

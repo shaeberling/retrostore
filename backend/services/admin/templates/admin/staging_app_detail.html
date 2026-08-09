@@ -3,6 +3,7 @@
 {% block title %}{{ app.name }} · Staging · RetroStore Admin{% endblock %}
 
 {% block content %}
+  {% set editable_assets = app.status in ["STAGING", "DRAFT"] %}
   {% if rpk_imported %}
     <div class="mb-6 rounded-xl border border-emerald-300/25 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100" role="status">The validated RPK metadata and all assets were imported into isolated staging as one catalog transaction.</div>
   {% endif %}
@@ -31,9 +32,11 @@
     </div>
     {% if app.status == "STAGING" %}
       <a class="w-fit rounded-xl bg-sky-300 px-4 py-2.5 text-sm font-semibold text-stone-950 hover:bg-sky-200" href="{{ url_for('admin_staging_app_edit', app_id=app.id) }}">Edit staged app</a>
+    {% elif app.status == "DRAFT" %}
+      <a class="w-fit rounded-xl bg-amber-300 px-4 py-2.5 text-sm font-semibold text-stone-950 hover:bg-amber-200" href="{{ url_for('admin_published_app_draft_edit', app_id=app.id) }}">Edit draft metadata</a>
     {% elif app.status == "PUBLISHED" and admin_identity.is_administrator %}
       {% if draft_record %}
-        <a class="w-fit rounded-xl bg-amber-300 px-4 py-2.5 text-sm font-semibold text-stone-950 hover:bg-amber-200" href="{{ url_for('admin_published_app_draft_edit', app_id=app.id) }}">Continue draft</a>
+        <a class="w-fit rounded-xl bg-amber-300 px-4 py-2.5 text-sm font-semibold text-stone-950 hover:bg-amber-200" href="{{ url_for('admin_published_app_draft_detail', app_id=app.id) }}">Continue draft</a>
       {% else %}
         <form action="{{ url_for('admin_published_app_draft_create', app_id=app.id) }}" method="post">
           <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}">
@@ -65,7 +68,7 @@
     <div class="max-w-3xl">
       <p class="font-mono text-xs uppercase tracking-[0.2em] text-sky-300">Private durable assets</p>
       <h2 class="mt-2 text-xl font-semibold">Media slots</h2>
-      <p class="mt-2 text-sm leading-6 text-stone-400">{% if app.status == "STAGING" %}Each upload occupies one legacy-compatible slot. Replacing a slot updates Firestore atomically, then removes the superseded private object. Media files are limited to 16 MiB.{% else %}These are the exact legacy-compatible slots represented by the active catalog baseline.{% endif %}</p>
+      <p class="mt-2 text-sm leading-6 text-stone-400">{% if editable_assets %}Each upload occupies one legacy-compatible slot. Draft replacement or removal changes only the overlay; inherited published objects remain untouched. Media files are limited to 16 MiB.{% else %}These are the exact legacy-compatible slots represented by the active catalog baseline.{% endif %}</p>
     </div>
     <div class="mt-6 overflow-hidden rounded-xl border border-white/10 bg-stone-950/50 divide-y divide-white/10">
       {% for slot, definition in media_slots.items() %}
@@ -82,8 +85,8 @@
                 <p class="truncate text-xs font-medium text-stone-200" title="{{ media.filename }}">{{ media.filename }}</p>
               </div>
               <p class="mt-1 truncate text-[0.65rem] text-stone-600" title="SHA-256 {{ media.sha256 }}">{{ media.size }} bytes · {{ media.sha256[:12] }}…</p>
-              {% if app.status == "STAGING" %}
-                <form class="mt-1" action="{{ url_for('admin_staging_media_delete', app_id=app.id, media_id=media.id) }}" method="post">
+              {% if editable_assets %}
+                <form class="mt-1" action="{{ url_for(media_delete_endpoint, app_id=app.id, media_id=media.id) }}" method="post">
                   <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}">
                   <input type="hidden" name="revision" value="{{ app.revision }}">
                   <button class="text-[0.65rem] font-medium text-red-300 hover:text-red-200" type="submit">Remove</button>
@@ -93,8 +96,8 @@
           {% else %}
             <div class="flex items-center gap-2 text-xs text-stone-600"><span class="size-1.5 rounded-full bg-stone-700"></span>Empty</div>
           {% endif %}
-          {% if app.status == "STAGING" %}
-            <form class="grid min-w-0 gap-2 sm:grid-cols-[minmax(10rem,1.2fr)_minmax(8rem,1fr)_auto] sm:items-center" action="{{ url_for('admin_staging_media_upload', app_id=app.id) }}" method="post" enctype="multipart/form-data">
+          {% if editable_assets %}
+            <form class="grid min-w-0 gap-2 sm:grid-cols-[minmax(10rem,1.2fr)_minmax(8rem,1fr)_auto] sm:items-center" action="{{ url_for(media_upload_endpoint, app_id=app.id) }}" method="post" enctype="multipart/form-data">
               <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}">
               <input type="hidden" name="revision" value="{{ app.revision }}">
               <input type="hidden" name="slot" value="{{ slot }}">
@@ -119,8 +122,8 @@
         <h2 class="mt-2 text-xl font-semibold">Screenshots</h2>
         <p class="mt-2 text-sm leading-6 text-stone-400">PNG, JPEG, GIF, and WebP content is detected from the file bytes. Screenshots are private, checksum-addressed, limited to 5 MiB, and ordered explicitly.</p>
       </div>
-      {% if app.status == "STAGING" %}
-        <form class="w-full max-w-md space-y-3" action="{{ url_for('admin_staging_screenshot_upload', app_id=app.id) }}" method="post" enctype="multipart/form-data">
+      {% if editable_assets %}
+        <form class="w-full max-w-md space-y-3" action="{{ url_for(screenshot_upload_endpoint, app_id=app.id) }}" method="post" enctype="multipart/form-data">
           <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}">
           <input type="hidden" name="revision" value="{{ app.revision }}">
           <label class="block text-xs font-medium text-stone-300" for="screenshot-file">Add screenshot</label>
@@ -134,25 +137,25 @@
         {% for screenshot in screenshots %}
           <li class="overflow-hidden rounded-xl border border-white/10 bg-stone-950/60">
             <div class="grid aspect-video place-items-center bg-black/40 p-2">
-              <img class="max-h-full max-w-full object-contain" src="{{ url_for('admin_staging_screenshot_content', app_id=app.id, screenshot_id=screenshot.id) }}" alt="Screenshot {{ loop.index }} for {{ app.name }}">
+              <img class="max-h-full max-w-full object-contain" src="{{ url_for(screenshot_content_endpoint, app_id=app.id, screenshot_id=screenshot.id) }}" alt="Screenshot {{ loop.index }} for {{ app.name }}">
             </div>
             <div class="p-4">
               <p class="truncate text-sm text-stone-200" title="{{ screenshot.filename }}">{{ loop.index }}. {{ screenshot.filename }}</p>
               <p class="mt-1 text-xs text-stone-600">{{ screenshot.content_type }} · {{ screenshot.size }} bytes</p>
-              {% if app.status == "STAGING" %}<div class="mt-4 flex flex-wrap gap-2">
+              {% if editable_assets %}<div class="mt-4 flex flex-wrap gap-2">
                 {% if not loop.first %}
-                  <form action="{{ url_for('admin_staging_screenshot_move', app_id=app.id, screenshot_id=screenshot.id) }}" method="post">
+                  <form action="{{ url_for(screenshot_move_endpoint, app_id=app.id, screenshot_id=screenshot.id) }}" method="post">
                     <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}"><input type="hidden" name="revision" value="{{ app.revision }}"><input type="hidden" name="direction" value="up">
                     <button class="rounded-lg border border-white/10 px-2.5 py-1.5 text-xs text-stone-300 hover:bg-white/5" type="submit">Move up</button>
                   </form>
                 {% endif %}
                 {% if not loop.last %}
-                  <form action="{{ url_for('admin_staging_screenshot_move', app_id=app.id, screenshot_id=screenshot.id) }}" method="post">
+                  <form action="{{ url_for(screenshot_move_endpoint, app_id=app.id, screenshot_id=screenshot.id) }}" method="post">
                     <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}"><input type="hidden" name="revision" value="{{ app.revision }}"><input type="hidden" name="direction" value="down">
                     <button class="rounded-lg border border-white/10 px-2.5 py-1.5 text-xs text-stone-300 hover:bg-white/5" type="submit">Move down</button>
                   </form>
                 {% endif %}
-                <form action="{{ url_for('admin_staging_screenshot_delete', app_id=app.id, screenshot_id=screenshot.id) }}" method="post">
+                <form action="{{ url_for(screenshot_delete_endpoint, app_id=app.id, screenshot_id=screenshot.id) }}" method="post">
                   <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}"><input type="hidden" name="revision" value="{{ app.revision }}">
                   <button class="rounded-lg border border-red-300/20 px-2.5 py-1.5 text-xs text-red-300 hover:bg-red-300/10" type="submit">Delete</button>
                 </form>
@@ -175,6 +178,18 @@
       <label class="sr-only" for="confirm-name">Enter {{ app.name }} to confirm deletion</label>
       <input class="min-w-0 flex-1 rounded-xl border border-red-300/20 bg-stone-900 px-4 py-2.5 text-sm outline-none placeholder:text-stone-600 focus:border-red-300/50 focus:ring-2 focus:ring-red-300/10" id="confirm-name" name="confirm_name" placeholder="{{ app.name }}" required autocomplete="off">
       <button class="rounded-xl border border-red-300/30 bg-red-300/10 px-4 py-2.5 text-sm font-semibold text-red-100 hover:bg-red-300/20" type="submit">Delete staged app</button>
+    </form>
+  </section>{% endif %}
+
+  {% if app.status == "DRAFT" %}<section class="mt-8 rounded-2xl border border-red-300/20 bg-red-300/[0.04] p-6">
+    <h2 class="text-lg font-semibold text-red-100">Discard copy-on-write draft</h2>
+    <p class="mt-2 text-sm leading-6 text-stone-400">This removes the metadata overlay and only the assets uploaded specifically for this draft. Published metadata, inherited media, inherited screenshots, and the active snapshot remain untouched.</p>
+    <form class="mt-4 flex max-w-2xl flex-col gap-3 sm:flex-row" action="{{ url_for('admin_published_app_draft_discard', app_id=app.id) }}" method="post">
+      <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}">
+      <input type="hidden" name="revision" value="{{ app.revision }}">
+      <label class="sr-only" for="confirm-draft-name">Enter {{ app.name }} to confirm discard</label>
+      <input class="min-w-0 flex-1 rounded-xl border border-red-300/20 bg-stone-900 px-4 py-2.5 text-sm outline-none placeholder:text-stone-600 focus:border-red-300/50" id="confirm-draft-name" name="confirm_name" placeholder="{{ app.name }}" required autocomplete="off">
+      <button class="rounded-xl border border-red-300/30 bg-red-300/10 px-4 py-2.5 text-sm font-semibold text-red-100 hover:bg-red-300/20" type="submit">Discard draft</button>
     </form>
   </section>{% endif %}
 {% endblock %}

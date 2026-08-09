@@ -77,8 +77,13 @@ the service layer and UI. An administrator can create a copy-on-write metadata
 draft for a published app. The editable overlay lives in `appDrafts/{appId}`,
 is bound to the exact baseline snapshot and source fingerprint, inherits all
 media and screenshot references, and never modifies the source `apps/{appId}`
-document. Draft creation, updates, and discard are optimistic and audited; a
-stale draft cannot enter a publication candidate. New `STAGING` records are separate from the versioned
+document. Replacement media and screenshots live in `appDraftMedia` and
+`appDraftScreenshots`; removing an inherited asset changes only the overlay,
+while removing a draft upload deletes only that draft-owned object. Draft
+creation, metadata updates, asset changes, ordering, and discard are optimistic
+and audited. Discard cascades through draft-only objects but cannot delete a
+published document or object. A stale draft cannot enter a publication
+candidate. New `STAGING` records are separate from the versioned
 `catalogSnapshots` mirror consumed by the compatibility API, so they cannot
 affect public results. Their writes include an atomic `auditEvents` record. App
 creation uses a UUID4 form request ID for idempotent retries and enforces

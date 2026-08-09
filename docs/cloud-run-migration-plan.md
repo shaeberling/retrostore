@@ -305,6 +305,31 @@ Completed foundation work:
   ready snapshot. Neither operation has been applied to the live catalog.
 - The complete Python suite now has 224 passing tests on Python 3.14.6, and the
   compiled Tailwind admin asset is current.
+- The 33-app candidate was then written as an immutable `STAGED` snapshot. A
+  dry run of the guarded activation command reconciled both complete snapshots
+  against their exact IDs and digests with `applied: false`; the active pointer
+  remained unchanged. A separate private `retrostore-api-preview` service now
+  pins that staged snapshot on revision `preview1`, image digest
+  `sha256:1f265510a590a6a880b759626dfb94d6106c43aa2c8590963f1825b7c60aaeee`.
+  It has no production route and no anonymous invoker. Its complete corpus
+  matched 156/158 scenarios; the only two differences were the full and nano
+  catalog pages, each adding exactly staged app
+  `015488ef-d9e2-4437-9c38-519d10cb8585` and removing nothing. Every existing
+  app, media response, and byte range matched. Its synthetic state upload,
+  round trip, memory exclusion, overlap, and legacy token-range checks passed.
+- Admin revision `draft1`, image digest
+  `sha256:5649c2012818fedcb15f80ba0e742ddce9c2df23d928efa6809127b355300373`,
+  is deployed privately with healthy readiness including the published-draft
+  store. It provides audited copy-on-write metadata create/edit/discard without
+  changing published source documents or the active snapshot.
+- Copy-on-write draft assets are implemented locally as the next admin slice.
+  Replacements use separate `appDraftMedia` and `appDraftScreenshots`
+  collections with unique immutable objects. Removing inherited media or
+  screenshots changes only the overlay; draft deletion cascades only
+  draft-owned objects. Screenshot ordering, optimistic revisions, ownership,
+  content verification, audit events, publication merging, and the compact
+  server-rendered asset UI are covered. The complete Python suite now has 234
+  passing tests; this asset slice still requires its private deployment smoke.
 
 Open foundation work:
 

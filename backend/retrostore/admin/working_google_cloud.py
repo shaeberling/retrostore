@@ -238,12 +238,24 @@ class FirestoreWorkingCatalogStore:
             if snapshot.id in author_ids and value.get("sourceKind") is None:
                 author_documents[snapshot.id] = MappingProxyType(deepcopy(value))
         collections["authors"] = MappingProxyType(author_documents)
-        for collection_name in ("media", "screenshots"):
+        for collection_name, draft_collection_name in (
+            ("media", "appDraftMedia"),
+            ("screenshots", "appDraftScreenshots"),
+        ):
             documents = {}
             for snapshot in self._client.collection(collection_name).stream():
                 value = _document_data(snapshot)
                 if value.get("sourceKind") is None:
                     documents[snapshot.id] = MappingProxyType(deepcopy(value))
+            for snapshot in self._client.collection(draft_collection_name).stream():
+                value = _document_data(snapshot)
+                if value.get("sourceKind") is not None:
+                    continue
+                if snapshot.id in documents:
+                    raise WorkingCatalogConflictError(
+                        f"One {collection_name} ID exists in both staging and draft data"
+                    )
+                documents[snapshot.id] = MappingProxyType(deepcopy(value))
             collections[collection_name] = MappingProxyType(documents)
         return MappingProxyType(collections)
 
