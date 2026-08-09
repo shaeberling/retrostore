@@ -116,14 +116,14 @@ region retrieval. No production routing changed.
 
 - Service: `retrostore-admin-candidate`
 - Region: `us-central1`
-- Revision: `retrostore-admin-candidate-compact1`
+- Revision: `retrostore-admin-candidate-rpk1`
 - Runtime identity: `retrostore-admin@trs-80.iam.gserviceaccount.com`
-- Image digest: `sha256:18d60af5803a168e3132b5315f345e10d9f5c14e7e949b0f206f601b241d836f`
+- Image digest: `sha256:29f340e38fc92375c624262586866cc47887f2988c97453ece48d9218977a424`
 - Authentication: private Cloud Run invocation followed by Firebase server
   session verification; no `allUsers` invoker binding
 - Data mode: synchronized catalog read-only; Firestore user-profile roles and
   isolated top-level staging apps/authors/media/screenshots plus their atomic
-  audit events are mutable
+  audit events and guarded RPK imports are mutable
 - Production URL map: unchanged
 
 The authenticated runtime-identity smoke passed `/health`, `/ready`, the
@@ -151,3 +151,21 @@ intermediate references and object bytes, superseded-media cleanup, individual
 and cascade deletion, nine retained audit events, and zero remaining staged
 documents or object-prefix entries. A subsequent deployed 158-scenario public
 API comparison had zero differences.
+
+Revision `rpk1` adds the preview-first legacy RPK workflow. The initial package
+upload is validated and discarded without writes; apply requires a second
+upload with the exact previewed SHA-256. It preserves the package app ID, binds
+ownership to the signed-in Firebase identity, refuses staged collisions, and
+commits all imported metadata with one audit event. Final asset objects are
+removed if the transaction fails. Deployment smoke checks passed `/health`, all
+six `/ready` checks, the Firebase login page, the pre-session import redirect,
+100% private-candidate traffic on the expected digest, and anonymous HTTP 403.
+The authenticated browser lifecycle passed on 2026-08-09. A disposable package
+first produced only a validated preview. Applying its exact SHA-256-matched
+re-upload created revision 1 with two ordered media documents, one screenshot,
+three checksum-verified objects totaling 120 bytes, and one import audit event.
+The complete public corpus still matched 158/158. Confirmed UI deletion then
+removed every staged document and object while retaining the import and delete
+audit events; a second post-cleanup public comparison also matched 158/158 with
+zero approvals or differences. Production routing and the active synchronized
+snapshot are unchanged.

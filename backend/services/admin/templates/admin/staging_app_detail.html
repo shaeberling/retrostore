@@ -3,6 +3,9 @@
 {% block title %}{{ app.name }} · Staging · RetroStore Admin{% endblock %}
 
 {% block content %}
+  {% if rpk_imported %}
+    <div class="mb-6 rounded-xl border border-emerald-300/25 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100" role="status">The validated RPK metadata and all assets were imported into isolated staging as one catalog transaction.</div>
+  {% endif %}
   <a class="text-sm text-stone-400 hover:text-white" href="{{ url_for('admin_staging_apps') }}">← Staged applications</a>
   {% if media_updated or media_deleted or screenshot_added or screenshot_deleted %}
     <div class="mt-5 rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100">

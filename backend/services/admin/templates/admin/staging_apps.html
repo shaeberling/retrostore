@@ -9,7 +9,10 @@
       <h1 class="mt-2 text-3xl font-semibold tracking-tight">Staged applications</h1>
       <p class="mt-2 max-w-2xl text-sm leading-6 text-stone-400">These records use the future top-level Firestore model. They are not part of the synchronized mirror and cannot appear in the public API.</p>
     </div>
-    <a class="w-fit rounded-xl bg-sky-300 px-4 py-2.5 text-sm font-semibold text-stone-950 hover:bg-sky-200" href="{{ url_for('admin_staging_app_new') }}">New staged app</a>
+    <div class="flex flex-wrap gap-3">
+      <a class="w-fit rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold text-stone-200 hover:border-white/30 hover:bg-white/5" href="{{ url_for('admin_staging_rpk_import') }}">Import RPK</a>
+      <a class="w-fit rounded-xl bg-sky-300 px-4 py-2.5 text-sm font-semibold text-stone-950 hover:bg-sky-200" href="{{ url_for('admin_staging_app_new') }}">New staged app</a>
+    </div>
   </div>
 
   {% if app_created %}

@@ -135,7 +135,9 @@ def reconcile(
         for value in audit_values
         if isinstance(value.get("revision"), int)
     )
-    expected_revisions = list(range(2, (app.revision if app else max(revisions, default=1)) + 1))
+    first_revision = 1 if 1 in revisions else 2
+    last_revision = app.revision if app else max(revisions, default=1)
+    expected_revisions = list(range(first_revision, last_revision + 1))
 
     checks = {
         "presence_matches": (app is not None) == expect_present,

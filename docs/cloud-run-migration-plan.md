@@ -216,11 +216,36 @@ Completed foundation work:
   scenarios with zero differences, proving the isolated lifecycle did not alter
   the API-visible snapshot. The deployed image digest is
   `sha256:18d60af5803a168e3132b5315f345e10d9f5c14e7e949b0f206f601b241d836f`.
+- A guarded RPK import workflow is implemented locally for the isolated future
+  schema. It preserves canonical historical app UUIDs, including UUIDv1 IDs;
+  validates the entire legacy JSON package and every decoded asset before any
+  catalog write; previews without server-side persistence; and requires the
+  exact SHA-256-matched package to be re-uploaded for apply. Package publisher
+  fields are informational only, while ownership is bound to the authenticated
+  Firebase identity. Apply refuses staged ID collisions, writes all metadata and
+  one audit event atomically, and removes newly uploaded immutable objects if
+  the transaction fails. The synchronized catalog remains read-only. The
+  complete Python suite now has 181 passing tests.
+- The guarded RPK workflow is deployed privately on admin revision `rpk1`, image
+  digest `sha256:29f340e38fc92375c624262586866cc47887f2988c97453ece48d9218977a424`,
+  and passed its authenticated browser lifecycle on 2026-08-09. The preview
+  request produced no staged app and no apply request. Applying the exact
+  re-upload created revision 1 with two ordered media documents, one screenshot
+  document, exactly three linked private objects totaling 120 checksum-verified
+  bytes, and one `STAGED_RPK_IMPORTED` audit event. The sanitized reconciler
+  found no extra document or object. The package publisher remained
+  informational and ownership came from the authenticated session. The full
+  deployed public corpus then matched all 158 scenarios with zero differences.
+  Confirmed UI deletion removed the app, both media documents, the screenshot
+  document, and all three objects; the import and delete audit events remain. A
+  second post-cleanup comparison again matched 158/158 with no approvals or
+  differences.
 
 Open foundation work:
 
-- Implement the guarded import administration workflow. The synchronized
-  catalog remains read-only.
+- Finalize candidate hostnames, the load-balancer URL map, route groups,
+  monitoring thresholds, named rollback owners, and the soak policy without
+  changing production routing prematurely.
 - The `native-client-library` Arduino tree in this repository is an unfinished
   prototype: it sends a bodyless GET, ignores its configurable host, and has no
   media implementation. It is distinct from the working native C/ESP32 source
@@ -658,6 +683,19 @@ Initial uploads should use ordinary multipart forms and stream through the admin
 service to Cloud Storage. Signed or resumable direct uploads can be added later
 if observed file sizes or request limits justify the extra coordination.
 
+Legacy RPK import uses a two-request, preview-first form. The preview validates
+one complete package in memory and retains no temporary server-side copy. Apply
+requires the operator to choose the file again and compares its SHA-256 with the
+preview before creating anything. Preserve a canonical package app UUID, reject
+staged collisions instead of overwriting, and treat the package's publisher
+name/email only as review information. The authenticated Firebase identity is
+the authoritative owner. Bound the encoded package, aggregate decoded bytes,
+disk count, screenshot count, individual assets, extensions, and image formats.
+Upload immutable final assets before one atomic app/author/media/screenshot/audit
+transaction, deleting every newly created object if validation, upload, or the
+transaction fails. This workflow writes only the isolated top-level staging
+collections; it never updates `catalogSnapshots` or the active pointer.
+
 ### Firebase Authentication and sessions
 
 The login page uses the Firebase client SDK for sign-in. It then sends the ID
@@ -815,7 +853,6 @@ that do not depend on user-controlled names:
 media/{appId}/{mediaId}/{sha256}
 screenshots/{appId}/{screenshotId}/{sha256}.{ext}
 states/{objectId}/{sha256}.pb
-imports/{uploadId}
 migration/{runId}
 ```
 
@@ -1266,6 +1303,13 @@ Phase 1:
   authenticated live browser, reconcile the intermediate and deleted Firestore,
   Storage, revision, and audit states, and re-run the 158-scenario public API
   comparison with zero differences.
+- [x] Implement the preview-first, SHA-bound legacy RPK importer against only
+  the isolated future schema, with exact-ID preservation, authenticated
+  ownership, bounded whole-package validation, atomic metadata/audit, immutable
+  objects, collision refusal, and failure cleanup.
+- [x] Deploy and exercise one disposable RPK through the authenticated private
+  admin, reconcile its staged metadata/assets/audit record and cleanup, then
+  repeat the public 158-scenario comparison with zero differences.
 - [ ] Finalize candidate hostnames, the load-balancer URL map, route groups,
   monitoring thresholds, and named rollback owners. Current DNS, certificates,
   HTTP behavior, and absence of an existing load balancer are documented.
@@ -1278,10 +1322,12 @@ initial Google sign-in, explicit administrator claim, server-session exchange,
 and browser inventory review have passed through the private Cloud Run proxy.
 Administrator/publisher role management is atomically audited in Firestore, and
 the isolated staging app/author create/edit/delete workflow is deployed. The
-isolated media-slot and ordered-screenshot workflows are also deployed. The next
-executable gate is guarded import administration; synchronized-catalog writes
-remain disabled. The RetroStore Card and TRS-IO hardware update subsystem stays
-unchanged on App Engine and is not part of that work queue.
+isolated media-slot, ordered-screenshot, and guarded RPK import workflows are
+also deployed and have passed complete authenticated lifecycle proofs. The next
+executable gate is finalizing candidate hostnames, load-balancer route groups,
+monitoring and rollback ownership; synchronized-catalog writes remain disabled.
+The RetroStore Card and TRS-IO hardware update subsystem stays unchanged on App
+Engine and is not part of that work queue.
 
 No production routing or legacy data should change during this milestone.
 

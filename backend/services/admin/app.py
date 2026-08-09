@@ -42,6 +42,7 @@ from retrostore.admin.auth import (
     FirebaseAdminAuthenticator,
 )
 from retrostore.admin.catalog import AdminCatalog, MirrorAdminCatalog
+from retrostore.admin.rpk import RPK_MAX_BYTES, RpkValidationError, ValidatedRpk, validate_rpk
 from retrostore.admin.staging import (
     STAGED_APP_CATEGORIES,
     STAGED_APP_MODELS,
@@ -84,7 +85,7 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
         ADMIN_STAGING_CATALOG=None,
         ADMIN_USER_DIRECTORY=None,
         ADMIN_USER_ROLE_MANAGER=None,
-        MAX_CONTENT_LENGTH=17 * 1024 * 1024,
+        MAX_CONTENT_LENGTH=RPK_MAX_BYTES + 1024 * 1024,
     )
     if config:
         app.config.from_mapping(config)
@@ -300,6 +301,47 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
             form_action=url_for("admin_staging_app_create"),
             heading="New staged application",
             submit_label="Create staged app",
+        )
+
+    @app.get("/admin/staging/import")
+    def admin_staging_rpk_import() -> str:
+        if app.config["ADMIN_STAGING_CATALOG"] is None:
+            abort(503, "Staging catalog is not configured")
+        return _render_rpk_import()
+
+    @app.post("/admin/staging/import/preview")
+    def admin_staging_rpk_preview() -> tuple[str, int] | str:
+        try:
+            package = _uploaded_rpk()
+        except RpkValidationError as error:
+            return _render_rpk_import(error=str(error)), 400
+        return _render_rpk_import(package=package)
+
+    @app.post("/admin/staging/import/apply")
+    def admin_staging_rpk_apply() -> Response | tuple[str, int]:
+        catalog = _staging_catalog_or_error()
+        try:
+            package = _uploaded_rpk()
+        except RpkValidationError as error:
+            return _render_rpk_import(error=str(error)), 400
+        expected_sha256 = request.form.get("expected_sha256", "")
+        if expected_sha256 != package.package_sha256:
+            return (
+                _render_rpk_import(
+                    package=package,
+                    error=(
+                        "The re-uploaded file does not match the preview. "
+                        "Preview this exact package before importing it."
+                    ),
+                ),
+                400,
+            )
+        try:
+            imported = catalog.import_rpk(identity=g.admin_identity, package=package)
+        except StagingConflictError as error:
+            return _render_rpk_import(package=package, error=str(error)), 409
+        return redirect(
+            url_for("admin_staging_app_detail", app_id=imported.id, rpk_imported="1")
         )
 
     @app.post("/admin/staging/apps")
@@ -749,6 +791,26 @@ def _render_staged_app_detail(app_id: str, *, asset_error: str | None = None) ->
         media_deleted=request.args.get("media_deleted") == "1",
         screenshot_added=request.args.get("screenshot_added") == "1",
         screenshot_deleted=request.args.get("screenshot_deleted") == "1",
+        rpk_imported=request.args.get("rpk_imported") == "1",
+    )
+
+
+def _uploaded_rpk() -> ValidatedRpk:
+    uploaded_file = request.files.get("file")
+    if uploaded_file is None:
+        raise RpkValidationError("Choose an RPK file to upload.")
+    body = uploaded_file.stream.read(RPK_MAX_BYTES + 1)
+    return validate_rpk(filename=uploaded_file.filename or "", body=body)
+
+
+def _render_rpk_import(
+    *, package: ValidatedRpk | None = None, error: str | None = None
+) -> str:
+    return render_template(
+        "admin/staging_rpk_import.html",
+        package=package,
+        import_error=error,
+        package_limit_mib=RPK_MAX_BYTES // (1024 * 1024),
     )
 
 

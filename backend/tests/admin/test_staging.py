@@ -5,6 +5,7 @@ import pytest
 import retrostore.admin.staging as staging
 from retrostore.admin.assets import validate_media_upload, validate_screenshot_upload
 from retrostore.admin.auth import AdminIdentity
+from retrostore.admin.rpk import RpkMedia, ValidatedRpk
 
 ADMIN = AdminIdentity("admin-1", "admin@example.test", "administrator")
 PUBLISHER = AdminIdentity("publisher-1", "publisher@example.test", "publisher")
@@ -37,6 +38,44 @@ def _form(**overrides):
     }
     values.update(overrides)
     return values
+
+
+def _rpk() -> ValidatedRpk:
+    return ValidatedRpk(
+        filename="game.rpk",
+        package_sha256="a" * 64,
+        package_size=1234,
+        app_id="8c028afe-96b3-11e7-a68b-5b6133ca5f0c",
+        name="Imported Game",
+        version="1.0",
+        description="Imported as one complete package.",
+        release_year=1982,
+        model="MODEL_III",
+        category="GAME",
+        author_name="Jane Doe",
+        claimed_publisher_name="Untrusted Publisher",
+        claimed_publisher_email="untrusted@example.test",
+        media=(
+            RpkMedia(
+                "disk-1",
+                validate_media_upload(
+                    filename="disk_0.dmk", body=b"disk", description=""
+                ),
+            ),
+            RpkMedia(
+                "command",
+                validate_media_upload(
+                    filename="command.cmd", body=b"command", description=""
+                ),
+            ),
+        ),
+        screenshots=(
+            validate_screenshot_upload(
+                filename="screenshot_1.png",
+                body=b"\x89PNG\r\n\x1a\ncontent",
+            ),
+        ),
+    )
 
 
 def test_staged_app_form_normalizes_valid_input() -> None:
@@ -245,6 +284,74 @@ def test_staged_creation_writes_author_app_and_audit_atomically(monkeypatch) -> 
     assert audit_id == "audit-1"
     assert audit["eventType"] == "STAGED_APP_CREATED"
     assert audit["actorUid"] == "publisher-1"
+
+
+def test_rpk_import_uploads_immutable_assets_and_commits_metadata_atomically(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(staging.firestore, "transactional", lambda function: function)
+    asset_ids = iter(
+        (
+            "11111111-1111-4111-8111-111111111111",
+            "22222222-2222-4222-8222-222222222222",
+            "33333333-3333-4333-8333-333333333333",
+        )
+    )
+    monkeypatch.setattr(staging, "new_staged_asset_id", lambda: next(asset_ids))
+    client = FakeFirestore()
+    store = FakeObjectStore()
+    catalog = staging.FirestoreAdminStagingCatalog(client, store)
+
+    app = catalog.import_rpk(identity=PUBLISHER, package=_rpk())
+
+    assert app.id == "8c028afe-96b3-11e7-a68b-5b6133ca5f0c"
+    assert app.publisher_uid == PUBLISHER.uid
+    assert app.disk_media_ids[0] == "11111111-1111-4111-8111-111111111111"
+    assert app.command_media_id == "22222222-2222-4222-8222-222222222222"
+    assert app.screenshot_ids == ("33333333-3333-4333-8333-333333333333",)
+    assert len(store.puts) == 3
+    assert len(store.objects) == 3
+
+    creations = {document_id: value for document_id, value in client.transaction_value.creates}
+    app_document = creations[app.id]
+    assert app_document["creationSource"] == "RPK"
+    assert app_document["sourcePackageSha256"] == "a" * 64
+    assert app_document["mediaSlots"]["disks"][0] == app.disk_media_ids[0]
+    assert app_document["mediaSlots"]["command"] == app.command_media_id
+    assert app_document["screenshotIds"] == list(app.screenshot_ids)
+    assert creations[app.disk_media_ids[0]]["slot"] == "disk-1"
+    assert creations[app.command_media_id]["slot"] == "command"
+    assert creations[app.screenshot_ids[0]]["position"] == 0
+    audit = creations["audit-1"]
+    assert audit["eventType"] == "STAGED_RPK_IMPORTED"
+    assert audit["actorUid"] == PUBLISHER.uid
+    assert audit["mediaCount"] == 2
+    assert audit["screenshotCount"] == 1
+    assert "untrusted@example.test" not in repr(creations)
+
+
+def test_rpk_import_refuses_existing_app_id_and_removes_new_objects(monkeypatch) -> None:
+    monkeypatch.setattr(staging.firestore, "transactional", lambda function: function)
+    asset_ids = iter(
+        (
+            "11111111-1111-4111-8111-111111111111",
+            "22222222-2222-4222-8222-222222222222",
+            "33333333-3333-4333-8333-333333333333",
+        )
+    )
+    monkeypatch.setattr(staging, "new_staged_asset_id", lambda: next(asset_ids))
+    client = FakeFirestore(
+        apps=(FakeSnapshot("8c028afe-96b3-11e7-a68b-5b6133ca5f0c", {}),)
+    )
+    store = FakeObjectStore()
+    catalog = staging.FirestoreAdminStagingCatalog(client, store)
+
+    with pytest.raises(staging.StagingConflictError, match="already uses"):
+        catalog.import_rpk(identity=PUBLISHER, package=_rpk())
+
+    assert store.objects == {}
+    assert len(store.deletes) == 3
+    assert client.transaction_value.creates == []
 
 
 def test_staged_creation_is_idempotent_for_same_request_and_content(monkeypatch) -> None:

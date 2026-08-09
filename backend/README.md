@@ -85,6 +85,21 @@ remove superseded objects after the metadata transaction. Non-owners and stale
 edits are rejected. Deleting an app cascades through its staged assets but
 intentionally retains its author document because authors may be shared.
 
+The **Import RPK** workflow accepts one legacy RetroStore Package at a time. Its
+first upload is a side-effect-free preview: the complete UTF-8 JSON document,
+canonical historical app ID, legacy enums, Base64 payloads, four-disk bound,
+asset sizes, and screenshot byte formats are validated before anything can be
+written. The operator then re-uploads the exact file; its SHA-256 must match the
+preview. Apply preserves the package app ID, refuses to overwrite an existing
+staged app, assigns ownership to the signed-in Firebase identity rather than
+trusting the publisher claimed by the package, and writes all app/author/asset
+metadata plus one `STAGED_RPK_IMPORTED` audit event in a single Firestore
+transaction. Newly created immutable objects are removed if any upload or the
+metadata transaction fails. The package is limited to 32 MiB encoded and 24 MiB
+of decoded assets, with at most four disks and 32 screenshots. Neither upload is
+retained as a temporary package object, and the active synchronized catalog
+remains read-only.
+
 The read-only lifecycle reconciler checks one exact staged app without emitting
 document IDs, object paths, or account identifiers. It verifies linked document
 sets, screenshot order, object bytes and SHA-256, superseded-object cleanup,

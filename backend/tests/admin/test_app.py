@@ -1,3 +1,6 @@
+import base64
+import hashlib
+import json
 from dataclasses import dataclass, field, replace
 from io import BytesIO
 
@@ -88,6 +91,7 @@ class FakeStagingCatalog:
     screenshot_uploads: list[
         tuple[AdminIdentity, str, int, ValidatedAssetUpload]
     ] = field(default_factory=list)
+    rpk_imports: list[tuple[AdminIdentity, object]] = field(default_factory=list)
 
     def list_apps(self, identity):
         return self.apps
@@ -95,6 +99,16 @@ class FakeStagingCatalog:
     def create_app(self, *, identity, request_id, draft):
         self.creations.append((identity, request_id, draft))
         return self.apps[0]
+
+    def import_rpk(self, *, identity, package):
+        self.rpk_imports.append((identity, package))
+        return replace(
+            self.apps[0],
+            id=package.app_id,
+            name=package.name,
+            publisher_uid=identity.uid,
+            publisher_email=identity.email,
+        )
 
     def get_app(self, identity, app_id):
         return next((app for app in self.apps if app.id == app_id), None)
@@ -216,6 +230,47 @@ def _csrf_token(client) -> str:
     cookie = client.get_cookie("retrostore_admin_csrf", path="/admin")
     assert cookie is not None
     return cookie.value
+
+
+def _rpk_body(*, name: str = "Imported Game") -> bytes:
+    def encoded(body: bytes) -> str:
+        return base64.b64encode(body).decode("ascii")
+
+    return json.dumps(
+        {
+            "app": {
+                "id": "8c028afe-96b3-11e7-a68b-5b6133ca5f0c",
+                "version": "1.2",
+                "name": name,
+                "description": "A complete legacy package.",
+                "author": "Jane Doe",
+                "year_published": "1982",
+                "categories": "GAME",
+                "platform": "TRS-80",
+                "screenshot": [
+                    {
+                        "ext": "png",
+                        "content": encoded(b"\x89PNG\r\n\x1a\ncontent"),
+                    }
+                ],
+            },
+            "publisher": {
+                "first_name": "Claimed",
+                "last_name": "Publisher",
+                "email": "claimed@example.test",
+            },
+            "trs": {
+                "model": "MODEL_I",
+                "image": {
+                    "disk": [{"ext": "dmk", "content": encoded(b"disk")}],
+                    "cmd": {},
+                    "cas": {},
+                    "bas": {},
+                },
+            },
+        },
+        separators=(",", ":"),
+    ).encode()
 
 
 def test_health_is_public_but_admin_redirects_to_login() -> None:
@@ -404,6 +459,89 @@ def test_staging_list_form_validation_and_atomic_create_boundary() -> None:
     assert request_id == "22222222-2222-4222-8222-222222222222"
     assert draft.name == "New Game"
     assert draft.author_name == "Jane Doe"
+
+
+def test_rpk_preview_has_no_side_effects_and_apply_requires_the_same_file() -> None:
+    catalog = FakeStagingCatalog()
+    client = _configured_app(staging_catalog=catalog).test_client()
+    csrf_token = _csrf_token(client)
+    client.post(
+        "/admin/session",
+        json={"id_token": "valid-id-token", "csrf_token": csrf_token},
+    )
+    body = _rpk_body()
+    digest = hashlib.sha256(body).hexdigest()
+
+    page = client.get("/admin/staging/import")
+    preview = client.post(
+        "/admin/staging/import/preview",
+        data={
+            "csrf_token": csrf_token,
+            "file": (BytesIO(body), "C:\\fakepath\\game.rpk"),
+        },
+        content_type="multipart/form-data",
+    )
+    mismatch = client.post(
+        "/admin/staging/import/apply",
+        data={
+            "csrf_token": csrf_token,
+            "expected_sha256": digest,
+            "file": (BytesIO(_rpk_body(name="Different")), "game.rpk"),
+        },
+        content_type="multipart/form-data",
+    )
+    applied = client.post(
+        "/admin/staging/import/apply",
+        data={
+            "csrf_token": csrf_token,
+            "expected_sha256": digest,
+            "file": (BytesIO(body), "game.rpk"),
+        },
+        content_type="multipart/form-data",
+    )
+
+    assert page.status_code == 200
+    assert b"No preview data is retained server-side" in page.data
+    assert preview.status_code == 200
+    assert b"Validation passed" in preview.data
+    assert b"Imported Game" in preview.data
+    assert b"Claimed Publisher" in preview.data
+    assert b"informational only" in preview.data
+    assert digest.encode() in preview.data
+    assert mismatch.status_code == 400
+    assert b"does not match the preview" in mismatch.data
+    assert applied.status_code == 302
+    assert applied.headers["Location"].endswith(
+        "/admin/staging/apps/8c028afe-96b3-11e7-a68b-5b6133ca5f0c?rpk_imported=1"
+    )
+    assert len(catalog.rpk_imports) == 1
+    identity, package = catalog.rpk_imports[0]
+    assert identity.uid == "user-1"
+    assert package.package_sha256 == digest
+    assert package.claimed_publisher_email == "claimed@example.test"
+
+
+def test_rpk_preview_rejects_the_whole_package_before_catalog_mutation() -> None:
+    catalog = FakeStagingCatalog()
+    client = _configured_app(staging_catalog=catalog).test_client()
+    csrf_token = _csrf_token(client)
+    client.post(
+        "/admin/session",
+        json={"id_token": "valid-id-token", "csrf_token": csrf_token},
+    )
+
+    response = client.post(
+        "/admin/staging/import/preview",
+        data={
+            "csrf_token": csrf_token,
+            "file": (BytesIO(b'{"app":{},"trs":{}}'), "broken.rpk"),
+        },
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 400
+    assert b"trs.image must be a JSON object" in response.data
+    assert catalog.rpk_imports == []
 
 
 def test_staging_detail_edit_and_confirmed_delete_lifecycle() -> None:

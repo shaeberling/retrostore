@@ -186,3 +186,60 @@ def test_reconcile_verifies_links_content_order_audit_and_sanitizes_ids(
     assert screenshot_id not in serialized
     assert "private-uid" not in serialized
     assert "private@example.test" not in serialized
+
+
+def test_reconcile_accepts_an_atomic_import_as_revision_one(tmp_path: Path) -> None:
+    app_id = "8c028afe-96b3-11e7-a68b-5b6133ca5f0c"
+    client = FakeClient(
+        {
+            "apps": [
+                FakeSnapshot(
+                    app_id,
+                    {
+                        "name": "Imported Lifecycle",
+                        "version": "1",
+                        "description": "Test",
+                        "model": "MODEL_I",
+                        "categories": ["GAME"],
+                        "releaseYear": 1981,
+                        "authorId": "author-id",
+                        "authorName": "Author",
+                        "publisherUid": "private-uid",
+                        "publisherEmail": "private@example.test",
+                        "revision": 1,
+                        "mediaSlots": {
+                            "disks": [None, None, None, None],
+                            "cassette": None,
+                            "command": None,
+                            "basic": None,
+                        },
+                        "screenshotIds": [],
+                    },
+                )
+            ],
+            "auditEvents": [
+                FakeSnapshot(
+                    "audit-import",
+                    {
+                        "targetId": app_id,
+                        "eventType": "STAGED_RPK_IMPORTED",
+                        "revision": 1,
+                    },
+                )
+            ],
+        }
+    )
+
+    report = reconcile(
+        client=client,
+        bucket=FakeBucket([]),
+        app_name="Imported Lifecycle",
+        checkpoint=tmp_path / "checkpoint.json",
+        expected_media_filenames=(),
+        expected_screenshot_filenames=(),
+        expected_event_types=("STAGED_RPK_IMPORTED",),
+        expect_present=True,
+    )
+
+    assert report["all_checks_pass"] is True
+    assert report["audit"]["revisions"] == [1]

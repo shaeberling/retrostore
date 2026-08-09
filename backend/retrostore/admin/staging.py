@@ -16,6 +16,7 @@ from retrostore.admin.assets import (
     validate_media_slot,
 )
 from retrostore.admin.auth import AdminIdentity
+from retrostore.admin.rpk import ValidatedRpk
 
 STAGED_APP_MODELS = ("MODEL_I", "MODEL_III", "MODEL_4", "MODEL_4P")
 STAGED_APP_CATEGORIES = ("GAME", "GAME_ARCADE", "OFFICE", "OS", "OTHER")
@@ -125,6 +126,10 @@ class AdminStagingCatalog(Protocol):
         draft: StagedAppDraft,
     ) -> StagedApp: ...
 
+    def import_rpk(
+        self, *, identity: AdminIdentity, package: ValidatedRpk
+    ) -> StagedApp: ...
+
     def get_app(self, identity: AdminIdentity, app_id: str) -> StagedApp | None: ...
 
     def get_app_detail(
@@ -220,7 +225,7 @@ class FirestoreAdminStagingCatalog:
 
     def get_app(self, identity: AdminIdentity, app_id: str) -> StagedApp | None:
         try:
-            app_id = _request_id(app_id)
+            app_id = _canonical_app_id(app_id)
         except ValueError:
             return None
         snapshot = self._client.collection(_APPS_COLLECTION).document(app_id).get()
@@ -306,6 +311,189 @@ class FirestoreAdminStagingCatalog:
             )
 
         commit_staged_app(transaction)
+        return app
+
+    def import_rpk(
+        self, *, identity: AdminIdentity, package: ValidatedRpk
+    ) -> StagedApp:
+        """Create a complete isolated staged app from one validated legacy package."""
+
+        app_id = _canonical_app_id(package.app_id)
+        object_store = self._object_store_or_error()
+        author_name = _normalized_author_name(package.author_name)
+        author_id = _author_id(author_name)
+        prepared_media: list[
+            tuple[str, str, str, str, ValidatedAssetUpload]
+        ] = []
+        prepared_screenshots: list[tuple[str, str, ValidatedAssetUpload]] = []
+        app = StagedApp(
+            id=app_id,
+            name=package.name,
+            version=package.version,
+            description=package.description,
+            release_year=package.release_year,
+            model=package.model,
+            category=package.category,
+            author_id=author_id,
+            author_name=author_name,
+            publisher_uid=identity.uid,
+            publisher_email=identity.email,
+            revision=1,
+        )
+        for item in package.media:
+            media_type, _ = validate_media_slot(item.slot)
+            if _media_id_for_slot(app, item.slot) is not None:
+                raise ValueError("RPK contains duplicate media slots")
+            media_id = new_staged_asset_id()
+            object_path = f"media/{app_id}/{media_id}/{item.upload.sha256}"
+            prepared_media.append(
+                (media_id, media_type, item.slot, object_path, item.upload)
+            )
+            app = _with_media_slot(app, item.slot, media_id)
+        for upload in package.screenshots:
+            if upload.extension is None or not upload.content_type.startswith("image/"):
+                raise ValueError("Validated RPK screenshot format is missing")
+            screenshot_id = new_staged_asset_id()
+            object_path = (
+                f"screenshots/{app_id}/{screenshot_id}/"
+                f"{upload.sha256}.{upload.extension}"
+            )
+            prepared_screenshots.append((screenshot_id, object_path, upload))
+        app = replace(
+            app,
+            screenshot_ids=tuple(item[0] for item in prepared_screenshots),
+        )
+
+        created_paths: list[str] = []
+        try:
+            for _, _, _, object_path, upload in prepared_media:
+                if not object_store.put_verified(
+                    path=object_path,
+                    body=upload.body,
+                    sha256=upload.sha256,
+                    content_type=upload.content_type,
+                ):
+                    raise StagingConflictError(
+                        "Generated staged media identifier collided"
+                    )
+                created_paths.append(object_path)
+            for _, object_path, upload in prepared_screenshots:
+                if not object_store.put_verified(
+                    path=object_path,
+                    body=upload.body,
+                    sha256=upload.sha256,
+                    content_type=upload.content_type,
+                ):
+                    raise StagingConflictError(
+                        "Generated staged screenshot identifier collided"
+                    )
+                created_paths.append(object_path)
+
+            app_reference = self._client.collection(_APPS_COLLECTION).document(app_id)
+            author_reference = self._client.collection(_AUTHORS_COLLECTION).document(
+                author_id
+            )
+            audit_reference = self._client.collection(_AUDIT_COLLECTION).document()
+            transaction = self._client.transaction()
+
+            @firestore.transactional
+            def commit_rpk_import(transaction: Any) -> None:
+                existing_app = app_reference.get(transaction=transaction)
+                if existing_app.exists:
+                    raise StagingConflictError(
+                        "A staged app already uses the RPK application ID"
+                    )
+                existing_author = author_reference.get(transaction=transaction)
+                if existing_author.exists:
+                    stored_author = _document_data(existing_author)
+                    if stored_author.get("normalizedName") != author_name.casefold():
+                        raise StagingConflictError("Staged author identifier collision")
+
+                if not existing_author.exists:
+                    transaction.create(
+                        author_reference,
+                        {
+                            "schemaVersion": 1,
+                            "displayName": author_name,
+                            "normalizedName": author_name.casefold(),
+                            "createdAt": firestore.SERVER_TIMESTAMP,
+                        },
+                    )
+                app_document = _app_document(app, request_id=app.id)
+                app_document.update(
+                    {
+                        "creationSource": "RPK",
+                        "sourcePackageSha256": package.package_sha256,
+                        "sourcePackageSize": package.package_size,
+                    }
+                )
+                transaction.create(app_reference, app_document)
+                for media_id, media_type, slot, object_path, upload in prepared_media:
+                    media_reference = self._client.collection(
+                        _MEDIA_COLLECTION
+                    ).document(media_id)
+                    transaction.create(
+                        media_reference,
+                        {
+                            "schemaVersion": 1,
+                            "appId": app.id,
+                            "mediaType": media_type,
+                            "slot": slot,
+                            "filename": upload.filename,
+                            "description": upload.description,
+                            "contentType": upload.content_type,
+                            "objectPath": object_path,
+                            "size": upload.size,
+                            "sha256": upload.sha256,
+                            "publisherUid": identity.uid,
+                            "createdAt": firestore.SERVER_TIMESTAMP,
+                        },
+                    )
+                for position, (
+                    screenshot_id,
+                    object_path,
+                    upload,
+                ) in enumerate(prepared_screenshots):
+                    screenshot_reference = self._client.collection(
+                        _SCREENSHOTS_COLLECTION
+                    ).document(screenshot_id)
+                    transaction.create(
+                        screenshot_reference,
+                        {
+                            "schemaVersion": 1,
+                            "appId": app.id,
+                            "filename": upload.filename,
+                            "contentType": upload.content_type,
+                            "objectPath": object_path,
+                            "size": upload.size,
+                            "sha256": upload.sha256,
+                            "publisherUid": identity.uid,
+                            "position": position,
+                            "createdAt": firestore.SERVER_TIMESTAMP,
+                        },
+                    )
+                transaction.create(
+                    audit_reference,
+                    {
+                        "schemaVersion": 1,
+                        "eventType": "STAGED_RPK_IMPORTED",
+                        "status": "SUCCEEDED",
+                        "actorUid": identity.uid,
+                        "targetId": app.id,
+                        "revision": app.revision,
+                        "packageSha256": package.package_sha256,
+                        "packageSize": package.package_size,
+                        "mediaCount": len(prepared_media),
+                        "screenshotCount": len(prepared_screenshots),
+                        "createdAt": firestore.SERVER_TIMESTAMP,
+                    },
+                )
+
+            commit_rpk_import(transaction)
+        except Exception:
+            for object_path in reversed(created_paths):
+                object_store.delete(object_path)
+            raise
         return app
 
     def update_app(
@@ -973,13 +1161,8 @@ def _app_document(app: StagedApp, *, request_id: str) -> dict[str, Any]:
         **_mutable_app_document(app),
         "publisherUid": app.publisher_uid,
         "publisherEmail": app.publisher_email,
-        "mediaSlots": {
-            "disks": [None, None, None, None],
-            "cassette": None,
-            "command": None,
-            "basic": None,
-        },
-        "screenshotIds": [],
+        "mediaSlots": _media_slots_document(app),
+        "screenshotIds": list(app.screenshot_ids),
         "status": "STAGING",
         "creationRequestId": request_id,
     }
@@ -1203,7 +1386,7 @@ def _media_slots_document(app: StagedApp) -> dict[str, object]:
 
 def _existing_app_id(value: str) -> str:
     try:
-        return _request_id(value)
+        return _canonical_app_id(value)
     except ValueError as error:
         raise StagingNotFoundError("Staged app does not exist") from error
 
@@ -1281,6 +1464,13 @@ def _request_id(value: str) -> str:
     parsed = uuid.UUID(value)
     if parsed.version != 4 or str(parsed) != value:
         raise ValueError("Staged app request ID must be a canonical UUID4")
+    return value
+
+
+def _canonical_app_id(value: str) -> str:
+    parsed = uuid.UUID(value)
+    if str(parsed) != value:
+        raise ValueError("Staged app ID must be a lowercase canonical UUID")
     return value
 
 
