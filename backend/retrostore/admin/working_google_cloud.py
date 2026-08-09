@@ -2,6 +2,7 @@
 
 import json
 from collections.abc import Mapping
+from copy import deepcopy
 from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Any
@@ -204,6 +205,47 @@ class FirestoreWorkingCatalogStore:
         self._verify_documents(materialization)
         self._verify_audit(materialization, actor=actor)
         return materialization
+
+    def load_staged_changes(
+        self,
+    ) -> Mapping[str, Mapping[str, Mapping[str, Any]]]:
+        """Load isolated new-app documents for candidate construction."""
+
+        app_documents: dict[str, Mapping[str, Any]] = {}
+        for snapshot in self._client.collection("apps").stream():
+            value = _document_data(snapshot)
+            if value.get("sourceKind") is None and value.get("status") == "STAGING":
+                app_documents[snapshot.id] = MappingProxyType(deepcopy(value))
+        for snapshot in self._client.collection("appDrafts").stream():
+            value = _document_data(snapshot)
+            if value.get("sourceKind") is None and value.get("status") == "DRAFT":
+                if snapshot.id in app_documents:
+                    raise WorkingCatalogConflictError(
+                        "One app has both a new staging record and a published draft"
+                    )
+                app_documents[snapshot.id] = MappingProxyType(deepcopy(value))
+        author_ids = {
+            value.get("authorId")
+            for value in app_documents.values()
+            if isinstance(value.get("authorId"), str)
+        }
+        collections: dict[str, Mapping[str, Mapping[str, Any]]] = {
+            "apps": MappingProxyType(app_documents)
+        }
+        author_documents = {}
+        for snapshot in self._client.collection("authors").stream():
+            value = _document_data(snapshot)
+            if snapshot.id in author_ids and value.get("sourceKind") is None:
+                author_documents[snapshot.id] = MappingProxyType(deepcopy(value))
+        collections["authors"] = MappingProxyType(author_documents)
+        for collection_name in ("media", "screenshots"):
+            documents = {}
+            for snapshot in self._client.collection(collection_name).stream():
+                value = _document_data(snapshot)
+                if value.get("sourceKind") is None:
+                    documents[snapshot.id] = MappingProxyType(deepcopy(value))
+            collections[collection_name] = MappingProxyType(documents)
+        return MappingProxyType(collections)
 
     def _verify_documents(
         self, materialization: WorkingCatalogMaterialization

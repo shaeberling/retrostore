@@ -8,7 +8,7 @@ from typing import Any
 
 from google.cloud import firestore
 
-from retrostore.admin.working_catalog import working_materialization_to_mirror
+from retrostore.admin.working_catalog import build_working_catalog_candidate
 from retrostore.admin.working_google_cloud import FirestoreWorkingCatalogStore
 from retrostore.mirror import build_catalog_snapshot, load_active_catalog_mirror
 from retrostore.mirror.google_cloud import (
@@ -54,26 +54,29 @@ def main(argv: Sequence[str] | None = None) -> int:
         database=args.database,
         credentials=credentials,
     )
-    materialization = FirestoreWorkingCatalogStore(client).load_current(
+    working_store = FirestoreWorkingCatalogStore(client)
+    materialization = working_store.load_current(
         actor=args.impersonate_service_account
     )
-    candidate_mirror = working_materialization_to_mirror(
-        materialization, object_store
+    changes = working_store.load_staged_changes()
+    candidate_mirror = build_working_catalog_candidate(
+        materialization, changes, object_store
     )
     candidate = build_catalog_snapshot(candidate_mirror)
-    if candidate.id != materialization.source["snapshotId"]:
-        raise ValueError(
-            "Materialized baseline does not rebuild its exact source snapshot"
-        )
-    if candidate.manifest_sha256 != materialization.source["manifestSha256"]:
-        raise ValueError(
-            "Materialized baseline does not rebuild its source manifest digest"
-        )
 
     active_mirror = load_active_catalog_mirror(object_store, snapshot_store)
     active = build_catalog_snapshot(active_mirror)
-    if candidate_mirror.to_dict() != active_mirror.to_dict():
+    if (
+        active.id != materialization.source["snapshotId"]
+        or active.manifest_sha256 != materialization.source["manifestSha256"]
+    ):
+        raise ValueError("Materialized baseline is not based on the active catalog")
+    staged_app_count = len(changes["apps"])
+    candidate_matches_active = candidate_mirror.to_dict() == active_mirror.to_dict()
+    if staged_app_count == 0 and not candidate_matches_active:
         raise ValueError("Materialized baseline differs from the active catalog")
+    if staged_app_count > 0 and candidate_matches_active:
+        raise ValueError("Staged changes did not produce a new catalog candidate")
     if args.apply:
         snapshot_store.stage(candidate)
 
@@ -93,7 +96,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         "candidate_manifest_sha256": candidate.manifest_sha256,
         "active_snapshot_id": active.id,
         "active_manifest_sha256": active.manifest_sha256,
-        "candidate_matches_active": True,
+        "candidate_matches_active": candidate_matches_active,
+        "staged_change_counts": {
+            name: len(changes[name])
+            for name in ("apps", "authors", "media", "screenshots")
+        },
         "counts": {
             "apps": reconciliation["app_count"],
             "media": reconciliation["media_count"],

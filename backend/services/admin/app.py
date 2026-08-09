@@ -42,6 +42,10 @@ from retrostore.admin.auth import (
     FirebaseAdminAuthenticator,
 )
 from retrostore.admin.catalog import AdminCatalog, MirrorAdminCatalog
+from retrostore.admin.drafts import (
+    AdminPublishedAppDrafts,
+    FirestorePublishedAppDrafts,
+)
 from retrostore.admin.rpk import RPK_MAX_BYTES, RpkValidationError, ValidatedRpk, validate_rpk
 from retrostore.admin.staging import (
     STAGED_APP_CATEGORIES,
@@ -80,6 +84,7 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
     app.config.from_mapping(
         ADMIN_AUTHENTICATOR=None,
         ADMIN_CATALOG=None,
+        ADMIN_PUBLISHED_APP_DRAFTS=None,
         ADMIN_FIREBASE_WEB_CONFIG=None,
         ADMIN_SESSION_COOKIE_SECURE=True,
         ADMIN_STAGING_CATALOG=None,
@@ -170,6 +175,8 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
         checks = {
             "authentication": app.config["ADMIN_AUTHENTICATOR"] is not None,
             "persistence": app.config["ADMIN_CATALOG"] is not None,
+            "published_app_drafts": app.config["ADMIN_PUBLISHED_APP_DRAFTS"]
+            is not None,
             "staging_catalog": app.config["ADMIN_STAGING_CATALOG"] is not None,
             "user_directory": app.config["ADMIN_USER_DIRECTORY"] is not None,
             "user_role_management": app.config["ADMIN_USER_ROLE_MANAGER"] is not None,
@@ -371,6 +378,126 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
     @app.get("/admin/staging/apps/<app_id>")
     def admin_staging_app_detail(app_id: str) -> str:
         return _render_staged_app_detail(app_id)
+
+    @app.post("/admin/staging/apps/<app_id>/draft/create")
+    def admin_published_app_draft_create(app_id: str) -> Response:
+        try:
+            draft = _draft_catalog_or_error().create(
+                identity=g.admin_identity, app_id=app_id
+            )
+        except StagingAuthorizationError:
+            abort(403)
+        except StagingNotFoundError:
+            abort(404)
+        except StagingConflictError as error:
+            abort(409, str(error))
+        return redirect(
+            url_for(
+                "admin_published_app_draft_edit",
+                app_id=draft.id,
+                draft_created="1",
+            )
+        )
+
+    @app.get("/admin/staging/apps/<app_id>/draft/edit")
+    def admin_published_app_draft_edit(app_id: str) -> str:
+        draft = _published_app_draft_or_error(app_id)
+        return _render_staging_app_form(
+            values=_staged_app_form_values(draft),
+            errors={},
+            form_action=url_for("admin_published_app_draft_update", app_id=app_id),
+            heading=f"Draft changes to {draft.name}",
+            submit_label="Save draft",
+            back_url=url_for("admin_staging_app_detail", app_id=app_id),
+            cancel_url=url_for("admin_staging_app_detail", app_id=app_id),
+            eyebrow="Copy-on-write published draft",
+            intro=(
+                "This editable overlay leaves the published baseline and active "
+                "public snapshot unchanged."
+            ),
+            discard_action=url_for(
+                "admin_published_app_draft_discard", app_id=app_id
+            ),
+            discard_name=draft.name,
+            draft_created=request.args.get("draft_created") == "1",
+        )
+
+    @app.post("/admin/staging/apps/<app_id>/draft")
+    def admin_published_app_draft_update(app_id: str) -> Response | tuple[str, int]:
+        form = validate_staged_app_form(request.form, allow_existing_id=True)
+        errors = dict(form.errors)
+        if form.values["request_id"] != app_id:
+            errors["request_id"] = "The form does not match this draft; reload it."
+        try:
+            expected_revision = _positive_revision(request.form.get("revision"))
+        except ValueError as error:
+            errors["revision"] = str(error)
+            expected_revision = 0
+        if form.draft is None or errors:
+            return (
+                _render_staging_app_form(
+                    values={**form.values, "revision": request.form.get("revision", "")},
+                    errors=errors,
+                    form_action=url_for(
+                        "admin_published_app_draft_update", app_id=app_id
+                    ),
+                    heading="Edit published app draft",
+                    submit_label="Save draft",
+                    back_url=url_for("admin_staging_app_detail", app_id=app_id),
+                    cancel_url=url_for("admin_staging_app_detail", app_id=app_id),
+                    eyebrow="Copy-on-write published draft",
+                    intro=(
+                        "This editable overlay leaves the published baseline and "
+                        "active public snapshot unchanged."
+                    ),
+                ),
+                400,
+            )
+        try:
+            updated = _draft_catalog_or_error().update(
+                identity=g.admin_identity,
+                app_id=app_id,
+                expected_revision=expected_revision,
+                draft=form.draft,
+            )
+        except StagingAuthorizationError:
+            abort(403)
+        except StagingNotFoundError:
+            abort(404)
+        except StagingConflictError as error:
+            abort(409, str(error))
+        return redirect(
+            url_for(
+                "admin_published_app_draft_edit",
+                app_id=updated.id,
+                draft_updated="1",
+            )
+        )
+
+    @app.post("/admin/staging/apps/<app_id>/draft/discard")
+    def admin_published_app_draft_discard(app_id: str) -> Response:
+        draft = _published_app_draft_or_error(app_id)
+        try:
+            expected_revision = _positive_revision(request.form.get("revision"))
+        except ValueError as error:
+            abort(400, str(error))
+        if request.form.get("confirm_name") != draft.name:
+            abort(400, "Enter the exact draft app name to confirm discard")
+        try:
+            _draft_catalog_or_error().discard(
+                identity=g.admin_identity,
+                app_id=app_id,
+                expected_revision=expected_revision,
+            )
+        except StagingAuthorizationError:
+            abort(403)
+        except StagingNotFoundError:
+            abort(404)
+        except StagingConflictError as error:
+            abort(409, str(error))
+        return redirect(
+            url_for("admin_staging_app_detail", app_id=app_id, draft_discarded="1")
+        )
 
     @app.post("/admin/staging/apps/<app_id>/media")
     def admin_staging_media_upload(app_id: str) -> Response | tuple[str, int]:
@@ -667,6 +794,7 @@ def create_cloud_app(config: Mapping[str, Any] | None = None) -> Flask:
         "ADMIN_FIREBASE_WEB_CONFIG": _firebase_web_config_from_environment(),
         "ADMIN_AUTHENTICATOR": None,
         "ADMIN_CATALOG": None,
+        "ADMIN_PUBLISHED_APP_DRAFTS": None,
         "ADMIN_STAGING_CATALOG": None,
         "ADMIN_STAGING_OBJECT_STORE": None,
         "ADMIN_USER_DIRECTORY": None,
@@ -707,6 +835,10 @@ def create_cloud_app(config: Mapping[str, Any] | None = None) -> Flask:
 
     firestore_client = firestore.Client(project=project, database=database)
     role_store = FirestoreAdminRoleStore(firestore_client)
+    if candidate_config["ADMIN_PUBLISHED_APP_DRAFTS"] is None:
+        candidate_config["ADMIN_PUBLISHED_APP_DRAFTS"] = FirestorePublishedAppDrafts(
+            firestore_client
+        )
     if candidate_config["ADMIN_STAGING_CATALOG"] is None:
         if candidate_config["ADMIN_STAGING_OBJECT_STORE"] is None:
             candidate_config["ADMIN_STAGING_OBJECT_STORE"] = CloudStagingObjectStore(
@@ -782,6 +914,15 @@ def _render_staged_app_detail(app_id: str, *, asset_error: str | None = None) ->
         abort(404)
     if not isinstance(detail, StagedAppDetail):
         abort(500, "Staging catalog returned an invalid app detail")
+    draft_record = None
+    draft_catalog: AdminPublishedAppDrafts | None = current_app.config[
+        "ADMIN_PUBLISHED_APP_DRAFTS"
+    ]
+    if detail.app.status == "PUBLISHED" and draft_catalog is not None:
+        try:
+            draft_record = draft_catalog.get(g.admin_identity, detail.app.id)
+        except StagingAuthorizationError:
+            abort(403)
     return render_template(
         "admin/staging_app_detail.html",
         app=detail.app,
@@ -794,6 +935,8 @@ def _render_staged_app_detail(app_id: str, *, asset_error: str | None = None) ->
         screenshot_added=request.args.get("screenshot_added") == "1",
         screenshot_deleted=request.args.get("screenshot_deleted") == "1",
         rpk_imported=request.args.get("rpk_imported") == "1",
+        draft_record=draft_record,
+        draft_discarded=request.args.get("draft_discarded") == "1",
     )
 
 
@@ -823,6 +966,16 @@ def _render_staging_app_form(
     form_action: str,
     heading: str,
     submit_label: str,
+    back_url: str | None = None,
+    cancel_url: str | None = None,
+    eyebrow: str = "Isolated mutation test",
+    intro: str = (
+        "This saves top-level future-schema documents and an audit event. It does "
+        "not modify the synchronized catalog or public API."
+    ),
+    discard_action: str | None = None,
+    discard_name: str | None = None,
+    draft_created: bool = False,
 ) -> str:
     return render_template(
         "admin/staging_app_form.html",
@@ -833,6 +986,13 @@ def _render_staging_app_form(
         form_action=form_action,
         heading=heading,
         submit_label=submit_label,
+        back_url=back_url or url_for("admin_staging_apps"),
+        cancel_url=cancel_url or url_for("admin_staging_apps"),
+        eyebrow=eyebrow,
+        intro=intro,
+        discard_action=discard_action,
+        discard_name=discard_name,
+        draft_created=draft_created,
     )
 
 
@@ -841,6 +1001,25 @@ def _staging_catalog_or_error() -> AdminStagingCatalog:
     if catalog is None:
         abort(503, "Staging catalog is not configured")
     return catalog
+
+
+def _draft_catalog_or_error() -> AdminPublishedAppDrafts:
+    catalog = current_app.config["ADMIN_PUBLISHED_APP_DRAFTS"]
+    if catalog is None:
+        abort(503, "Published app drafts are not configured")
+    return catalog
+
+
+def _published_app_draft_or_error(app_id: str) -> StagedApp:
+    try:
+        value = _draft_catalog_or_error().get(g.admin_identity, app_id)
+    except StagingAuthorizationError:
+        abort(403)
+    except ValueError:
+        abort(500, "Published app draft metadata failed validation")
+    if value is None:
+        abort(404)
+    return value
 
 
 def _staged_app_or_error(app_id: str) -> StagedApp:

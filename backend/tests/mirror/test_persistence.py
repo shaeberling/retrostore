@@ -69,6 +69,21 @@ class MemorySnapshotStore:
             "reconciliation": snapshot.metadata["reconciliation"],
         }
 
+    def load_snapshot_manifest(
+        self, snapshot_id: str, manifest_sha256: str
+    ) -> Mapping[str, Any]:
+        snapshot = self.snapshots[snapshot_id]
+        if snapshot.manifest_sha256 != manifest_sha256:
+            raise ValueError("Snapshot manifest digest does not match")
+        return {
+            "schema_version": snapshot.metadata["schema_version"],
+            "source": snapshot.metadata["source"],
+            "apps": list(snapshot.collections["apps"].values()),
+            "media": list(snapshot.collections["media"].values()),
+            "screenshots": list(snapshot.collections["screenshots"].values()),
+            "reconciliation": snapshot.metadata["reconciliation"],
+        }
+
 
 def _mirror(*, name: str = "Armored Patrol") -> CatalogMirror:
     manifest = _manifest()

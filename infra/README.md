@@ -10,7 +10,7 @@ must remain unchanged throughout the parallel run and rollback window.
 | --- | --- | --- | --- |
 | Firestore `retrostore` | `nam5` | Standard, Native mode, delete protection | Durable catalog and administration metadata |
 | Firestore `retrostore-state` | `nam5` | Standard, Native mode, `states.expiresAt` TTL | Ephemeral public state-token metadata |
-| `gs://trs-80-retrostore-assets` | `US` | Private, uniform access, seven-day soft delete | Durable media, screenshots, and firmware |
+| `gs://trs-80-retrostore-assets` | `US` | Private, uniform access, seven-day soft delete | Durable catalog media and screenshots |
 | `gs://trs-80-retrostore-state` | `US` | Private, uniform access, soft delete disabled, delete after eight days | Ephemeral serialized state payloads |
 
 The state bucket deliberately disables soft delete. Enabling the default

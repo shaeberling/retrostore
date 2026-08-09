@@ -1105,7 +1105,9 @@ class FirestoreAdminStagingCatalog:
         return self._object_store
 
 
-def validate_staged_app_form(form: Mapping[str, str]) -> StagedAppForm:
+def validate_staged_app_form(
+    form: Mapping[str, str], *, allow_existing_id: bool = False
+) -> StagedAppForm:
     values = {
         "request_id": _form_value(form, "request_id"),
         "name": _form_value(form, "name"),
@@ -1134,7 +1136,10 @@ def validate_staged_app_form(form: Mapping[str, str]) -> StagedAppForm:
     if values["category"] not in STAGED_APP_CATEGORIES:
         errors["category"] = "Select a supported category."
     try:
-        _request_id(values["request_id"])
+        if allow_existing_id:
+            _working_document_id(values["request_id"])
+        else:
+            _request_id(values["request_id"])
     except ValueError:
         errors["request_id"] = "The form request identifier is invalid; reload the form."
 
@@ -1221,7 +1226,7 @@ def _staged_app(app_id: str, value: Mapping[str, Any]) -> StagedApp:
     if isinstance(revision, bool) or not isinstance(revision, int) or revision < 1:
         raise ValueError("Staged app document has an invalid revision")
     status = value.get("status", "STAGING")
-    if status not in {"STAGING", "PUBLISHED"}:
+    if status not in {"STAGING", "PUBLISHED", "DRAFT"}:
         raise ValueError("Staged app document has an invalid status")
     media_slots = value.get(
         "mediaSlots",

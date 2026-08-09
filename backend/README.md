@@ -73,7 +73,12 @@ uses the top-level `apps`, `authors`, `media`, and `screenshots` working
 collections. Materialized `PUBLISHED` baseline records preserve the exact IDs
 and metadata of the active immutable snapshot, are visible only to
 administrators until explicitly linked to an account, and are read-only in both
-the service layer and UI. New `STAGING` records are separate from the versioned
+the service layer and UI. An administrator can create a copy-on-write metadata
+draft for a published app. The editable overlay lives in `appDrafts/{appId}`,
+is bound to the exact baseline snapshot and source fingerprint, inherits all
+media and screenshot references, and never modifies the source `apps/{appId}`
+document. Draft creation, updates, and discard are optimistic and audited; a
+stale draft cannot enter a publication candidate. New `STAGING` records are separate from the versioned
 `catalogSnapshots` mirror consumed by the compatibility API, so they cannot
 affect public results. Their writes include an atomic `auditEvents` record. App
 creation uses a UUID4 form request ID for idempotent retries and enforces
@@ -413,14 +418,17 @@ control record already proves an idempotent completed operation. The command
 does not upload, replace, or delete objects and never moves
 `catalogControl/active`.
 
-## Stage-only publication rehearsal
+## Stage-only publication candidates
 
-The next boundary reads the source portion of the live working collections,
-reconciles its control record and single audit event, validates every source
-fingerprint, reloads all referenced objects with size and SHA-256 checks, and
-rebuilds the immutable catalog snapshot. It then independently loads the active
-snapshot and requires an exact manifest match. The command intentionally has no
-activation operation.
+The publication builder reads the immutable source portion of the live working
+collections, reconciles its control record and single audit event, validates
+every source fingerprint, and overlays isolated `STAGING` apps and
+copy-on-write `DRAFT` records. It validates app ownership, timestamps, author
+references, media slot types, screenshot ordering, object sizes, and SHA-256
+before deriving a content-addressed immutable snapshot. With no pending changes
+it must rebuild the exact active snapshot; with pending changes it must derive a
+different candidate. The command can stage that candidate but cannot activate
+it.
 
 Its default mode is fully read-only but still requires the dedicated migrator
 identity so no ambient credential can select a different database:
@@ -436,13 +444,60 @@ UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
     retrostore-migrator@trs-80.iam.gserviceaccount.com
 ```
 
-`--apply --confirm-project trs-80` additionally invokes the snapshot store's
-stage boundary. For the initial baseline this reconciles the already-`READY`
-immutable snapshot and performs no metadata write. A ready snapshot is never
-accepted merely by root identity: all of its app, media, and screenshot
-documents are reloaded and hashed. The command refuses a working baseline that
-differs from the active snapshot, never uploads objects, and cannot move
-`catalogControl/active`.
+`--apply --confirm-project trs-80` additionally invokes only the snapshot
+store's stage boundary. A ready snapshot is never accepted merely by root
+identity: all nested app, media, and screenshot documents are reloaded and
+hashed. The command refuses a working baseline that is not based on the exact
+active snapshot, never uploads objects, and cannot move `catalogControl/active`.
+
+## Private pinned preview and guarded activation
+
+The compatibility API can be pinned to one explicit `STAGED` or `READY`
+snapshot by setting both `RETROSTORE_CATALOG_SNAPSHOT_ID` and
+`RETROSTORE_CATALOG_SNAPSHOT_MANIFEST_SHA256`. This is intended only for a
+separate private preview revision. Startup fails if either value is missing or
+the complete nested manifest does not hash to the supplied digest. The normal
+candidate remains unpinned and continues to load `catalogControl/active`.
+
+New screenshots without a legacy App Engine serving URL use an absolute,
+configurable `RETROSTORE_PUBLIC_ORIGIN` plus the short `/s/{id}` path. The short
+form fits the reviewed native client's URL-size expectation, while an absolute
+URL works with the Android and iOS platform clients. That route reads the
+already checksum-verified private object at startup and serves it with a strong
+ETag, detected image content type, public CORS, `nosniff`, and immutable
+one-year caching.
+Existing published screenshot URL strings remain byte-for-byte unchanged.
+
+Activation and rollback are deliberately separate from staging. The operator
+command is read-only by default and requires the candidate and expected active
+snapshot IDs plus both exact manifest digests:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.admin.activate_catalog_snapshot \
+  --project trs-80 \
+  --database retrostore \
+  --bucket trs-80-retrostore-assets \
+  --operation activate \
+  --candidate-snapshot-id CANDIDATE_SNAPSHOT_ID \
+  --candidate-manifest-sha256 CANDIDATE_MANIFEST_SHA256 \
+  --expected-active-snapshot-id ACTIVE_SNAPSHOT_ID \
+  --expected-active-manifest-sha256 ACTIVE_MANIFEST_SHA256 \
+  --actor OPERATOR_IDENTITY \
+  --output /tmp/retrostore-catalog-activation-dry-run.json \
+  --impersonate-service-account \
+    retrostore-migrator@trs-80.iam.gserviceaccount.com
+```
+
+Apply additionally requires `--apply` and four literal confirmations:
+`--confirm-project`, `--confirm-operation`,
+`--confirm-candidate-snapshot-id`, and
+`--confirm-expected-active-snapshot-id`. A Firestore transaction then re-reads
+and re-hashes both complete snapshots, compare-and-swaps the exact active
+pointer, marks the candidate `READY`, and creates an audit event. A rollback
+uses `--operation rollback` through the same primitive and accepts only an
+already-`READY` snapshot. This command must not be applied until the private
+preview, compatibility, monitoring, ownership, and go/no-go gates are complete.
 
 ## Controlled cloud state smoke test
 

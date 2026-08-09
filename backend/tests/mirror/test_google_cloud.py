@@ -59,10 +59,13 @@ class FakeCollection:
         self._client = client
         self._path = path
 
-    def document(self, document_id: str) -> FakeDocument:
+    def document(self, document_id: str | None = None) -> FakeDocument:
+        if document_id is None:
+            document_id = f"audit-{self._client.next_audit_id}"
+            self._client.next_audit_id += 1
         return FakeDocument(self._client, (*self._path, document_id))
 
-    def stream(self) -> list[FakeDocumentSnapshot]:
+    def stream(self, *, transaction=None) -> list[FakeDocumentSnapshot]:
         size = len(self._path) + 1
         return [
             FakeDocumentSnapshot(path, data)
@@ -76,7 +79,7 @@ class FakeDocument:
         self._client = client
         self.path = path
 
-    def get(self) -> FakeDocumentSnapshot:
+    def get(self, *, transaction=None) -> FakeDocumentSnapshot:
         return FakeDocumentSnapshot(self.path, self._client.documents.get(self.path))
 
     def set(self, data: dict[str, Any]) -> None:
@@ -104,12 +107,29 @@ class FakeBatch:
 class FakeFirestoreClient:
     def __init__(self) -> None:
         self.documents: dict[tuple[str, ...], dict[str, Any]] = {}
+        self.next_audit_id = 1
 
     def collection(self, name: str) -> FakeCollection:
         return FakeCollection(self, (name,))
 
     def batch(self) -> FakeBatch:
         return FakeBatch(self)
+
+    def transaction(self):
+        return FakeTransaction(self)
+
+
+class FakeTransaction:
+    def __init__(self, client: FakeFirestoreClient) -> None:
+        self._client = client
+
+    def set(self, document: FakeDocument, data: dict[str, Any]) -> None:
+        self._client.documents[document.path] = deepcopy(data)
+
+    def create(self, document: FakeDocument, data: dict[str, Any]) -> None:
+        if document.path in self._client.documents:
+            raise RuntimeError("create collision")
+        self._client.documents[document.path] = deepcopy(data)
 
 
 def test_cloud_objects_are_create_only_and_verify_existing_content() -> None:
@@ -176,6 +196,112 @@ def test_firestore_stage_reconciles_an_existing_ready_snapshot() -> None:
 
     with pytest.raises(ValueError, match="Ready Firestore snapshot"):
         store.stage(snapshot)
+
+
+def test_firestore_loads_an_explicit_staged_snapshot_without_activation() -> None:
+    client = FakeFirestoreClient()
+    store = FirestoreCatalogSnapshotStore(client)  # type: ignore[arg-type]
+    snapshot = build_catalog_snapshot(_mirror())
+    store.stage(snapshot)
+
+    manifest = store.load_snapshot_manifest(snapshot.id, snapshot.manifest_sha256)
+
+    assert manifest == _mirror().to_dict()
+    assert ("catalogControl", "active") not in client.documents
+    with pytest.raises(ValueError, match="manifest SHA-256"):
+        store.load_snapshot_manifest(snapshot.id, "bad")
+
+
+def test_guarded_activation_and_rollback_are_exact_compare_and_swap(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        "retrostore.mirror.google_cloud.firestore.transactional",
+        lambda function: function,
+    )
+    client = FakeFirestoreClient()
+    store = FirestoreCatalogSnapshotStore(client)  # type: ignore[arg-type]
+    active = build_catalog_snapshot(_mirror(name="Active"))
+    candidate = build_catalog_snapshot(_mirror(name="Candidate"))
+    store.stage(active)
+    store.activate(active.id, active.manifest_sha256)
+    store.stage(candidate)
+
+    plan = store.validate_guarded_activation(
+        operation="activate",
+        candidate_snapshot_id=candidate.id,
+        candidate_manifest_sha256=candidate.manifest_sha256,
+        expected_active_snapshot_id=active.id,
+        expected_active_manifest_sha256=active.manifest_sha256,
+    )
+    store.activate_guarded(
+        operation=plan.operation,
+        candidate_snapshot_id=plan.candidate_snapshot_id,
+        candidate_manifest_sha256=plan.candidate_manifest_sha256,
+        expected_active_snapshot_id=plan.expected_active_snapshot_id,
+        expected_active_manifest_sha256=plan.expected_active_manifest_sha256,
+        actor="migrator@example.test",
+    )
+
+    assert client.documents[("catalogControl", "active")] == {
+        "snapshot_id": candidate.id,
+        "manifest_sha256": candidate.manifest_sha256,
+    }
+    audits = [
+        value for path, value in client.documents.items() if path[0] == "auditEvents"
+    ]
+    assert len(audits) == 1
+    assert audits[0]["previousSnapshotId"] == active.id
+
+    store.activate_guarded(
+        operation="rollback",
+        candidate_snapshot_id=active.id,
+        candidate_manifest_sha256=active.manifest_sha256,
+        expected_active_snapshot_id=candidate.id,
+        expected_active_manifest_sha256=candidate.manifest_sha256,
+        actor="migrator@example.test",
+    )
+    assert client.documents[("catalogControl", "active")]["snapshot_id"] == active.id
+    assert audits[0]["eventType"] == "CATALOG_SNAPSHOT_ACTIVATED"
+    rollback_audits = [
+        value
+        for path, value in client.documents.items()
+        if path[0] == "auditEvents"
+        and value["eventType"] == "CATALOG_SNAPSHOT_ROLLED_BACK"
+    ]
+    assert len(rollback_audits) == 1
+
+    with pytest.raises(ValueError, match="pointer changed"):
+        store.validate_guarded_activation(
+            operation="rollback",
+            candidate_snapshot_id=active.id,
+            candidate_manifest_sha256=active.manifest_sha256,
+            expected_active_snapshot_id=candidate.id,
+            expected_active_manifest_sha256=candidate.manifest_sha256,
+        )
+
+
+def test_guarded_rollback_requires_an_existing_ready_snapshot(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "retrostore.mirror.google_cloud.firestore.transactional",
+        lambda function: function,
+    )
+    client = FakeFirestoreClient()
+    store = FirestoreCatalogSnapshotStore(client)  # type: ignore[arg-type]
+    active = build_catalog_snapshot(_mirror(name="Active"))
+    staged = build_catalog_snapshot(_mirror(name="Staged"))
+    store.stage(active)
+    store.activate(active.id, active.manifest_sha256)
+    store.stage(staged)
+
+    with pytest.raises(ValueError, match="invalid status"):
+        store.validate_guarded_activation(
+            operation="rollback",
+            candidate_snapshot_id=staged.id,
+            candidate_manifest_sha256=staged.manifest_sha256,
+            expected_active_snapshot_id=active.id,
+            expected_active_manifest_sha256=active.manifest_sha256,
+        )
 
 
 def test_google_adapters_round_trip_through_the_persistence_boundary() -> None:

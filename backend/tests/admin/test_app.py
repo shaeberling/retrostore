@@ -149,6 +149,54 @@ class FakeStagingCatalog:
         return replace(self.apps[0], revision=expected_revision + 1)
 
 
+@dataclass
+class FakeDraftCatalog:
+    drafts: dict[str, StagedApp] = field(default_factory=dict)
+    creations: list[tuple[AdminIdentity, str]] = field(default_factory=list)
+    updates: list[tuple[AdminIdentity, str, int, StagedAppDraft]] = field(
+        default_factory=list
+    )
+    discards: list[tuple[AdminIdentity, str, int]] = field(default_factory=list)
+
+    def create(self, *, identity, app_id):
+        self.creations.append((identity, app_id))
+        value = self.drafts.get(app_id)
+        if value is None:
+            value = replace(
+                FakeStagingCatalog().apps[0],
+                id=app_id,
+                publisher_uid=identity.uid,
+                publisher_email="legacy@example.test",
+                status="DRAFT",
+            )
+            self.drafts[app_id] = value
+        return value
+
+    def get(self, identity, app_id):
+        return self.drafts.get(app_id)
+
+    def update(self, *, identity, app_id, expected_revision, draft):
+        self.updates.append((identity, app_id, expected_revision, draft))
+        current = self.drafts[app_id]
+        updated = replace(
+            current,
+            name=draft.name,
+            version=draft.version,
+            description=draft.description,
+            release_year=draft.release_year,
+            model=draft.model,
+            category=draft.category,
+            author_name=draft.author_name,
+            revision=expected_revision + 1,
+        )
+        self.drafts[app_id] = updated
+        return updated
+
+    def discard(self, *, identity, app_id, expected_revision):
+        self.discards.append((identity, app_id, expected_revision))
+        self.drafts.pop(app_id)
+
+
 class FakeAuthenticator:
     identity = AdminIdentity("user-1", "admin@example.test", "administrator")
 
@@ -207,7 +255,11 @@ _DEFAULT_MANAGER = object()
 
 
 def _configured_app(
-    *, authenticator=None, role_manager=_DEFAULT_MANAGER, staging_catalog=None
+    *,
+    authenticator=None,
+    role_manager=_DEFAULT_MANAGER,
+    staging_catalog=None,
+    draft_catalog=None,
 ):
     if role_manager is _DEFAULT_MANAGER:
         role_manager = FakeUserRoleManager()
@@ -216,6 +268,7 @@ def _configured_app(
             "TESTING": True,
             "ADMIN_AUTHENTICATOR": authenticator or FakeAuthenticator(),
             "ADMIN_CATALOG": FakeCatalog(),
+            "ADMIN_PUBLISHED_APP_DRAFTS": draft_catalog or FakeDraftCatalog(),
             "ADMIN_FIREBASE_WEB_CONFIG": FIREBASE_WEB_CONFIG,
             "ADMIN_SESSION_COOKIE_SECURE": False,
             "ADMIN_STAGING_CATALOG": staging_catalog or FakeStagingCatalog(),
@@ -295,6 +348,7 @@ def test_admin_is_not_ready_until_auth_persistence_and_web_config_exist() -> Non
             "authentication": False,
             "firebase_web": False,
             "persistence": False,
+            "published_app_drafts": False,
             "staging_catalog": False,
             "user_directory": False,
             "user_role_management": False,
@@ -630,7 +684,66 @@ def test_published_baseline_detail_is_read_only() -> None:
     assert b"Edit staged app" not in detail.data
     assert b"Upload screenshot" not in detail.data
     assert b"Delete staged app" not in detail.data
+    assert b"Create editable draft" in detail.data
     assert edit.status_code == 409
+
+
+def test_published_baseline_copy_on_write_draft_lifecycle() -> None:
+    baseline = replace(
+        FakeStagingCatalog().apps[0],
+        id="0FA9D58E-9B99-11E7-B002-5B6133CA5F0C",
+        publisher_uid="",
+        status="PUBLISHED",
+    )
+    catalog = FakeStagingCatalog(apps=(baseline,))
+    drafts = FakeDraftCatalog()
+    client = _configured_app(
+        staging_catalog=catalog, draft_catalog=drafts
+    ).test_client()
+    csrf_token = _csrf_token(client)
+    client.post(
+        "/admin/session",
+        json={"id_token": "valid-id-token", "csrf_token": csrf_token},
+    )
+
+    created = client.post(
+        f"/admin/staging/apps/{baseline.id}/draft/create",
+        data={"csrf_token": csrf_token},
+    )
+    edit = client.get(created.headers["Location"])
+    updated = client.post(
+        f"/admin/staging/apps/{baseline.id}/draft",
+        data={
+            "csrf_token": csrf_token,
+            "request_id": baseline.id,
+            "revision": "1",
+            "name": "Edited Published Game",
+            "version": "2.0",
+            "description": "A copy-on-write metadata change.",
+            "release_year": "1984",
+            "model": "MODEL_III",
+            "category": "OTHER",
+            "author_name": "New Author",
+        },
+    )
+    discarded = client.post(
+        f"/admin/staging/apps/{baseline.id}/draft/discard",
+        data={
+            "csrf_token": csrf_token,
+            "revision": "2",
+            "confirm_name": "Edited Published Game",
+        },
+    )
+
+    assert created.status_code == 302
+    assert "draft_created=1" in created.headers["Location"]
+    assert edit.status_code == 200
+    assert b"Copy-on-write published draft" in edit.data
+    assert updated.status_code == 302
+    assert drafts.updates[0][2] == 1
+    assert discarded.status_code == 302
+    assert drafts.discards == [(FakeAuthenticator.identity, baseline.id, 2)]
+    assert drafts.drafts == {}
 
 
 def test_staging_media_and_screenshot_upload_routes_validate_and_delegate() -> None:

@@ -2,7 +2,7 @@
 
 Status: In progress
 
-Last updated: 2026-08-08
+Last updated: 2026-08-10
 
 ## Implementation status
 
@@ -278,6 +278,33 @@ Completed foundation work:
   The snapshot store now rehashes every nested document even when a matching
   snapshot is already `READY`. The rehearsal command contains no activation
   operation and the active pointer did not move.
+- The publication boundary now overlays isolated new apps and copy-on-write
+  published metadata drafts onto the exact materialized baseline. Drafts live
+  in a separate `appDrafts` collection, preserve baseline media/screenshots,
+  carry the source snapshot and fingerprint, use optimistic revisions, and are
+  audited on create/update/discard without changing a published source
+  document. Candidate construction independently checks ownership, timestamps,
+  authors, exact media slots, screenshot order, and every referenced object.
+- A 2026-08-10 live read-only publication dry run found one existing isolated
+  staged app and author, no staged media or screenshots, and derived a different
+  33-app candidate
+  `catalog-5b0bbf8bb683ed653d4583fa486589358ea759ff0e145f156bedb049b7cc04a2`.
+  It made no writes; the 32-app active pointer remains
+  `catalog-ec07d9d7c8d47c8a46b745fc82b8d7f231e905dc6b6f7e00f4375547cf303de8`.
+- Private API revisions can now pin both the ID and digest of one explicit
+  staged snapshot, while ordinary revisions continue to read the active
+  pointer. New candidate screenshots have a configurable absolute origin and a
+  short checksum-verified, CORS-enabled, immutable, strong-ETag serving route;
+  every existing legacy screenshot URL remains unchanged. The absolute URL was
+  checked against the Android, iOS, and web KMP fetch implementations, while
+  the short production form fits the reviewed native URL-size expectation.
+- Exact compare-and-swap activation and rollback are implemented behind a
+  separate dry-run-first operator command. Apply requires the dedicated
+  migrator, four exact confirmations, a transaction-time re-read and full hash
+  of both snapshots, and an audit event. Rollback can target only a previously
+  ready snapshot. Neither operation has been applied to the live catalog.
+- The complete Python suite now has 224 passing tests on Python 3.14.6, and the
+  compiled Tailwind admin asset is current.
 
 Open foundation work:
 

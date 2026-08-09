@@ -11,6 +11,9 @@
       This is the materialized published baseline. It is read-only and continues to be served from the active immutable catalog snapshot.
     </div>
   {% endif %}
+  {% if draft_discarded %}
+    <div class="mb-6 rounded-xl border border-emerald-300/25 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100" role="status">The editable draft was discarded. The published baseline was untouched.</div>
+  {% endif %}
   <a class="text-sm text-stone-400 hover:text-white" href="{{ url_for('admin_staging_apps') }}">← Staged applications</a>
   {% if media_updated or media_deleted or screenshot_added or screenshot_deleted %}
     <div class="mt-5 rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100">
@@ -28,6 +31,15 @@
     </div>
     {% if app.status == "STAGING" %}
       <a class="w-fit rounded-xl bg-sky-300 px-4 py-2.5 text-sm font-semibold text-stone-950 hover:bg-sky-200" href="{{ url_for('admin_staging_app_edit', app_id=app.id) }}">Edit staged app</a>
+    {% elif app.status == "PUBLISHED" and admin_identity.is_administrator %}
+      {% if draft_record %}
+        <a class="w-fit rounded-xl bg-amber-300 px-4 py-2.5 text-sm font-semibold text-stone-950 hover:bg-amber-200" href="{{ url_for('admin_published_app_draft_edit', app_id=app.id) }}">Continue draft</a>
+      {% else %}
+        <form action="{{ url_for('admin_published_app_draft_create', app_id=app.id) }}" method="post">
+          <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}">
+          <button class="w-fit rounded-xl bg-amber-300 px-4 py-2.5 text-sm font-semibold text-stone-950 hover:bg-amber-200" type="submit">Create editable draft</button>
+        </form>
+      {% endif %}
     {% endif %}
   </div>
 

@@ -4,6 +4,7 @@ import hashlib
 import json
 import subprocess
 from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
 from typing import Any
 
 from google.api_core.exceptions import NotFound, PreconditionFailed
@@ -17,6 +18,15 @@ _SNAPSHOTS_COLLECTION = "catalogSnapshots"
 _CONTROL_COLLECTION = "catalogControl"
 _ACTIVE_DOCUMENT = "active"
 _FIRESTORE_BATCH_SIZE = 450
+
+
+@dataclass(frozen=True, slots=True)
+class CatalogActivationPlan:
+    operation: str
+    candidate_snapshot_id: str
+    candidate_manifest_sha256: str
+    expected_active_snapshot_id: str
+    expected_active_manifest_sha256: str
 
 
 class CloudStorageObjectStore:
@@ -137,11 +147,164 @@ class FirestoreCatalogSnapshotStore:
             raise ValueError("Active Firestore catalog snapshot failed reconciliation")
         return manifest
 
+    def load_snapshot_manifest(
+        self, snapshot_id: str, manifest_sha256: str
+    ) -> Mapping[str, Any]:
+        """Load one explicitly pinned staged or ready snapshot for private preview."""
+
+        _require_snapshot_id(snapshot_id)
+        _require_manifest_sha256(manifest_sha256)
+        manifest = self._load_snapshot_manifest(
+            snapshot_id, allowed_statuses={"STAGED", "READY"}
+        )
+        if _manifest_sha256(manifest) != manifest_sha256:
+            raise ValueError("Pinned Firestore catalog snapshot failed reconciliation")
+        return manifest
+
+    def validate_guarded_activation(
+        self,
+        *,
+        operation: str,
+        candidate_snapshot_id: str,
+        candidate_manifest_sha256: str,
+        expected_active_snapshot_id: str,
+        expected_active_manifest_sha256: str,
+    ) -> CatalogActivationPlan:
+        """Validate an exact compare-and-swap activation without writing."""
+
+        plan = CatalogActivationPlan(
+            operation=operation,
+            candidate_snapshot_id=candidate_snapshot_id,
+            candidate_manifest_sha256=candidate_manifest_sha256,
+            expected_active_snapshot_id=expected_active_snapshot_id,
+            expected_active_manifest_sha256=expected_active_manifest_sha256,
+        )
+        _validate_activation_plan(plan)
+        active = (
+            self._client.collection(_CONTROL_COLLECTION)
+            .document(_ACTIVE_DOCUMENT)
+            .get()
+        )
+        if not active.exists:
+            raise ValueError("No active Firestore catalog snapshot")
+        _require_active_pointer(_document_data(active), plan)
+        active_manifest = self._load_snapshot_manifest(
+            expected_active_snapshot_id, allowed_statuses={"READY"}
+        )
+        if _manifest_sha256(active_manifest) != expected_active_manifest_sha256:
+            raise ValueError("Expected active catalog snapshot failed reconciliation")
+        candidate_manifest = self._load_snapshot_manifest(
+            candidate_snapshot_id,
+            allowed_statuses=_candidate_statuses(operation),
+        )
+        if _manifest_sha256(candidate_manifest) != candidate_manifest_sha256:
+            raise ValueError("Candidate catalog snapshot failed reconciliation")
+        return plan
+
+    def activate_guarded(
+        self,
+        *,
+        operation: str,
+        candidate_snapshot_id: str,
+        candidate_manifest_sha256: str,
+        expected_active_snapshot_id: str,
+        expected_active_manifest_sha256: str,
+        actor: str,
+    ) -> CatalogActivationPlan:
+        """Atomically activate or roll back only from one exact active pointer."""
+
+        if not actor or len(actor) > 320:
+            raise ValueError("Catalog activation actor is invalid")
+        plan = self.validate_guarded_activation(
+            operation=operation,
+            candidate_snapshot_id=candidate_snapshot_id,
+            candidate_manifest_sha256=candidate_manifest_sha256,
+            expected_active_snapshot_id=expected_active_snapshot_id,
+            expected_active_manifest_sha256=expected_active_manifest_sha256,
+        )
+        active_reference = self._client.collection(_CONTROL_COLLECTION).document(
+            _ACTIVE_DOCUMENT
+        )
+        candidate_reference = self._snapshot_reference(candidate_snapshot_id)
+        audit_reference = self._client.collection("auditEvents").document()
+        transaction = self._client.transaction()
+
+        @firestore.transactional
+        def commit_activation(transaction: Any) -> None:
+            active_snapshot = active_reference.get(transaction=transaction)
+            if not active_snapshot.exists:
+                raise ValueError("No active Firestore catalog snapshot")
+            _require_active_pointer(_document_data(active_snapshot), plan)
+            active_manifest = self._load_snapshot_manifest(
+                expected_active_snapshot_id,
+                allowed_statuses={"READY"},
+                transaction=transaction,
+            )
+            if (
+                _manifest_sha256(active_manifest)
+                != expected_active_manifest_sha256
+            ):
+                raise ValueError(
+                    "Expected active catalog snapshot changed before activation"
+                )
+            candidate_root = candidate_reference.get(transaction=transaction)
+            if not candidate_root.exists:
+                raise ValueError("Candidate catalog snapshot is missing")
+            candidate_data = _document_data(candidate_root)
+            _require_snapshot_identity(
+                candidate_data,
+                candidate_snapshot_id,
+                candidate_manifest_sha256,
+            )
+            candidate_manifest = self._load_snapshot_manifest(
+                candidate_snapshot_id,
+                allowed_statuses=_candidate_statuses(operation),
+                transaction=transaction,
+            )
+            if _manifest_sha256(candidate_manifest) != candidate_manifest_sha256:
+                raise ValueError("Candidate catalog snapshot changed before activation")
+            transaction.set(
+                candidate_reference,
+                {**candidate_data, "status": "READY"},
+            )
+            transaction.set(
+                active_reference,
+                {
+                    "snapshot_id": candidate_snapshot_id,
+                    "manifest_sha256": candidate_manifest_sha256,
+                },
+            )
+            transaction.create(
+                audit_reference,
+                {
+                    "schemaVersion": 1,
+                    "eventType": (
+                        "CATALOG_SNAPSHOT_ACTIVATED"
+                        if operation == "activate"
+                        else "CATALOG_SNAPSHOT_ROLLED_BACK"
+                    ),
+                    "status": "SUCCEEDED",
+                    "actorUid": actor,
+                    "targetId": candidate_snapshot_id,
+                    "manifestSha256": candidate_manifest_sha256,
+                    "previousSnapshotId": expected_active_snapshot_id,
+                    "previousManifestSha256": expected_active_manifest_sha256,
+                    "createdAt": firestore.SERVER_TIMESTAMP,
+                },
+            )
+
+        commit_activation(transaction)
+        return plan
+
     def _load_snapshot_manifest(
-        self, snapshot_id: str, *, allowed_statuses: set[str]
+        self,
+        snapshot_id: str,
+        *,
+        allowed_statuses: set[str],
+        transaction: Any | None = None,
     ) -> dict[str, Any]:
         root = self._snapshot_reference(snapshot_id)
-        snapshot = root.get()
+        snapshot = root.get(transaction=transaction)
         if not snapshot.exists:
             raise ValueError("Firestore catalog snapshot metadata is missing")
         metadata = _document_data(snapshot)
@@ -155,14 +318,25 @@ class FirestoreCatalogSnapshotStore:
         return {
             "schema_version": metadata.get("schema_version"),
             "source": metadata.get("source"),
-            "apps": self._collection_documents(root, "apps"),
-            "media": self._collection_documents(root, "media"),
-            "screenshots": self._collection_documents(root, "screenshots"),
+            "apps": self._collection_documents(root, "apps", transaction=transaction),
+            "media": self._collection_documents(root, "media", transaction=transaction),
+            "screenshots": self._collection_documents(
+                root, "screenshots", transaction=transaction
+            ),
             "reconciliation": metadata.get("reconciliation"),
         }
 
-    def _collection_documents(self, root: Any, collection_name: str) -> list[dict[str, Any]]:
-        snapshots = sorted(root.collection(collection_name).stream(), key=lambda item: item.id)
+    def _collection_documents(
+        self,
+        root: Any,
+        collection_name: str,
+        *,
+        transaction: Any | None = None,
+    ) -> list[dict[str, Any]]:
+        snapshots = sorted(
+            root.collection(collection_name).stream(transaction=transaction),
+            key=lambda item: item.id,
+        )
         return [_document_data(snapshot) for snapshot in snapshots]
 
     def _snapshot_reference(self, snapshot_id: str) -> Any:
@@ -267,6 +441,52 @@ def _require_snapshot_identity(
 ) -> None:
     if value.get("snapshot_id") != snapshot_id or value.get("manifest_sha256") != manifest_sha256:
         raise ValueError("Firestore catalog snapshot identity collision")
+
+
+def _require_snapshot_id(value: str) -> None:
+    if (
+        not value.startswith("catalog-")
+        or len(value) != len("catalog-") + 64
+        or any(character not in "0123456789abcdef" for character in value[8:])
+    ):
+        raise ValueError("Catalog snapshot ID is invalid")
+
+
+def _require_manifest_sha256(value: str) -> None:
+    if len(value) != 64 or any(
+        character not in "0123456789abcdef" for character in value
+    ):
+        raise ValueError("Catalog snapshot manifest SHA-256 is invalid")
+
+
+def _validate_activation_plan(plan: CatalogActivationPlan) -> None:
+    if plan.operation not in {"activate", "rollback"}:
+        raise ValueError("Catalog operation must be activate or rollback")
+    _require_snapshot_id(plan.candidate_snapshot_id)
+    _require_manifest_sha256(plan.candidate_manifest_sha256)
+    _require_snapshot_id(plan.expected_active_snapshot_id)
+    _require_manifest_sha256(plan.expected_active_manifest_sha256)
+    if plan.candidate_snapshot_id == plan.expected_active_snapshot_id:
+        raise ValueError("Candidate snapshot is already active")
+
+
+def _require_active_pointer(
+    value: Mapping[str, Any], plan: CatalogActivationPlan
+) -> None:
+    if (
+        value.get("snapshot_id") != plan.expected_active_snapshot_id
+        or value.get("manifest_sha256")
+        != plan.expected_active_manifest_sha256
+    ):
+        raise ValueError("Active catalog pointer changed; activation refused")
+
+
+def _candidate_statuses(operation: str) -> set[str]:
+    if operation == "activate":
+        return {"STAGED", "READY"}
+    if operation == "rollback":
+        return {"READY"}
+    raise ValueError("Catalog operation must be activate or rollback")
 
 
 def _manifest_sha256(manifest: Mapping[str, Any]) -> str:

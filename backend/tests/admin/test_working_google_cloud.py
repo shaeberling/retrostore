@@ -1,4 +1,5 @@
 from copy import deepcopy
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -178,3 +179,55 @@ def test_load_current_rejects_another_materialized_source() -> None:
 
     with pytest.raises(WorkingCatalogConflictError, match="another source snapshot"):
         store.load_current(actor="migrator@example.test")
+
+
+def test_load_staged_changes_excludes_source_and_retained_unreferenced_authors() -> None:
+    client = FakeFirestore()
+    store = FirestoreWorkingCatalogStore(client)  # type: ignore[arg-type]
+    materialization = _materialization()
+    store.materialize(materialization, actor="migrator@example.test")
+    created = datetime(2026, 8, 10, tzinfo=UTC)
+    app_id = "new-app"
+    client.documents[("apps", app_id)] = {
+        "schemaVersion": 1,
+        "status": "STAGING",
+        "authorId": "new-author",
+    }
+    client.documents[("authors", "new-author")] = {
+        "schemaVersion": 1,
+        "displayName": "New Author",
+        "createdAt": created,
+    }
+    client.documents[("authors", "retained-author")] = {
+        "schemaVersion": 1,
+        "displayName": "Retained",
+        "createdAt": created,
+    }
+    client.documents[("media", "new-media")] = {
+        "schemaVersion": 1,
+        "appId": app_id,
+    }
+
+    changes = store.load_staged_changes()
+
+    assert set(changes["apps"]) == {app_id}
+    assert set(changes["authors"]) == {"new-author"}
+    assert set(changes["media"]) == {"new-media"}
+    assert changes["screenshots"] == {}
+
+
+def test_load_staged_changes_includes_published_app_drafts() -> None:
+    client = FakeFirestore()
+    store = FirestoreWorkingCatalogStore(client)  # type: ignore[arg-type]
+    materialization = _materialization()
+    store.materialize(materialization, actor="migrator@example.test")
+    app_id = next(iter(materialization.collections["apps"]))
+    client.documents[("appDrafts", app_id)] = {
+        "schemaVersion": 1,
+        "status": "DRAFT",
+        "authorId": next(iter(materialization.collections["authors"])),
+    }
+
+    changes = store.load_staged_changes()
+
+    assert set(changes["apps"]) == {app_id}
