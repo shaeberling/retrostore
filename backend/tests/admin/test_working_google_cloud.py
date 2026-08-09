@@ -146,3 +146,35 @@ def test_existing_control_detects_missing_or_changed_audit_event() -> None:
     client.documents.pop(audit_path)
     with pytest.raises(WorkingCatalogConflictError, match="missing or duplicated"):
         store.materialize(materialization, actor="migrator@example.test")
+
+
+def test_load_current_reconstructs_only_reconciled_source_documents() -> None:
+    client = FakeFirestore()
+    store = FirestoreWorkingCatalogStore(client)  # type: ignore[arg-type]
+    expected = _materialization()
+    store.materialize(expected, actor="migrator@example.test")
+    client.documents[("apps", "new-staged-app")] = {
+        "status": "STAGING",
+        "name": "Not in the source baseline",
+    }
+
+    loaded = store.load_current(actor="migrator@example.test")
+
+    assert loaded.id == expected.id
+    assert loaded.manifest_sha256 == expected.manifest_sha256
+    assert loaded.counts == expected.counts
+    assert "new-staged-app" not in loaded.collections["apps"]
+
+
+def test_load_current_rejects_another_materialized_source() -> None:
+    client = FakeFirestore()
+    store = FirestoreWorkingCatalogStore(client)  # type: ignore[arg-type]
+    expected = _materialization()
+    store.materialize(expected, actor="migrator@example.test")
+    client.documents[("apps", "foreign-source")] = {
+        "sourceKind": "APP_ENGINE_MIRROR",
+        "sourceSnapshotId": "catalog-other",
+    }
+
+    with pytest.raises(WorkingCatalogConflictError, match="another source snapshot"):
+        store.load_current(actor="migrator@example.test")

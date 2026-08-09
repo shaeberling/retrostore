@@ -413,6 +413,37 @@ control record already proves an idempotent completed operation. The command
 does not upload, replace, or delete objects and never moves
 `catalogControl/active`.
 
+## Stage-only publication rehearsal
+
+The next boundary reads the source portion of the live working collections,
+reconciles its control record and single audit event, validates every source
+fingerprint, reloads all referenced objects with size and SHA-256 checks, and
+rebuilds the immutable catalog snapshot. It then independently loads the active
+snapshot and requires an exact manifest match. The command intentionally has no
+activation operation.
+
+Its default mode is fully read-only but still requires the dedicated migrator
+identity so no ambient credential can select a different database:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.admin.stage_working_catalog \
+  --project trs-80 \
+  --database retrostore \
+  --bucket trs-80-retrostore-assets \
+  --output /tmp/retrostore-working-stage-dry-run.json \
+  --impersonate-service-account \
+    retrostore-migrator@trs-80.iam.gserviceaccount.com
+```
+
+`--apply --confirm-project trs-80` additionally invokes the snapshot store's
+stage boundary. For the initial baseline this reconciles the already-`READY`
+immutable snapshot and performs no metadata write. A ready snapshot is never
+accepted merely by root identity: all of its app, media, and screenshot
+documents are reloaded and hashed. The command refuses a working baseline that
+differs from the active snapshot, never uploads objects, and cannot move
+`catalogControl/active`.
+
 ## Controlled cloud state smoke test
 
 The state adapter stores normalized protobuf bytes in the isolated private state

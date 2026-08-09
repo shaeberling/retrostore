@@ -267,6 +267,17 @@ Completed foundation work:
   `catalog-ec07d9d7c8d47c8a46b745fc82b8d7f231e905dc6b6f7e00f4375547cf303de8`.
   A post-materialization deployed comparison matched all 158 observations with
   zero differences and no approvals.
+- The stage-only publication rehearsal is implemented and exercised against the
+  live baseline. It loads the source documents from the working collections,
+  reconciles the control and single audit event, validates every source
+  fingerprint, checksum-verifies all 150 referenced objects totaling 12,738,856
+  bytes, and rebuilds the exact active immutable snapshot. Both dry run and the
+  confirmed stage-boundary invocation reported the same 32 apps, 60 media
+  records, and 90 screenshots under snapshot
+  `catalog-ec07d9d7c8d47c8a46b745fc82b8d7f231e905dc6b6f7e00f4375547cf303de8`.
+  The snapshot store now rehashes every nested document even when a matching
+  snapshot is already `READY`. The rehearsal command contains no activation
+  operation and the active pointer did not move.
 
 Open foundation work:
 
@@ -1344,6 +1355,9 @@ Phase 1:
 - [x] Deploy the read-only guard, run the real archive dry run, materialize the
   live working set through the dedicated migrator, reconcile it, and repeat the
   158-scenario public comparison without changing the active snapshot.
+- [x] Implement and exercise a stage-only publication rehearsal that rebuilds
+  the active snapshot from the materialized working collections, verifies all
+  metadata and objects, and has no activation capability.
 - [ ] Finalize candidate hostnames, the load-balancer URL map, route groups,
   monitoring thresholds, and named rollback owners. Current DNS, certificates,
   HTTP behavior, and absence of an existing load balancer are documented.

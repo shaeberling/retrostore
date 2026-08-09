@@ -3,6 +3,7 @@
 import json
 from collections.abc import Mapping
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Any
 
 from google.cloud import firestore
@@ -125,6 +126,85 @@ class FirestoreWorkingCatalogStore:
             audit_created=True,
         )
 
+    def load_current(self, *, actor: str) -> WorkingCatalogMaterialization:
+        """Load and reconcile only the immutable source portion of the working set."""
+
+        if not actor or len(actor) > 320:
+            raise ValueError("Working catalog materialization actor is invalid")
+        control = (
+            self._client.collection(_CONTROL_COLLECTION)
+            .document(_CONTROL_DOCUMENT)
+            .get()
+        )
+        if not control.exists:
+            raise WorkingCatalogConflictError("No catalog working set is materialized")
+        value = _document_data(control)
+        if value.get("schemaVersion") != 1 or value.get("status") != "READY":
+            raise WorkingCatalogConflictError("Catalog working control is not ready")
+        materialization_id = _required_control_string(value, "materializationId")
+        manifest_sha256 = _required_control_string(value, "manifestSha256")
+        source_snapshot_id = _required_control_string(value, "sourceSnapshotId")
+        source_manifest_sha256 = _required_control_string(
+            value, "sourceManifestSha256"
+        )
+        source_value = value.get("source")
+        if not isinstance(source_value, Mapping):
+            raise WorkingCatalogConflictError("Catalog working source is malformed")
+        source = {
+            field: _required_control_string(source_value, field)
+            for field in (
+                "projectId",
+                "exportedAt",
+                "highWaterMark",
+                "snapshotId",
+                "manifestSha256",
+            )
+        }
+        if (
+            source["snapshotId"] != source_snapshot_id
+            or source["manifestSha256"] != source_manifest_sha256
+        ):
+            raise WorkingCatalogConflictError(
+                "Catalog working source does not match its control record"
+            )
+        expected_counts = _control_counts(value.get("counts"))
+        collections: dict[str, Mapping[str, Mapping[str, Any]]] = {}
+        for collection_name in expected_counts:
+            documents: dict[str, Mapping[str, Any]] = {}
+            for snapshot in self._client.collection(collection_name).stream():
+                document = _document_data(snapshot)
+                source_kind = document.get("sourceKind")
+                if source_kind is None:
+                    continue
+                if source_kind != "APP_ENGINE_MIRROR":
+                    raise WorkingCatalogConflictError(
+                        f"Working {collection_name} contains an unknown source kind"
+                    )
+                if document.get("sourceSnapshotId") != source_snapshot_id:
+                    raise WorkingCatalogConflictError(
+                        f"Working {collection_name} contains another source snapshot"
+                    )
+                documents[snapshot.id] = MappingProxyType(_plain(document))
+            if len(documents) != expected_counts[collection_name]:
+                raise WorkingCatalogConflictError(
+                    f"Materialized working {collection_name} count changed"
+                )
+            collections[collection_name] = MappingProxyType(documents)
+        materialization = WorkingCatalogMaterialization(
+            id=materialization_id,
+            source=MappingProxyType(source),
+            collections=MappingProxyType(collections),
+            manifest_sha256=manifest_sha256,
+        )
+        for field, expected in _control_identity(materialization).items():
+            if value.get(field) != expected:
+                raise WorkingCatalogConflictError(
+                    "Catalog working control identity changed"
+                )
+        self._verify_documents(materialization)
+        self._verify_audit(materialization, actor=actor)
+        return materialization
+
     def _verify_documents(
         self, materialization: WorkingCatalogMaterialization
     ) -> None:
@@ -201,3 +281,29 @@ def _document_data(snapshot: Any) -> dict[str, Any]:
 
 def _plain(value: Mapping[str, Any]) -> dict[str, Any]:
     return json.loads(json.dumps(dict(value), ensure_ascii=False, separators=(",", ":")))
+
+
+def _required_control_string(value: Mapping[str, Any], field: str) -> str:
+    result = value.get(field)
+    if not isinstance(result, str) or not result:
+        raise WorkingCatalogConflictError(
+            f"Catalog working control field {field} is malformed"
+        )
+    return result
+
+
+def _control_counts(value: object) -> dict[str, int]:
+    if not isinstance(value, Mapping) or set(value) != {
+        "apps",
+        "authors",
+        "media",
+        "screenshots",
+    }:
+        raise WorkingCatalogConflictError("Catalog working counts are malformed")
+    result = dict(value)
+    if any(
+        isinstance(count, bool) or not isinstance(count, int) or count < 0
+        for count in result.values()
+    ):
+        raise WorkingCatalogConflictError("Catalog working counts are malformed")
+    return result  # type: ignore[return-value]

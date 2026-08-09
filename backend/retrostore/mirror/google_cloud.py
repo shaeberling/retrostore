@@ -69,6 +69,13 @@ class FirestoreCatalogSnapshotStore:
             existing_data = _document_data(existing)
             _require_snapshot_identity(existing_data, snapshot.id, snapshot.manifest_sha256)
             if existing_data.get("status") == "READY":
+                manifest = self._load_snapshot_manifest(
+                    snapshot.id, allowed_statuses={"READY"}
+                )
+                if _manifest_sha256(manifest) != snapshot.manifest_sha256:
+                    raise ValueError(
+                        "Ready Firestore snapshot does not match its manifest digest"
+                    )
                 return
 
         metadata = _plain_mapping(snapshot.metadata)

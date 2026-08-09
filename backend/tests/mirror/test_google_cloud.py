@@ -165,6 +165,19 @@ def test_firestore_activation_reconciles_staged_documents_again() -> None:
     assert ("catalogControl", "active") not in client.documents
 
 
+def test_firestore_stage_reconciles_an_existing_ready_snapshot() -> None:
+    client = FakeFirestoreClient()
+    store = FirestoreCatalogSnapshotStore(client)  # type: ignore[arg-type]
+    snapshot = build_catalog_snapshot(_mirror())
+    store.stage(snapshot)
+    store.activate(snapshot.id, snapshot.manifest_sha256)
+    app_path = ("catalogSnapshots", snapshot.id, "apps", "app-1")
+    client.documents[app_path]["name"] = "Tampered"
+
+    with pytest.raises(ValueError, match="Ready Firestore snapshot"):
+        store.stage(snapshot)
+
+
 def test_google_adapters_round_trip_through_the_persistence_boundary() -> None:
     bucket = FakeBucket()
     client = FakeFirestoreClient()
