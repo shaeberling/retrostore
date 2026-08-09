@@ -165,7 +165,7 @@ Completed foundation work:
   403 afterward. The earlier apparent front-end 404 combined Flask correctly
   rejecting `/` with Cloud Run's documented reservation of some paths ending in
   `z`; operational routes now use `/health` and `/ready`. The complete Python
-  suite now has 166 passing tests.
+  suite now has 168 passing tests.
 - The first server-rendered admin slice is implemented and deployed privately
   as `retrostore-admin-candidate` revision `compact1`. Jinja/Tailwind inventory,
   search, and detail pages read the same active mirror and expose no mutations.
@@ -203,16 +203,24 @@ Completed foundation work:
   These documents are separate from the versioned `catalogSnapshots` mirror and
   cannot affect public API responses. Media slots are presented as one compact,
   vertically ordered set of responsive horizontal rows for faster scanning and
-  replacement. No staged record or object was created during deployment. The
-  deployed image digest is
+  replacement. The complete authenticated browser lifecycle passed on
+  2026-08-09: create, edit, media upload and replacement, two screenshot
+  uploads and reorder, individual screenshot deletion, and confirmed app
+  deletion. The sanitized read-only reconciler verified revision 7 with one
+  media document, two ordered screenshot documents, and exactly three linked
+  private objects totaling 10,285 checksum-verified bytes. It found no retained
+  superseded media object. After screenshot and app deletion it found zero app,
+  media, or screenshot documents and zero objects under both private prefixes,
+  while all nine audit events and the contiguous revision chain through 8
+  remained. A fresh deployed-candidate comparison then matched all 158 public
+  scenarios with zero differences, proving the isolated lifecycle did not alter
+  the API-visible snapshot. The deployed image digest is
   `sha256:18d60af5803a168e3132b5315f345e10d9f5c14e7e949b0f206f601b241d836f`.
 
 Open foundation work:
 
-- Exercise the complete staged app/media/screenshot lifecycle through the live
-  browser session and inspect the isolated Firestore documents, private objects,
-  audit events, and cleanup. Then implement the guarded import administration
-  workflow. The synchronized catalog remains read-only.
+- Implement the guarded import administration workflow. The synchronized
+  catalog remains read-only.
 - The `native-client-library` Arduino tree in this repository is an unfinished
   prototype: it sends a bodyless GET, ignores its configurable host, and has no
   media implementation. It is distinct from the working native C/ESP32 source
@@ -1254,6 +1262,10 @@ Phase 1:
 - [x] Add isolated, private staged media-slot and ordered-screenshot workflows
   with bounded uploads, checksum-addressed objects, replacement/deletion cleanup,
   optimistic revisions, ownership enforcement, and atomic audit events.
+- [x] Exercise the complete staged app/media/screenshot lifecycle through the
+  authenticated live browser, reconcile the intermediate and deleted Firestore,
+  Storage, revision, and audit states, and re-run the 158-scenario public API
+  comparison with zero differences.
 - [ ] Finalize candidate hostnames, the load-balancer URL map, route groups,
   monitoring thresholds, and named rollback owners. Current DNS, certificates,
   HTTP behavior, and absence of an existing load balancer are documented.
@@ -1267,9 +1279,8 @@ and browser inventory review have passed through the private Cloud Run proxy.
 Administrator/publisher role management is atomically audited in Firestore, and
 the isolated staging app/author create/edit/delete workflow is deployed. The
 isolated media-slot and ordered-screenshot workflows are also deployed. The next
-executable gate is a browser-driven end-to-end staged asset lifecycle and cloud
-reconciliation, followed by guarded imports; synchronized-catalog writes remain
-disabled. The RetroStore Card and TRS-IO hardware update subsystem stays
+executable gate is guarded import administration; synchronized-catalog writes
+remain disabled. The RetroStore Card and TRS-IO hardware update subsystem stays
 unchanged on App Engine and is not part of that work queue.
 
 No production routing or legacy data should change during this milestone.

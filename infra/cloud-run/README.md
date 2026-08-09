@@ -145,4 +145,9 @@ screenshots use private checksum-addressed paths in the durable assets bucket;
 replacement, individual deletion, and app cascade deletion clean up the old
 objects. The post-deployment smoke reports all readiness checks healthy,
 confirms the expected pre-session login redirect, and confirms that anonymous
-Cloud Run invocation remains HTTP 403.
+Cloud Run invocation remains HTTP 403. The authenticated end-to-end staged asset
+lifecycle passed on 2026-08-09. Read-only reconciliation verified the live
+intermediate references and object bytes, superseded-media cleanup, individual
+and cascade deletion, nine retained audit events, and zero remaining staged
+documents or object-prefix entries. A subsequent deployed 158-scenario public
+API comparison had zero differences.

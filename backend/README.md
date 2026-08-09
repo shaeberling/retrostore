@@ -85,6 +85,31 @@ remove superseded objects after the metadata transaction. Non-owners and stale
 edits are rejected. Deleting an app cascades through its staged assets but
 intentionally retains its author document because authors may be shared.
 
+The read-only lifecycle reconciler checks one exact staged app without emitting
+document IDs, object paths, or account identifiers. It verifies linked document
+sets, screenshot order, object bytes and SHA-256, superseded-object cleanup,
+revision continuity, and the exact audit-event multiset. A mode-`0600` local
+checkpoint lets the same command prove cleanup after the app document is gone:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.admin.reconcile_staging \
+  --project trs-80 \
+  --database retrostore \
+  --bucket trs-80-retrostore-assets \
+  --impersonate-service-account retrostore-admin@trs-80.iam.gserviceaccount.com \
+  --app-name 'Exact disposable staged app name' \
+  --checkpoint /private/path/staging-lifecycle-checkpoint.json \
+  --expect-present \
+  --expect-media-filename expected.dsk \
+  --expect-screenshot-filename expected.png \
+  --expect-event-type STAGED_APP_CREATED
+```
+
+Repeat with `--no-expect-present`, no expected filenames, and the complete
+expected audit-event list after deletion. The command is strictly read-only in
+Google Cloud; only its explicitly named local checkpoint is written.
+
 The default API factory reports not-ready until a storage adapter is configured.
 Run the explicit representative candidate when exercising the reviewed local
 compatibility corpus:
