@@ -127,7 +127,7 @@ The source dispatch order is significant:
 
 | Route family | Current purpose | Migration disposition |
 | --- | --- | --- |
-| `/` and public files such as `/apps.html` | Static public website | Static route group |
+| `/`, public files such as `/apps.html`, and legacy `/public/*` aliases | Static public website | Route-closed static bundle; atomic with its JSON dependency and redirects |
 | `/community[/]` | Redirect to Discord | Preserve redirect |
 | `/rsc[/]` | Redirect to RetroStore Card GitHub | Preserve redirect |
 | `/app[/]` | Redirect to the Google Play app | Preserve redirect |

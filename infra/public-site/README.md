@@ -24,9 +24,19 @@ to a missing unused `contact_me.js`, validates local asset closure, and records
 a deterministic aggregate digest. It refuses to replace an existing output or
 report.
 
-The first complete build on 2026-08-10 contained 48 files and 2,909,581 bytes,
-had zero missing local asset references, and produced aggregate SHA-256
-`d892c9f2f067ed6a3b07e094f128cb22f26f822c7c3af4f15e5de20e0cd55b76`.
+The route-closed build on 2026-08-10 contains 78 objects and 4,652,747 bytes,
+has zero missing local asset references and zero unrouted objects, and produces
+aggregate SHA-256
+`991c3fabcc2b3fa359c34ad7b57a90510a54ce8de8cbbed1ff96b3b4a5aabf0b`.
+It includes real `/public/` alias objects because the legacy static handler
+exposes that tree; no load-balancer path rewrite is needed. The build report has
+a size, checksum, and legacy-compatible content type for every object.
+
+A bounded live comparison checked all 78 objects plus `/` against App Engine.
+All 79 status, source-byte, content-type, CORS, and candidate-output gates
+passed. Six HTML objects are intentionally transformed: root and `/public/`
+copies of `apps.html`, `contact.html`, and `signup.html`. The other 72 objects
+are byte-identical to their deployed legacy source.
 
 The existing default Firebase Hosting site `trs-80` is the separately deployed
 TRS-80 KMP web application. It must not be reused or overwritten by this
@@ -40,3 +50,8 @@ by the static bundle itself. Their six exact paths have an empty-body 302
 implementation in the private Flask compatibility candidate and are a separate
 atomic route group. The scheduled comparator checks their status, destination,
 content type, body length, and body digest without following them.
+
+Static objects, the exact dynamic `/public/apps.json` route, and the six
+redirects share the `public_website` atomic handoff group. The exact JSON route
+must take precedence over the broader legacy `/public/` static alias. A partial
+move would strand either the catalog page or one of its legacy entry points.

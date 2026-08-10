@@ -300,6 +300,35 @@
       "rollback_backend": "app_engine_default"
     },
     {
+      "id": "public_static_site",
+      "paths": [
+        {"kind": "exact", "value": "/"},
+        {"kind": "exact", "value": "/404.html"},
+        {"kind": "exact", "value": "/LICENSE"},
+        {"kind": "exact", "value": "/apps.html"},
+        {"kind": "exact", "value": "/contact.html"},
+        {"kind": "exact", "value": "/emulator.html"},
+        {"kind": "exact", "value": "/favicon.ico"},
+        {"kind": "exact", "value": "/full-width.html"},
+        {"kind": "exact", "value": "/index.html"},
+        {"kind": "exact", "value": "/signup.html"},
+        {"kind": "prefix", "value": "/css/"},
+        {"kind": "prefix", "value": "/favicon/"},
+        {"kind": "prefix", "value": "/gfx/"},
+        {"kind": "prefix", "value": "/js/"},
+        {"kind": "prefix", "value": "/lightbox2/"},
+        {"kind": "prefix", "value": "/public/"},
+        {"kind": "prefix", "value": "/vendor/"}
+      ],
+      "current_backend": "app_engine_default",
+      "future_backend": "static_backend_bucket",
+      "disposition": "migrate_atomically_with_catalog_json_and_public_redirects",
+      "migration_mode": "atomic_route_change",
+      "handoff_group": "public_website",
+      "canary_steps_percent": [],
+      "rollback_backend": "app_engine_default"
+    },
+    {
       "id": "public_website_catalog",
       "paths": [
         {
@@ -311,6 +340,7 @@
       "future_backend": "cloud_run_api",
       "disposition": "enable_with_static_website_candidate_after_json_parity",
       "migration_mode": "atomic_route_change",
+      "handoff_group": "public_website",
       "canary_steps_percent": [],
       "rollback_backend": "app_engine_default"
     },
@@ -346,6 +376,7 @@
       "future_backend": "cloud_run_api",
       "disposition": "migrate_after_exact_status_location_and_body_parity",
       "migration_mode": "atomic_route_change",
+      "handoff_group": "public_website",
       "canary_steps_percent": [],
       "rollback_backend": "app_engine_default"
     },

@@ -82,6 +82,11 @@ Cloud Run implementation but no production routing authority. The six exact
 candidate with the legacy empty-body 302 behavior; longer paths remain
 unclassified and fail closed to App Engine.
 
+The static route group enumerates every root page and asset prefix, including
+the legacy `/public/` alias. It targets only the not-yet-created backend bucket.
+It shares one `public_website` handoff group with `/public/apps.json` and the six
+redirects, so those three backends change or roll back in one URL-map update.
+
 ## Why active comparison is required
 
 Global external Application Load Balancers support host/path routing and

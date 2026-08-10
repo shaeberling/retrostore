@@ -18,6 +18,27 @@ _FAVICON_SOURCE = _REPOSITORY_ROOT / "appengine/src/main/webapp/WEB-INF/favicon"
 _GFX_SOURCE = _REPOSITORY_ROOT / "appengine/src/main/webapp/WEB-INF/gfx"
 _STATIC_SUFFIXES = frozenset({".css", ".gif", ".ico", ".js", ".json", ".png", ".svg"})
 _REMOVED_MISSING_SCRIPT = '    <script src="js/contact_me.js"></script>\n'
+PUBLIC_STATIC_EXACT_PATHS = (
+    "/",
+    "/404.html",
+    "/LICENSE",
+    "/apps.html",
+    "/contact.html",
+    "/emulator.html",
+    "/favicon.ico",
+    "/full-width.html",
+    "/index.html",
+    "/signup.html",
+)
+PUBLIC_STATIC_PREFIX_PATHS = (
+    "/css/",
+    "/favicon/",
+    "/gfx/",
+    "/js/",
+    "/lightbox2/",
+    "/public/",
+    "/vendor/",
+)
 
 
 class _ReferenceParser(HTMLParser):
@@ -50,27 +71,49 @@ def build_public_site(
     output.parent.mkdir(parents=True, exist_ok=True)
     try:
         shutil.copytree(_PUBLIC_SOURCE, output)
+        # StaticFileRequest also exposes the same public tree below /public/.
+        # Keep that legacy alias as real objects so no load-balancer rewrite is
+        # required and the exact dynamic /public/apps.json route can win.
+        shutil.copytree(_PUBLIC_SOURCE, output / "public")
         shutil.copytree(_FAVICON_SOURCE, output / "favicon")
         shutil.copytree(_GFX_SOURCE, output / "gfx")
         shutil.copy2(_FAVICON_SOURCE / "favicon.ico", output / "favicon.ico")
-        transformations = _transform_candidate_files(output)
+        root_transformations = _transform_candidate_files(output)
+        alias_transformations = _transform_candidate_files(output / "public")
+        transformations = {
+            name: root_transformations[name] + alias_transformations[name]
+            for name in root_transformations
+        }
         missing = _missing_static_references(output)
         if missing:
             raise ValueError(
                 "Static website has missing local assets: " + ", ".join(missing)
             )
         files = sorted(path for path in output.rglob("*") if path.is_file())
+        unrouted = _unrouted_static_files(output, files)
+        if unrouted:
+            raise ValueError("Static website has unrouted files: " + ", ".join(unrouted))
         aggregate = hashlib.sha256()
         total_bytes = 0
+        objects = []
         for path in files:
             relative = path.relative_to(output).as_posix()
             body = path.read_bytes()
+            body_sha256 = hashlib.sha256(body).hexdigest()
             total_bytes += len(body)
             encoded_path = relative.encode()
             aggregate.update(len(encoded_path).to_bytes(8, "big"))
             aggregate.update(encoded_path)
             aggregate.update(len(body).to_bytes(8, "big"))
-            aggregate.update(hashlib.sha256(body).digest())
+            aggregate.update(bytes.fromhex(body_sha256))
+            objects.append(
+                {
+                    "path": relative,
+                    "size": len(body),
+                    "sha256": body_sha256,
+                    "content_type": legacy_static_content_type(relative),
+                }
+            )
     except BaseException:
         if output.is_dir():
             shutil.rmtree(output)
@@ -90,11 +133,18 @@ def build_public_site(
             "deploys_resources": False,
         },
         "transformations": transformations,
+        "routes": {
+            "exact": list(PUBLIC_STATIC_EXACT_PATHS),
+            "prefix": list(PUBLIC_STATIC_PREFIX_PATHS),
+            "dynamic_exact_exclusion": "/public/apps.json",
+        },
+        "objects": objects,
         "result": {
             "file_count": len(files),
             "total_bytes": total_bytes,
             "content_aggregate_sha256": aggregate.hexdigest(),
             "missing_static_reference_count": 0,
+            "unrouted_static_file_count": 0,
         },
     }
 
@@ -141,34 +191,48 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 def _transform_candidate_files(output: Path) -> dict[str, int]:
-    apps = output / "apps.html"
-    apps_body = apps.read_text()
-    old_rpc = '$.get("/rpc?m=pubapplist", function(apps) {'
-    new_rpc = '$.get("/public/apps.json", function(apps) {'
-    if apps_body.count(old_rpc) != 1:
-        raise ValueError("Legacy public app-list fetch changed unexpectedly")
-    if apps_body.count("/public/lightbox2/") != 2:
-        raise ValueError("Legacy public lightbox paths changed unexpectedly")
-    apps.write_text(
-        apps_body.replace(old_rpc, new_rpc).replace(
+    transformations = {
+        "public_app_list_fetch_rewritten": 0,
+        "lightbox_paths_rewritten": 0,
+        "missing_contact_scripts_removed": 0,
+    }
+    for filename in ("apps.html", "contact.html", "signup.html"):
+        path = output / filename
+        body, counts = transform_public_site_text(filename, path.read_text())
+        path.write_text(body)
+        for name, count in counts.items():
+            transformations[name] += count
+    return transformations
+
+
+def transform_public_site_text(filename: str, body: str) -> tuple[str, dict[str, int]]:
+    counts = {
+        "public_app_list_fetch_rewritten": 0,
+        "lightbox_paths_rewritten": 0,
+        "missing_contact_scripts_removed": 0,
+    }
+    if filename == "apps.html":
+        old_rpc = '$.get("/rpc?m=pubapplist", function(apps) {'
+        new_rpc = '$.get("/public/apps.json", function(apps) {'
+        if body.count(old_rpc) != 1:
+            raise ValueError("Legacy public app-list fetch changed unexpectedly")
+        lightbox_count = body.count("/public/lightbox2/")
+        if lightbox_count != 2:
+            raise ValueError("Legacy public lightbox paths changed unexpectedly")
+        counts["public_app_list_fetch_rewritten"] = 1
+        counts["lightbox_paths_rewritten"] = lightbox_count
+        body = body.replace(old_rpc, new_rpc).replace(
             "/public/lightbox2/", "/lightbox2/"
         )
-    )
-
-    removed_scripts = 0
-    for filename in ("contact.html", "signup.html"):
-        path = output / filename
-        body = path.read_text()
-        count = body.count(_REMOVED_MISSING_SCRIPT)
-        if count != 1:
+    elif filename in {"contact.html", "signup.html"}:
+        removed = body.count(_REMOVED_MISSING_SCRIPT)
+        if removed != 1:
             raise ValueError(f"{filename} missing-script marker changed unexpectedly")
-        path.write_text(body.replace(_REMOVED_MISSING_SCRIPT, ""))
-        removed_scripts += count
-    return {
-        "public_app_list_fetch_rewritten": 1,
-        "lightbox_paths_rewritten": 2,
-        "missing_contact_scripts_removed": removed_scripts,
-    }
+        counts["missing_contact_scripts_removed"] = removed
+        body = body.replace(_REMOVED_MISSING_SCRIPT, "")
+    else:
+        raise ValueError(f"Unsupported public-site transformation target: {filename}")
+    return body, counts
 
 
 def _missing_static_references(root: Path) -> list[str]:
@@ -182,6 +246,32 @@ def _missing_static_references(root: Path) -> list[str]:
             if path is not None and not (root / path).is_file():
                 missing.add(f"{html.relative_to(root).as_posix()} -> {path.as_posix()}")
     return sorted(missing)
+
+
+def _unrouted_static_files(root: Path, files: Sequence[Path]) -> list[str]:
+    exact = frozenset(PUBLIC_STATIC_EXACT_PATHS)
+    prefixes = PUBLIC_STATIC_PREFIX_PATHS
+    return [
+        path.relative_to(root).as_posix()
+        for path in files
+        if (public_path := f"/{path.relative_to(root).as_posix()}") not in exact
+        and not public_path.startswith(prefixes)
+    ]
+
+
+def legacy_static_content_type(path: str) -> str:
+    suffix = PurePosixPath(path).suffix.casefold()
+    return {
+        ".html": "text/html",
+        ".htm": "text/html",
+        ".css": "text/css",
+        ".js": "application/javascript",
+        ".json": "application/json",
+        ".jpeg": "image/jpeg",
+        ".jpg": "image/jpeg",
+        ".png": "image/png",
+        ".svg": "image/svg+xml",
+    }.get(suffix, "text/plain")
 
 
 def _static_reference_path(

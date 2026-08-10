@@ -465,7 +465,12 @@ Completed foundation work:
   vendored browser dependencies, favicon, and graphics without deployment. It
   rewrites only the new JSON fetch and two legacy lightbox paths, removes two
   references to an absent unused script, and validates local asset closure. The
-  first build contained 48 files/2,909,581 bytes with zero missing assets. The
+  route-complete build contains 78 objects/4,652,747 bytes with zero missing or
+  unrouted assets, including real `/public/` compatibility aliases and a
+  per-object checksum/content-type manifest. A 79-scenario live comparison
+  matched every legacy source/status/content-type/CORS gate and all six expected
+  HTML transformations. Static files, `/public/apps.json`, and the redirects are
+  one validated `public_website` handoff group. The
   existing default Firebase Hosting site was confirmed to contain the separate
   TRS-80 KMP web application and is explicitly excluded; no new site or bucket
   was created.
@@ -863,7 +868,7 @@ Use these route groups and dependency rules:
 
 | Order | Route group | Cutover rule |
 | --- | --- | --- |
-| 1 | Static website | Independent after asset and routing checks |
+| 1 | Static website, its JSON dependency, and public redirects | Atomic after complete object/status/routing checks |
 | 2 | Catalog reads | Canary gradually after zero-diff gates pass |
 | 3 | Media reads and assets | Canary gradually after checksum/range parity |
 | 4 | Admin and catalog writes | Atomic writer handoff; never dual-write |
@@ -1315,7 +1320,8 @@ Exit criteria:
 2. Put the legacy catalog admin into read-only mode and run a final incremental
    sync, checksum reconciliation, and API comparison. Leave the hardware update
    administration unchanged.
-3. Move the static website, then catalog reads, then media reads/assets. Use
+3. Move the static website, `/public/apps.json`, and the six public redirects in
+   one URL-map update; then move API catalog reads, then media reads/assets. Use
    controlled traffic increments where the load balancer supports safe canaries.
 4. After those read groups are stable, enable the new admin as the sole catalog
    writer and permanently disable legacy catalog mutations.
@@ -1621,6 +1627,9 @@ Phase 1:
 - [x] Preserve the six exact public website redirects in Flask, compare their
   empty-body 302 status and destinations without following them, and add them
   to the fail-closed candidate route plan and retained evidence schema.
+- [x] Close the complete public static route set, preserve the legacy `/public/`
+  aliases, generate per-object deployment metadata, and compare all 78 objects
+  plus `/` with zero differences outside six deterministic HTML changes.
 - [ ] Confirm the proposed hostnames and formally name the go/no-go and rollback
   owners before any load-balancer, certificate, public IAM, or DNS resource is
   created. Current DNS, certificates, HTTP behavior, and absence of an existing

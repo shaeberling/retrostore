@@ -43,6 +43,25 @@ PUBLIC_REDIRECT_PATHS = {
     ("exact", "/app"),
     ("exact", "/app/"),
 }
+PUBLIC_STATIC_PATHS = {
+    ("exact", "/"),
+    ("exact", "/404.html"),
+    ("exact", "/LICENSE"),
+    ("exact", "/apps.html"),
+    ("exact", "/contact.html"),
+    ("exact", "/emulator.html"),
+    ("exact", "/favicon.ico"),
+    ("exact", "/full-width.html"),
+    ("exact", "/index.html"),
+    ("exact", "/signup.html"),
+    ("prefix", "/css/"),
+    ("prefix", "/favicon/"),
+    ("prefix", "/gfx/"),
+    ("prefix", "/js/"),
+    ("prefix", "/lightbox2/"),
+    ("prefix", "/public/"),
+    ("prefix", "/vendor/"),
+}
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -161,6 +180,17 @@ def validate_routes(routes: dict[str, Any]) -> None:
         and not public_website["canary_steps_percent"],
         "the public website and its JSON dependency must move together",
     )
+    public_static = by_id["public_static_site"]
+    _require(
+        _paths(public_static) == PUBLIC_STATIC_PATHS,
+        "the public static website route closure changed unexpectedly",
+    )
+    _require(
+        public_static["future_backend"] == "static_backend_bucket"
+        and public_static["migration_mode"] == "atomic_route_change"
+        and not public_static["canary_steps_percent"],
+        "the public static website requires one atomic backend-bucket move",
+    )
     public_redirects = by_id["public_redirects"]
     _require(
         _paths(public_redirects) == PUBLIC_REDIRECT_PATHS,
@@ -170,6 +200,16 @@ def validate_routes(routes: dict[str, Any]) -> None:
         public_redirects["migration_mode"] == "atomic_route_change"
         and not public_redirects["canary_steps_percent"],
         "public redirects require one atomic route change",
+    )
+    for group in (public_static, public_website, public_redirects):
+        _require(
+            group.get("handoff_group") == "public_website",
+            "static files, catalog JSON, and redirects must share one handoff group",
+        )
+    _require(
+        ("prefix", "/public/") in _paths(public_static)
+        and ("exact", "/public/apps.json") in _paths(public_website),
+        "the exact dynamic catalog route must override the legacy /public/ alias",
     )
 
     production = routes["candidate_maps"]["production_initial"]
