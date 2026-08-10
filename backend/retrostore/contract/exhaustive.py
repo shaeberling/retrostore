@@ -196,14 +196,17 @@ def main() -> None:
     parser.add_argument("--approvals", type=Path)
     parser.add_argument("--timeout-seconds", type=float, default=30.0)
     parser.add_argument("--candidate-gcloud-identity-token-service-account")
+    parser.add_argument("--candidate-audience")
     args = parser.parse_args()
 
     candidate_headers = None
+    if args.candidate_audience and not args.candidate_gcloud_identity_token_service_account:
+        raise ValueError("--candidate-audience requires a candidate identity")
     if args.candidate_gcloud_identity_token_service_account:
         candidate_headers = {
             "Authorization": "Bearer "
             + _gcloud_identity_token(
-                args.candidate_url,
+                args.candidate_audience or args.candidate_url,
                 args.candidate_gcloud_identity_token_service_account,
             )
         }

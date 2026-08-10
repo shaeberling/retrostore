@@ -250,6 +250,10 @@ UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
   --output /tmp/retrostore-cloud-comparison.json
 ```
 
+Omit `--candidate-audience` when the candidate URL is already the untagged
+Cloud Run service URL. Supply it when testing a zero-traffic tag, because Cloud
+Run validates the identity token against the untagged service audience.
+
 The guarded capacity harness first captures the same exhaustive production
 reference once, then sends only those read-only scenarios concurrently to the
 private candidate. It compares every response while measuring latency and
@@ -299,6 +303,14 @@ about 1.97% mean CPU utilization, 42.90% mean memory utilization, and 3.94 ms
 mean in-container latency over the bounded evidence window. This is useful
 headroom evidence for the tested shape, not a final production capacity claim.
 
+After `/downloadapp` was added, the first concurrency-8 run again matched all
+2,000 API responses but retained a non-passing provisional latency sample: two
+client-observed stalls among only 13 `listAppsNano` requests. Exact-revision
+telemetry passed its completeness/resource gate. An independent 2,000-request
+confirmation then passed every method gate at 38.08 requests per second with
+zero transport errors, 5xx responses, or semantic differences. Both results
+are retained; the non-pass is not discarded or treated as a passing sample.
+
 The completed four-step ramp exercised 15,000 measured requests and
 1,301,486,720 response bytes at concurrency 8, 12, 16, and 20. Every response
 was HTTP 200 with zero transport errors, 5xx responses, or semantic differences.
@@ -347,7 +359,7 @@ UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
   --apply \
   --confirm-project trs-80 \
   --confirm-service retrostore-api-compat-candidate \
-  --confirm-revision retrostore-api-compat-candidate-observability2 \
+  --confirm-revision retrostore-api-compat-candidate-downloads1 \
   --require-current
 ```
 

@@ -23,9 +23,11 @@ from services.api_compat.app import create_archive_app
 _MAX_ZIP_ENTRIES = 64
 _MAX_RESPONSE_BYTES = 32 * 1024 * 1024
 _CANDIDATE_HOST = "retrostore-api-compat-candidate-760396810462.us-central1.run.app"
+_LEGACY_CANDIDATE_HOST = "retrostore-api-compat-candidate-zzch7qgr2a-uc.a.run.app"
 _CANDIDATE_IDENTITY = "retrostore-api@trs-80.iam.gserviceaccount.com"
 _TAGGED_CANDIDATE_HOST = re.compile(
-    r"^[a-z0-9-]+---retrostore-api-compat-candidate-760396810462\.us-central1\.run\.app$"
+    r"^[a-z0-9-]+---retrostore-api-compat-candidate-(?:760396810462\.us-central1\.run\.app|"
+    r"[a-z0-9]+-uc\.a\.run\.app)$"
 )
 
 
@@ -231,7 +233,10 @@ def _candidate_origin(value: str) -> str:
     host = parsed.hostname or ""
     if (
         parsed.scheme != "https"
-        or (host != _CANDIDATE_HOST and _TAGGED_CANDIDATE_HOST.fullmatch(host) is None)
+        or (
+            host not in {_CANDIDATE_HOST, _LEGACY_CANDIDATE_HOST}
+            and _TAGGED_CANDIDATE_HOST.fullmatch(host) is None
+        )
         or parsed.username is not None
         or parsed.password is not None
         or parsed.port is not None

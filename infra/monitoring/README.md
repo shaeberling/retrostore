@@ -118,10 +118,17 @@ higher than 45%, and in-container p95/p99 no higher than 12.1/17.72 ms. One
 instance/CPU seconds and 27.2 GiB-seconds of memory allocation. No Cloud Run
 configuration or traffic was changed.
 
-The checksum-validating soak auditor currently sees three retained comparison
+The `downloads1` revision was also checked after private promotion. Its first
+concurrency-8 run matched all 2,000 responses but preserved a provisional
+`listAppsNano` latency non-pass from two client-observed stalls in a 13-request
+sample; exact-revision native telemetry passed the evidence/resource gate. A
+fresh 2,000-request confirmation passed every method gate at 38.08 requests per
+second with zero semantic differences, transport errors, or 5xx responses.
+
+The checksum-validating soak auditor currently sees five retained comparison
 reports with no differences or failed gates. One report is after the
-`observability2` boundary and starts the current private evidence clock at
-2026-08-10 01:18:54 UTC. A gap over 90 minutes, a failed/changed report, or a
+`downloads1` boundary and starts the current private evidence clock at
+2026-08-10 02:47:15 UTC. A gap over 90 minutes, a failed/changed report, or a
 different serving revision makes the clock non-current. Reaching fourteen days
 will satisfy only this private evidence gate; it cannot substitute for the
 separate hostname, ownership, front-door, consumer, or writer-handoff gates.

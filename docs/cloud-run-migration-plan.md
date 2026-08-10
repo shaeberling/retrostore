@@ -369,7 +369,8 @@ Completed foundation work:
   discovery on 2026-08-10 reconfirmed that no load-balancer resource exists and
   that Certificate Manager is not enabled. No resource was created.
 - Privacy-safe request telemetry is deployed on private API revision
-  `observability2` and admin revision `observability1`. Both were tested at zero
+  `downloads1` (inheriting the `observability2` hardening) and admin revision
+  `observability1`. Both were tested at zero
   traffic before promotion; the API
   still matched production 158/158 and the admin passed all readiness and
   browser-bootstrap smoke checks. The real JVM, pinned TRS-80 KMP, and embedded
@@ -429,13 +430,19 @@ Completed foundation work:
   p95/p99 at most 12.1/17.72 ms, plus one 950.6 ms startup. Allocation metrics
   provide raw cost inputs. No service configuration or traffic changed.
 - A checksum-validating private soak auditor now binds evidence to the checked-in
-  `observability2` readiness boundary, verifies the revision still serves 100%
+  `downloads1` readiness boundary, verifies the revision still serves 100%
   of private traffic, and independently validates every retained comparison
-  object and result count. It now accepts four zero-diff reports, including two
-  after the boundary at a 3,589.55-second gap; both match 158/158 with no
-  approvals. The fourteen-day clock is current but not yet eligible. The
-  baseline explicitly denies cutover, load-balancer, and catalog-activation
-  authority.
+  object and result count. The first manual post-promotion execution matched
+  158/158 with no approval and seeded a new clock at 02:47:15 UTC; the four
+  earlier reports remain valid evidence but precede this revision boundary.
+  The fourteen-day clock is current but not yet eligible. The baseline explicitly
+  denies cutover, load-balancer, and catalog-activation authority.
+- The promoted private `downloads1` revision received two additional guarded
+  concurrency-8 API runs. Both matched 2,000/2,000 responses. The first retained
+  a provisional `listAppsNano` latency non-pass caused by two client-path stalls
+  in a 13-request sample while native revision metrics passed; the independent
+  confirmation passed every latency gate at 38.08 requests/second. Neither run
+  changed production routing or service configuration.
 
 Open foundation work:
 

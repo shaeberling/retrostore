@@ -95,9 +95,9 @@ eight-day bucket lifecycle remain asynchronous cleanup mechanisms.
 
 - Service: `retrostore-api-compat-candidate`
 - Region: `us-central1`
-- Revision: `retrostore-api-compat-candidate-observability2`
+- Revision: `retrostore-api-compat-candidate-downloads1`
 - Runtime identity: `retrostore-api@trs-80.iam.gserviceaccount.com`
-- Image digest: `sha256:3a36e48a2a1f4a4a0952493099ffd1b229e96248bdba8d3c56228fb264b81310`
+- Image digest: `sha256:cee286ff02b21541cc75342557438f281fd0e8dbc7676a2ca1795504ced6af2f`
 - Authentication: private; only the runtime identity and migration operator
   have service-scoped `roles/run.invoker`
 - Production URL map: unchanged
@@ -124,6 +124,19 @@ Revision `observability2` hardens the API-method label: a request whose path is
 not one of the nine frozen API methods is recorded only as `unknown`, never as
 attacker-controlled path text. It passed the same health, denial, consumer, and
 158/158 zero-traffic gates before receiving 100% of private candidate traffic.
+
+Revision `downloads1` adds the public read-only `/downloadapp` compatibility
+handler over the immutable normalized mirror. Before private promotion it denied
+anonymous invocation, matched all 94 current ZIP/typed/error download scenarios,
+matched the frozen API corpus 158/158 with zero approvals, and passed a guarded
+synthetic lifecycle through all three state RPCs. It then received 100% of the
+private candidate traffic; `retrostore.org` and the active catalog pointer did
+not change. A manual 158/158 comparator seeded its new revision-bound soak.
+Two subsequent concurrency-8 runs each matched 2,000/2,000 frozen API
+responses. The first preserved a low-sample client-latency non-pass while
+exact-revision resource telemetry passed; the independent confirmation passed
+all provisional method gates at 38.08 requests per second. No service setting
+changed during either run.
 
 ## Private staged-snapshot preview
 

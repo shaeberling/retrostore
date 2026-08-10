@@ -90,11 +90,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--timeout-seconds", type=float, default=30.0)
     parser.add_argument("--candidate-gcloud-identity-token-service-account")
+    parser.add_argument("--candidate-audience")
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--confirm-candidate-url")
     args = parser.parse_args(argv)
 
     candidate_url = _validate_candidate_url(args.candidate_url)
+    if args.candidate_audience and not args.candidate_gcloud_identity_token_service_account:
+        raise ValueError("--candidate-audience requires a candidate identity")
     report: dict[str, object] = {
         "schema_version": 1,
         "generated_at": datetime.now(UTC).isoformat(),
@@ -114,7 +117,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             headers = {
                 "Authorization": "Bearer "
                 + _gcloud_identity_token(
-                    candidate_url,
+                    args.candidate_audience or candidate_url,
                     args.candidate_gcloud_identity_token_service_account,
                 )
             }

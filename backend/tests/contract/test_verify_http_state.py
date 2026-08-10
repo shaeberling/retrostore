@@ -82,7 +82,12 @@ def test_apply_mints_identity_token_and_writes_aggregate_report(
     output = tmp_path / "applied.json"
     observed: dict[str, object] = {}
 
-    monkeypatch.setattr(command, "_gcloud_identity_token", lambda url, account: "secret")
+    def identity_token(url, account):
+        observed["audience"] = url
+        observed["identity"] = account
+        return "secret"
+
+    monkeypatch.setattr(command, "_gcloud_identity_token", identity_token)
 
     class Client:
         def __init__(self, **kwargs) -> None:
@@ -110,6 +115,8 @@ def test_apply_mints_identity_token_and_writes_aggregate_report(
                 str(output),
                 "--candidate-gcloud-identity-token-service-account",
                 "api@example.iam.gserviceaccount.com",
+                "--candidate-audience",
+                "https://service.example",
                 "--apply",
                 "--confirm-candidate-url",
                 "https://candidate.example",
@@ -119,6 +126,7 @@ def test_apply_mints_identity_token_and_writes_aggregate_report(
     )
 
     assert observed["base_url"] == "https://candidate.example"
+    assert observed["audience"] == "https://service.example"
     assert observed["headers"] == {"Authorization": "Bearer secret"}
     report = json.loads(output.read_text())
     assert report["result"]["token_in_legacy_range"] is True
