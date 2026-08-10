@@ -30,6 +30,7 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
     app.config.from_mapping(
         RETROSTORE_API_HANDLERS=None,
         RETROSTORE_API_STORAGE=None,
+        RETROSTORE_OBSERVABLE_API_METHODS=frozenset(PUBLIC_API_METHODS),
         RETROSTORE_PROJECT=os.environ.get("RETROSTORE_PROJECT"),
         RETROSTORE_REQUEST_LOGGING=True,
         RETROSTORE_SCREENSHOTS={},

@@ -73,6 +73,24 @@ The checked-in Storage lifecycle deletes only comparison objects after 90 days.
 The bucket's seven-day soft-delete policy provides a short recovery tail; it
 does not change application-asset retention.
 
+## Current private deployment
+
+- Job: `retrostore-hourly-comparator`, `us-central1`
+- Runtime identity: `retrostore-comparator@trs-80.iam.gserviceaccount.com`
+- Image digest: `sha256:40f2a6a653e3e87f3c807b28bc95dedf74328ece74029aa25eb723d86c55312c`
+- Candidate: private `retrostore-api-compat-candidate`
+- Retries: zero; timeout: 15 minutes; one task
+- Schedule: minute 17 hourly, `Etc/UTC`, enabled
+
+The first manual execution `retrostore-hourly-comparator-26mj6` completed
+successfully on 2026-08-10. Its retained 26,470-byte report has SHA-256
+`9cd14ec4ddb7278e668558d1695623389f83dd4f14e5ec1846225cf82bfe854c`
+and matched 158/158 scenarios over 32 apps, 60 media objects, and 6,826,237
+media bytes with no approval. The object exists only below the approved report
+prefix. Bucket IAM is conditional on that prefix, and the applied lifecycle
+matches only that prefix. Uniform bucket-level access, public-access prevention,
+and seven-day soft delete remain enabled.
+
 References:
 
 - [Execute Cloud Run jobs on a schedule](https://cloud.google.com/run/docs/execute/jobs-on-schedule)

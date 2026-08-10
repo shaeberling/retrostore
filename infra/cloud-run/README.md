@@ -95,9 +95,9 @@ eight-day bucket lifecycle remain asynchronous cleanup mechanisms.
 
 - Service: `retrostore-api-compat-candidate`
 - Region: `us-central1`
-- Revision: `retrostore-api-compat-candidate-state1`
+- Revision: `retrostore-api-compat-candidate-observability1`
 - Runtime identity: `retrostore-api@trs-80.iam.gserviceaccount.com`
-- Image digest: `sha256:35cfa574d18696eb89aa2e99868938f9d7782541ff128fcd27dd10eb5da34ff4`
+- Image digest: `sha256:40f2a6a653e3e87f3c807b28bc95dedf74328ece74029aa25eb723d86c55312c`
 - Authentication: private; only the runtime identity and migration operator
   have service-scoped `roles/run.invoker`
 - Production URL map: unchanged
@@ -111,6 +111,14 @@ public diagnostic and the final private, audience-bound identity run matched
 all 158 read-only observations. The private authenticated HTTP state lifecycle
 also passed upload, full download, memory-excluded download, and overlapping
 region retrieval. No production routing changed.
+
+Revision `observability1` adds bounded JSON request events without URLs, query
+strings, client addresses, user agents, tokens, cookies, identities, request
+bodies, or response bodies. The zero-traffic revision passed health/readiness,
+anonymous HTTP 403, the real JVM/KMP/embedded-C consumer harness, and the full
+158/158 production comparison before receiving 100% of private candidate
+traffic. Cloud Logging parsed its `httpRequest` fields, service/API labels, and
+Cloud Trace correlation as structured fields.
 
 ## Private staged-snapshot preview
 
@@ -138,9 +146,9 @@ production routing did not move.
 
 - Service: `retrostore-admin-candidate`
 - Region: `us-central1`
-- Revision: `retrostore-admin-candidate-draft2`
+- Revision: `retrostore-admin-candidate-observability1`
 - Runtime identity: `retrostore-admin@trs-80.iam.gserviceaccount.com`
-- Image digest: `sha256:bf535aab9849638f84435a115b103e4607a109f48435b702fb086907459be99e`
+- Image digest: `sha256:5ea9ffe42bad43e374c3cc38e12e4d9716a6d1870e83320cde59bb337e150c84`
 - Authentication: private Cloud Run invocation followed by Firebase server
   session verification; no `allUsers` invoker binding
 - Data mode: the materialized synchronized baseline is read-only; Firestore
@@ -217,3 +225,10 @@ percent before receiving 100% of private admin traffic. Anonymous HTTP remains
 403. A subsequent active-snapshot comparison matched 158/158 with no approvals.
 No authenticated draft asset mutation was created automatically during the
 deployment smoke, so the existing isolated staged `TestApp` was left unchanged.
+
+Revision `observability1` retains all `draft2` behavior and adds the same
+privacy-safe request events. It passed all seven readiness checks, login,
+compiled CSS, pre-session redirect, structured-log parsing and trace
+correlation, and anonymous HTTP 403 at zero traffic before receiving 100% of
+private admin traffic. The earlier `draft1` and `draft2` tags remain at zero
+percent for private rollback.

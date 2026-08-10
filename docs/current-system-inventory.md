@@ -326,6 +326,15 @@ Build is enabled. Three unrouted private Cloud Run services exist in
 preview, and the administration candidate. Each denies anonymous invocation;
 none is connected to `retrostore.org`.
 
+A private `retrostore-hourly-comparator` Cloud Run Job uses a fourth dedicated
+keyless identity. It can invoke only the private active-snapshot API candidate
+and create new objects only under the conditional
+`operations/comparisons/` assets-bucket prefix; it has no database, state,
+asset-read, overwrite, or delete permission. Its first 158-scenario execution
+passed and retained a checksum-verified report. Cloud Scheduler is enabled with
+an hourly UTC trigger. The assets bucket now deletes only comparison-report
+objects after 90 days; application asset paths are not lifecycle targets.
+
 The pre-existing App Engine, Compute, and Firebase Admin SDK identities remain.
 The migration adds separate keyless migrator, public API, and administration
 identities with scoped access to the named databases, private buckets, and

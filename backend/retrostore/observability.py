@@ -48,8 +48,11 @@ def register_request_observability(app: Flask, *, service: str) -> None:
 
         if endpoint == "api":
             method_name = (request.view_args or {}).get("method_name")
-            if isinstance(method_name, str) and method_name:
-                event["api_method"] = method_name[:64]
+            observable_methods = app.config.get("RETROSTORE_OBSERVABLE_API_METHODS", ())
+            if isinstance(method_name, str):
+                event["api_method"] = (
+                    method_name if method_name in observable_methods else "unknown"
+                )
 
         project = app.config.get("RETROSTORE_PROJECT")
         trace_id = _cloud_trace_id(request.headers.get("X-Cloud-Trace-Context"))

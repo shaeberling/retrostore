@@ -346,6 +346,19 @@ Completed foundation work:
   atomic state/admin handoffs. Its safety validator runs in CI. Read-only cloud
   discovery on 2026-08-10 reconfirmed that no load-balancer resource exists and
   that Certificate Manager is not enabled. No resource was created.
+- Privacy-safe request telemetry is deployed on private API/admin revisions
+  `observability1`. Both were tested at zero traffic before promotion; the API
+  still matched production 158/158 and the admin passed all readiness and
+  browser-bootstrap smoke checks. The real JVM, pinned TRS-80 KMP, and embedded
+  C clients also pass against the instrumented service. Cloud Logging parses
+  the bounded events and trace correlation without application URLs, payloads,
+  tokens, cookies, identities, or binary data.
+- A private `retrostore-hourly-comparator` Cloud Run Job is deployed with a
+  dedicated keyless identity, private candidate invocation, no database/state
+  access, and conditional create-only access to
+  `operations/comparisons/`. Its first manual execution retained a
+  checksum-verified 158/158 report with zero approvals. A prefix-only 90-day
+  lifecycle is applied, and an hourly UTC Cloud Scheduler trigger is enabled.
 
 Open foundation work:
 
@@ -355,6 +368,9 @@ Open foundation work:
   confirmation. Provisioning the load balancer, DNS authorizations,
   certificates, public candidate services, or DNS records remains a separate
   explicitly approved action.
+- Create dashboards and alert policies after the first scheduled comparator
+  delivery establishes the Cloud Scheduler path. A notification channel and
+  its responsible recipient still require owner confirmation.
 - The `native-client-library` Arduino tree in this repository is an unfinished
   prototype: it sends a bodyless GET, ignores its configurable host, and has no
   media implementation. It is distinct from the working native C/ESP32 source
@@ -1444,6 +1460,8 @@ Phase 1:
   exact API route groups, permanent hardware route exclusion, monitoring
   thresholds, soak policy, and rollback invariants in a CI-validated
   machine-readable front-door plan.
+- [x] Deploy privacy-safe structured request events and a least-privilege,
+  read-only hourly comparator job that retains immutable full-corpus reports.
 - [ ] Confirm the proposed hostnames and formally name the go/no-go and rollback
   owners before any load-balancer, certificate, public IAM, or DNS resource is
   created. Current DNS, certificates, HTTP behavior, and absence of an existing
@@ -1461,10 +1479,11 @@ isolated media-slot, ordered-screenshot, and guarded RPK import workflows are
 also deployed and have passed complete authenticated lifecycle proofs. The
 working-set-to-immutable-snapshot publication boundary, separate pinned preview,
 guarded activation/rollback command, and copy-on-write draft UI are now deployed
-privately without activation. Front-door preparation is complete without cloud
-mutation. While hostname and owner confirmation remain pending, the next safe
-executable work is request observability and a deployable scheduled comparator
-job; provisioning still requires explicit approval.
+privately without activation. Front-door preparation, request observability,
+and the private comparator are complete. While hostname and owner confirmation
+remain pending, the next safe executable work is scheduled-delivery
+verification, dashboards/alerts, and the repeatable mirror-sync/reverse-sync
+rehearsal. Load-balancer provisioning still requires explicit approval.
 Synchronized-catalog activation remains disabled.
 The RetroStore Card and TRS-IO hardware update subsystem stays unchanged on App
 Engine and is not part of that work queue.

@@ -64,3 +64,18 @@ def test_request_logging_can_be_disabled(capsys) -> None:
 
     assert app.test_client().get("/").status_code == 200
     assert capsys.readouterr().out == ""
+
+
+def test_unrecognized_api_path_segment_is_not_logged(capsys) -> None:
+    app = Flask(__name__)
+    app.config["RETROSTORE_OBSERVABLE_API_METHODS"] = {"knownMethod"}
+    register_request_observability(app, service="test-service")
+
+    @app.post("/api/<method_name>")
+    def api(method_name: str) -> tuple[str, int]:
+        return "missing", 400
+
+    assert app.test_client().post("/api/path-secret").status_code == 400
+    event = json.loads(capsys.readouterr().out)
+    assert event["api_method"] == "unknown"
+    assert "path-secret" not in json.dumps(event)
