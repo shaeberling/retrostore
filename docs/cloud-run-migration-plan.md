@@ -364,6 +364,12 @@ Completed foundation work:
   dashboard, a passing-comparison log metric, and difference/stale-evidence
   alert policies are deployed. The policies are intentionally disabled and
   channel-free until the responsible recipient is confirmed.
+- A recurring catalog-refresh command is implemented separately from the
+  bootstrap importer. It compares normalized full exports, requires the exact
+  active snapshot on apply, stages and reconciles immutable data, proves the
+  active pointer did not move, and exposes no activation option. Its first
+  real-cloud rehearsal reused all 150 baseline objects with zero differences
+  and left the 32-app active snapshot unchanged.
 
 Open foundation work:
 
@@ -1484,11 +1490,12 @@ isolated media-slot, ordered-screenshot, and guarded RPK import workflows are
 also deployed and have passed complete authenticated lifecycle proofs. The
 working-set-to-immutable-snapshot publication boundary, separate pinned preview,
 guarded activation/rollback command, and copy-on-write draft UI are now deployed
-privately without activation. Front-door preparation, request observability,
-and the private comparator are complete. While hostname and owner confirmation
-remain pending, the next safe executable work is scheduled-delivery
-verification, dashboards/alerts, and the repeatable mirror-sync/reverse-sync
-rehearsal. Load-balancer provisioning still requires explicit approval.
+privately without activation. Front-door preparation, request observability, the
+private comparator, its dashboard, and the stage-only half of repeatable mirror
+synchronization are complete. While hostname and owner confirmation remain
+pending, the next safe executable work is the read-only reverse-sync planning
+and rehearsal boundary. Load-balancer provisioning still requires explicit
+approval.
 Synchronized-catalog activation remains disabled.
 The RetroStore Card and TRS-IO hardware update subsystem stays unchanged on App
 Engine and is not part of that work queue.

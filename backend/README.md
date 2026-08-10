@@ -375,6 +375,49 @@ all documents reconcile does one atomic batch mark the snapshot ready and move
 partially written snapshot, and retrying the same archive reuses verified
 objects and the same snapshot ID.
 
+The bootstrap importer is intentionally not the recurring synchronization
+command because its successful apply activates the imported snapshot. After the
+initial bootstrap, validate every new full legacy export with the separate
+stage-only refresh boundary:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.mirror.stage_catalog_refresh \
+  /path/to/new-retrostore-catalog-export.zip \
+  --baseline-archive /path/to/previous-retrostore-catalog-export.zip \
+  --project trs-80 \
+  --database retrostore \
+  --bucket trs-80-retrostore-assets \
+  --output /tmp/retrostore-catalog-refresh-dry-run.json
+```
+
+The dry run constructs no cloud clients. It reports only source/snapshot
+digests, aggregate counts, and added/changed/removed record IDs; it does not
+copy catalog field values into the operational report. A stage apply requires
+the exact active snapshot ID and manifest digest in addition to the normal
+project and migrator confirmations:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.mirror.stage_catalog_refresh \
+  /path/to/new-retrostore-catalog-export.zip \
+  --project trs-80 \
+  --database retrostore \
+  --bucket trs-80-retrostore-assets \
+  --output /tmp/retrostore-catalog-refresh-stage.json \
+  --apply-stage \
+  --confirm-project trs-80 \
+  --impersonate-service-account \
+    retrostore-migrator@trs-80.iam.gserviceaccount.com \
+  --expected-active-snapshot-id catalog-EXPECTED_SHA256 \
+  --expected-active-manifest-sha256 EXPECTED_SHA256
+```
+
+This command can create/reuse immutable objects and stage a reconciled snapshot,
+but it has no activation option. It reloads the active mirror after staging and
+fails unless the complete active snapshot is unchanged. Activation remains a
+separate guarded, audited compare-and-swap operation.
+
 ## Controlled working-catalog materialization
 
 The initial admin working set is derived deterministically from the same

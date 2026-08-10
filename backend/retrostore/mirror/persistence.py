@@ -42,6 +42,19 @@ class CatalogImportReport:
     objects_reused: int
 
 
+@dataclass(frozen=True, slots=True)
+class CatalogStageReport:
+    snapshot_id: str
+    manifest_sha256: str
+    app_count: int
+    media_count: int
+    screenshot_count: int
+    object_count: int
+    object_bytes: int
+    objects_created: int
+    objects_reused: int
+
+
 class ImmutableObjectStore(ObjectReader, Protocol):
     """Create checksum-addressed objects and verify an existing collision."""
 
@@ -124,15 +137,36 @@ def import_catalog_mirror(
 ) -> CatalogImportReport:
     """Upload verified objects, stage metadata, then atomically publish the snapshot."""
 
+    staged = stage_catalog_mirror(mirror, object_store, snapshot_store)
+    snapshot_store.activate(staged.snapshot_id, staged.manifest_sha256)
+    return CatalogImportReport(
+        snapshot_id=staged.snapshot_id,
+        manifest_sha256=staged.manifest_sha256,
+        app_count=staged.app_count,
+        media_count=staged.media_count,
+        screenshot_count=staged.screenshot_count,
+        object_count=staged.object_count,
+        object_bytes=staged.object_bytes,
+        objects_created=staged.objects_created,
+        objects_reused=staged.objects_reused,
+    )
+
+
+def stage_catalog_mirror(
+    mirror: CatalogMirror,
+    object_store: ImmutableObjectStore,
+    snapshot_store: CatalogSnapshotStore,
+) -> CatalogStageReport:
+    """Upload and reconcile one immutable snapshot without activating it."""
+
     snapshot = build_catalog_snapshot(mirror)
     objects_created = 0
     for value in snapshot.objects:
         objects_created += object_store.put_verified(value)
 
     snapshot_store.stage(snapshot)
-    snapshot_store.activate(snapshot.id, snapshot.manifest_sha256)
     reconciliation = snapshot.metadata["reconciliation"]
-    return CatalogImportReport(
+    return CatalogStageReport(
         snapshot_id=snapshot.id,
         manifest_sha256=snapshot.manifest_sha256,
         app_count=reconciliation["app_count"],

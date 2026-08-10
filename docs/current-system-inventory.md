@@ -361,3 +361,12 @@ The approved target locations are `nam5` for both named Firestore databases,
 32-app production mirror, its materialized read-only working collections, one
 isolated staged app, and synthetic state probes have been reconciled. The
 legacy stores remain authoritative and unchanged.
+
+A separate recurring catalog-refresh boundary now consumes any later normalized
+full export, reports deterministic ID-only changes against a baseline, and can
+stage only a checksum-verified immutable snapshot. Apply requires the exact
+current active snapshot as a precondition and proves the active mirror is
+unchanged afterward; the command has no activation path. The first real-cloud
+rehearsal reused all 150 objects from the 32-app baseline, reported zero changes,
+and left `catalog-ec07d9d7c8d47c8a46b745fc82b8d7f231e905dc6b6f7e00f4375547cf303de8`
+active.

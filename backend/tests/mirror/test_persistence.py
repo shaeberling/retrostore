@@ -12,6 +12,7 @@ from retrostore.mirror import (
     build_catalog_snapshot,
     import_catalog_mirror,
     load_active_catalog_mirror,
+    stage_catalog_mirror,
 )
 from tests.mirror.test_catalog import _manifest, _reader, _reconciliation
 
@@ -130,6 +131,24 @@ def test_import_is_idempotent_and_publishes_only_after_staging() -> None:
     assert second.objects_created == 0
     assert second.objects_reused == 3
     assert active.to_dict() == _mirror().to_dict()
+
+
+def test_stage_is_idempotent_and_never_moves_the_active_pointer() -> None:
+    objects = MemoryObjectStore()
+    snapshots = MemorySnapshotStore()
+    active = import_catalog_mirror(_mirror(name="Active"), objects, snapshots)
+    candidate = _mirror(name="Candidate")
+
+    first = stage_catalog_mirror(candidate, objects, snapshots)
+    second = stage_catalog_mirror(candidate, objects, snapshots)
+
+    assert snapshots.active_id == active.snapshot_id
+    assert first.snapshot_id == second.snapshot_id
+    assert first.snapshot_id in snapshots.snapshots
+    assert first.objects_created == 0
+    assert first.objects_reused == 3
+    assert second.objects_created == 0
+    assert second.objects_reused == 3
 
 
 def test_object_or_metadata_failure_cannot_replace_active_snapshot() -> None:
