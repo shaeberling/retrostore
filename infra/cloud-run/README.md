@@ -95,9 +95,9 @@ eight-day bucket lifecycle remain asynchronous cleanup mechanisms.
 
 - Service: `retrostore-api-compat-candidate`
 - Region: `us-central1`
-- Revision: `retrostore-api-compat-candidate-downloads1`
+- Revision: `retrostore-api-compat-candidate-website1`
 - Runtime identity: `retrostore-api@trs-80.iam.gserviceaccount.com`
-- Image digest: `sha256:cee286ff02b21541cc75342557438f281fd0e8dbc7676a2ca1795504ced6af2f`
+- Image digest: `sha256:3b6356d1d32d8eb6fbb4238ed682ad87e3684d7fb7dbe09e0f66a889f9b519f9`
 - Authentication: private; only the runtime identity and migration operator
   have service-scoped `roles/run.invoker`
 - Production URL map: unchanged
@@ -137,6 +137,14 @@ responses. The first preserved a low-sample client-latency non-pass while
 exact-revision resource telemetry passed; the independent confirmation passed
 all provisional method gates at 38.08 requests per second. No service setting
 changed during either run.
+
+Revision `website1` adds the mirror-generated `/public/apps.json` dependency for
+the static website. At zero traffic it denied anonymous access, matched all 32
+legacy `pubapplist` entries, matched all 94 download scenarios and all 158
+frozen API scenarios, and passed the isolated synthetic state lifecycle. It
+then received 100% of the private candidate traffic. The scheduled and manual
+comparators independently matched 158/158 immediately afterward; production
+routing, IAM, service limits, and the active catalog pointer did not change.
 
 ## Private staged-snapshot preview
 

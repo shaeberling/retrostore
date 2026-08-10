@@ -125,10 +125,10 @@ sample; exact-revision native telemetry passed the evidence/resource gate. A
 fresh 2,000-request confirmation passed every method gate at 38.08 requests per
 second with zero semantic differences, transport errors, or 5xx responses.
 
-The checksum-validating soak auditor currently sees five retained comparison
-reports with no differences or failed gates. One report is after the
-`downloads1` boundary and starts the current private evidence clock at
-2026-08-10 02:47:15 UTC. A gap over 90 minutes, a failed/changed report, or a
+The checksum-validating soak auditor currently sees seven retained comparison
+reports with no differences or failed gates. Two reports are after the
+`website1` boundary and start the current private evidence clock at
+2026-08-10 03:18:41 UTC. A gap over 90 minutes, a failed/changed report, or a
 different serving revision makes the clock non-current. Reaching fourteen days
 will satisfy only this private evidence gate; it cannot substitute for the
 separate hostname, ownership, front-door, consumer, or writer-handoff gates.

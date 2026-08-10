@@ -376,7 +376,7 @@ Completed foundation work:
   discovery on 2026-08-10 reconfirmed that no load-balancer resource exists and
   that Certificate Manager is not enabled. No resource was created.
 - Privacy-safe request telemetry is deployed on private API revision
-  `downloads1` (inheriting the `observability2` hardening) and admin revision
+  `website1` (inheriting the `observability2` hardening) and admin revision
   `observability1`. Both were tested at zero
   traffic before promotion; the API
   still matched production 158/158 and the admin passed all readiness and
@@ -437,11 +437,12 @@ Completed foundation work:
   p95/p99 at most 12.1/17.72 ms, plus one 950.6 ms startup. Allocation metrics
   provide raw cost inputs. No service configuration or traffic changed.
 - A checksum-validating private soak auditor now binds evidence to the checked-in
-  `downloads1` readiness boundary, verifies the revision still serves 100%
+  `website1` readiness boundary, verifies the revision still serves 100%
   of private traffic, and independently validates every retained comparison
-  object and result count. The first manual post-promotion execution matched
-  158/158 with no approval and seeded a new clock at 02:47:15 UTC; the four
-  earlier reports remain valid evidence but precede this revision boundary.
+  object and result count. The scheduled and manual post-promotion executions
+  both matched 158/158 with no approvals and seeded a new clock at 03:18:41 UTC;
+  the five earlier reports remain valid evidence but precede this revision
+  boundary.
   The fourteen-day clock is current but not yet eligible. The baseline explicitly
   denies cutover, load-balancer, and catalog-activation authority.
 - The promoted private `downloads1` revision received two additional guarded
@@ -465,6 +466,11 @@ Completed foundation work:
   existing default Firebase Hosting site was confirmed to contain the separate
   TRS-80 KMP web application and is explicitly excluded; no new site or bucket
   was created.
+- The immutable `website1` image
+  (`sha256:3b6356d1d32d8eb6fbb4238ed682ad87e3684d7fb7dbe09e0f66a889f9b519f9`)
+  was deployed at zero traffic and passed anonymous-denial, 32-entry website
+  JSON, 94-download, 158-scenario API, and synthetic-state gates before private
+  promotion. It now serves 100% of only the private candidate service.
 
 Open foundation work:
 

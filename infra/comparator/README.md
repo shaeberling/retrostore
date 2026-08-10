@@ -100,14 +100,15 @@ The job is now pinned to the hardened `observability2` API image; changing the
 private service revision alone cannot silently change the comparator runtime.
 
 The checked-in `../front-door/private-soak-baseline.json` binds the current
-private evidence clock to candidate revision `downloads1` beginning no earlier
-than 2026-08-10 02:45 UTC. The local
+private evidence clock to candidate revision `website1` beginning no earlier
+than 2026-08-10 03:16 UTC. The local
 `retrostore.contract.soak_status` auditor verifies every retained object's
 content digest and internal counts, checks that the expected revision still has
 100% of private service traffic, and calculates continuity using the 90-minute
-stale-evidence limit. A manual post-promotion execution seeded the new clock at
-02:47:15 UTC with 158/158 and no approvals. The auditor validated five retained
-reports total; the preceding four are correctly outside the new boundary. The
+stale-evidence limit. Scheduled and manual post-promotion executions both
+matched 158/158 with no approvals and seeded the new clock at 03:18:41 UTC. The
+auditor validated seven retained reports total; the preceding five are
+correctly outside the new boundary. The
 14-day gate is current but not yet eligible.
 This private clock is evidence only and does not authorize a hostname,
 load balancer, data activation, or production route change.

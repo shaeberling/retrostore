@@ -359,7 +359,7 @@ UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
   --apply \
   --confirm-project trs-80 \
   --confirm-service retrostore-api-compat-candidate \
-  --confirm-revision retrostore-api-compat-candidate-downloads1 \
+  --confirm-revision retrostore-api-compat-candidate-website1 \
   --require-current
 ```
 
