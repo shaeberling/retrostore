@@ -16,7 +16,7 @@
           "title": "Migration gates",
           "text": {
             "format": "MARKDOWN",
-            "content": "Private candidates only. Full comparison: hourly, 158 scenarios, zero unexplained differences. Read canaries only; state and admin writer handoffs are atomic. Card and TRS-IO routes remain on App Engine."
+            "content": "Private candidates only. Hourly gate: API 158 + downloads 94 + website catalog 32 + redirects 6, with zero unexplained differences. The separate HTTP/HTTPS gate covers 338 public reads. Read canaries only; state and admin writer handoffs are atomic. Card and TRS-IO remain on App Engine."
           }
         }
       },

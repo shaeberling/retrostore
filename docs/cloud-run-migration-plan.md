@@ -1693,6 +1693,9 @@ Phase 1:
 - [x] Consolidate every remaining operator choice into a CI-validated decision
   register that cross-checks hostnames, owners, soak/canary status, retention,
   and the no-public-authority boundary.
+- [x] Reconcile the live migration dashboard and disabled alert policies,
+  update only stale gate text for the four-surface/338-transport coverage, and
+  add CI checks that prohibit silent alert enablement or channel attachment.
 - [x] Run the revision- and checksum-pinned JVM, TRS-80 KMP, and embedded-C
   clients through an authenticated loopback proxy to the current private
   revision, including isolated synthetic state lifecycles and native pagination.

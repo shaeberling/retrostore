@@ -5,6 +5,14 @@ startup, and job-execution metrics together with bounded structured application
 events. The definitive thresholds are in
 `../front-door/monitoring-thresholds.json`.
 
+Validate the checked-in dashboard text, four-surface gate, 90-minute stale
+threshold, disabled alert policies, absence of attached channels, and pending
+recipient decision offline with:
+
+```shell
+python3 infra/monitoring/validate.py
+```
+
 ## Structured request event
 
 Both Flask services emit one JSON object after every response with:
@@ -87,6 +95,13 @@ checked-in JSON remains the reviewable source for later updates. Enabling them
 requires a confirmed operator and notification destination; the migration does
 not infer those operational responsibilities.
 
+The 2026-08-10 inventory reconfirmed exactly two disabled policies, neither with
+an attached notification channel, one migration dashboard, and the comparison
+pass metric. The dashboard gate text now reflects the schema-3 hourly surfaces
+(API 158, downloads 94, website 32, redirects 6) and the separate 338-scenario
+HTTP/HTTPS transport gate. The text-only dashboard update used the live etag;
+no alert, channel, service, IAM, or traffic setting changed.
+
 ## Private capacity evidence
 
 `retrostore.contract.load_test` replays only the exhaustive read corpus against
@@ -125,13 +140,15 @@ sample; exact-revision native telemetry passed the evidence/resource gate. A
 fresh 2,000-request confirmation passed every method gate at 38.08 requests per
 second with zero semantic differences, transport errors, or 5xx responses.
 
-The checksum-validating soak auditor currently sees nine retained comparison
-reports. All nine API comparisons matched 158/158; the first seven predate
+The checksum-validating soak auditor currently sees ten retained comparison
+reports. All ten API comparisons matched 158/158; the first seven predate
 multi-surface evidence and are retained as API-only history. The schema-2 report
 after the `website1` boundary also passed all 94 downloads and all 32 website
 entries. The schema-3 report after the `redirects1` boundary additionally passed
 all six exact public redirects, starting the current private evidence clock at
-2026-08-10 03:55:01 UTC. A gap over 90 minutes, a failed/changed report, or a
-different serving revision makes the clock non-current. Reaching fourteen days
+2026-08-10 03:55:01 UTC. Two schema-3 reports now extend that streak, including
+the first automatic generation-4 execution. A gap over 90 minutes, a
+failed/changed report, or a different serving revision makes the clock
+non-current. Reaching fourteen days
 will satisfy only this private evidence gate; it cannot substitute for the
 separate hostname, ownership, front-door, consumer, or writer-handoff gates.
