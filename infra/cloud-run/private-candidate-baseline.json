@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "status": "private_candidates_no_public_routing_authority",
+  "project": "trs-80",
+  "region": "us-central1",
+  "last_verified": "2026-08-10",
+  "services": [
+    {
+      "name": "retrostore-api-compat-candidate",
+      "url": "https://retrostore-api-compat-candidate-760396810462.us-central1.run.app",
+      "revision": "retrostore-api-compat-candidate-redirects1",
+      "image": "us-central1-docker.pkg.dev/trs-80/retrostore/api@sha256:22d135c40f50ec10649f9a8480ad9898dbceb52a6c2628cbad1f73ac93bed3d4",
+      "service_account": "retrostore-api@trs-80.iam.gserviceaccount.com",
+      "ingress": "all",
+      "service_max_instances": 2,
+      "container_concurrency": 20,
+      "timeout_seconds": 60,
+      "cpu": "1",
+      "memory": "512Mi",
+      "allowed_invokers": [
+        "serviceAccount:retrostore-api@trs-80.iam.gserviceaccount.com",
+        "serviceAccount:retrostore-comparator@trs-80.iam.gserviceaccount.com",
+        "user:saschah@gmail.com"
+      ],
+      "anonymous_root_status": 403
+    },
+    {
+      "name": "retrostore-admin-candidate",
+      "url": "https://retrostore-admin-candidate-760396810462.us-central1.run.app",
+      "revision": "retrostore-admin-candidate-observability1",
+      "image": "us-central1-docker.pkg.dev/trs-80/retrostore/admin@sha256:5ea9ffe42bad43e374c3cc38e12e4d9716a6d1870e83320cde59bb337e150c84",
+      "service_account": "retrostore-admin@trs-80.iam.gserviceaccount.com",
+      "ingress": "all",
+      "service_max_instances": 2,
+      "container_concurrency": 20,
+      "timeout_seconds": 300,
+      "cpu": "1",
+      "memory": "512Mi",
+      "allowed_invokers": [
+        "serviceAccount:retrostore-admin@trs-80.iam.gserviceaccount.com",
+        "user:saschah@gmail.com"
+      ],
+      "anonymous_root_status": 403
+    },
+    {
+      "name": "retrostore-api-preview",
+      "url": "https://retrostore-api-preview-760396810462.us-central1.run.app",
+      "revision": "retrostore-api-preview-preview1",
+      "image": "us-central1-docker.pkg.dev/trs-80/retrostore/api@sha256:1f265510a590a6a880b759626dfb94d6106c43aa2c8590963f1825b7c60aaeee",
+      "service_account": "retrostore-api@trs-80.iam.gserviceaccount.com",
+      "ingress": "all",
+      "service_max_instances": 2,
+      "container_concurrency": 20,
+      "timeout_seconds": 60,
+      "cpu": "1",
+      "memory": "512Mi",
+      "allowed_invokers": [
+        "serviceAccount:retrostore-api@trs-80.iam.gserviceaccount.com",
+        "user:saschah@gmail.com"
+      ],
+      "anonymous_root_status": 403
+    }
+  ],
+  "safety": {
+    "production_routing_changed": false,
+    "public_iam_authorized": false,
+    "load_balancer_authorized": false,
+    "catalog_activation_authorized": false
+  }
+}

@@ -498,6 +498,12 @@ Completed foundation work:
   promotion. It now serves 100% of only the private candidate. Its image is the
   same generation-4 comparator digest, IAM and resource limits are unchanged,
   and production/App Engine routing and the active catalog pointer did not move.
+- A sanitized private-candidate drift gate now pins the API, admin, and
+  publication-preview revision, immutable image, runtime identity, ingress,
+  service max instances, resources, traffic target, and exact invoker set. Its
+  first live run passed all three; every anonymous root request returned 403 and
+  no public principal was present. The auditor has read-only cloud operations
+  and omits environment and member values from its report.
 - The real published JVM, pinned TRS-80 KMP, and pinned embedded-C clients now
   also pass end to end against `redirects1` through an authenticated loopback
   proxy. The native gate discovers its media fixture through real catalog
@@ -1667,6 +1673,9 @@ Phase 1:
 - [x] Inventory current bucket lifecycle controls and add an offline-validated,
   no-delete retention proposal with explicit rollback, reconciliation, owner,
   policy-approval, and legal/operational blockers.
+- [x] Pin and live-audit all three private Cloud Run services for immutable
+  revision/image, runtime configuration, traffic, IAM, and anonymous denial,
+  emitting only sanitized aggregate drift evidence.
 - [x] Run the revision- and checksum-pinned JVM, TRS-80 KMP, and embedded-C
   clients through an authenticated loopback proxy to the current private
   revision, including isolated synthetic state lifecycles and native pagination.

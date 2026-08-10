@@ -397,6 +397,25 @@ candidate. A failure or gap over 90 minutes restarts or stops the calculated
 streak. The summary retains only aggregate evidence and cannot authorize a
 cutover.
 
+Audit all three private Cloud Run services against their exact revision, image,
+runtime identity, ingress, service-wide max-instance limit, concurrency,
+timeout, resources, 100% traffic target, invoker set, and anonymous denial:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.contract.private_candidate_status \
+  --baseline ../infra/cloud-run/private-candidate-baseline.json \
+  --output ../.migration-artifacts/private-candidate-status.json \
+  --apply \
+  --confirm-project trs-80
+```
+
+The command uses only `gcloud ... describe`, `get-iam-policy`, and anonymous
+root GETs. Its report contains no environment values or invoker identities;
+members are represented only by count and an aggregate SHA-256. The first live
+run passed all three services, each of which returned 403 anonymously and had
+no public IAM principal.
+
 Exercise the deployed write path with one synthetic state only. This guarded
 command is a dry run unless `--apply` and an exact URL confirmation are both
 present; its report never includes the allocated state token:

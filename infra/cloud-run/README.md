@@ -199,6 +199,14 @@ production routing did not move.
   copy-on-write published drafts plus their draft-only assets are mutable
 - Production URL map: unchanged
 
+The checked-in `private-candidate-baseline.json` pins this service, the active
+API candidate, and the publication preview. Run the read-only drift auditor
+documented in `backend/README.md` after any deployment or IAM change. Its
+2026-08-10 live run passed all three services: exact revision, image, runtime
+configuration, one 100% traffic target, exact invoker sets, no public principal,
+and anonymous HTTP 403. It emits no environment values or member identities and
+cannot modify a service or policy.
+
 The authenticated runtime-identity smoke passed `/health`, `/ready`, the
 Firebase login page, the compiled Tailwind asset, and the unauthenticated-to-
 Firebase redirect. Google login, the explicit administrator claim, Firebase
