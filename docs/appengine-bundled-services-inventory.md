@@ -1,8 +1,8 @@
 # App Engine bundled-services inventory operation
 
-Status: Production-validated; temporary versions deleted
+Status: Production-validated; temporary versions deleted; orphan classification complete
 
-Last updated: 2026-08-06
+Last updated: 2026-08-10
 
 ## Purpose and boundary
 
@@ -75,6 +75,18 @@ This aggregate report proves repeatability and detects drift. It intentionally
 does not provide the key mapping needed to copy or individually classify the
 eight currently unreferenced blobs; that belongs in a separately protected
 migration artifact, not an HTTP response.
+
+That separate classification was completed on 2026-08-10 with the Python
+read-only Datastore adapter. Its create-only mode-0600 artifact remains under
+gitignored `.migration-artifacts/` because it contains Blobstore keys. The
+classifier bound its result to the final sanitized bundled-services report,
+which proves all 98 metadata MD5 values match their content, and to the retained
+normalized catalog archive. All eight unreferenced records are image uploads
+(seven PNG and one JPEG), total 182,036 bytes, and each has the same size and
+MD5 as exactly one referenced screenshot. Recomputing MD5 from the corresponding
+eight normalized archive objects confirmed their bytes are preserved. This
+closed the investigation without another App Engine deployment, another
+Blobstore content read, or any mutation/deletion.
 
 ## Validation and controlled production use
 

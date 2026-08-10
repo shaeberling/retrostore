@@ -34,7 +34,15 @@ Completed foundation work:
   shapes, applies the seven-day state rule, and validates app, author, user,
   media, and Blobstore references without emitting production identifiers or
   values. Its first production run found no broken references and eight
-  unreferenced Blobstore objects to preserve and investigate.
+  unreferenced Blobstore objects, which have now been separately classified.
+- A protected, create-only Blobstore classifier reconciled those eight objects
+  against all 90 referenced screenshots without exposing identifiers in the
+  repository. All eight are image uploads totaling 182,036 bytes and each is a
+  size+MD5 duplicate of exactly one referenced screenshot. The prior App Engine
+  byte scan proves every metadata MD5 matches its content, and an independent
+  archive check proves all eight corresponding byte sequences are already in
+  the retained normalized catalog export. No additional object copy or legacy
+  content fetch is required; no Blobstore object was changed or deleted.
 - The legacy Java build is reproducible again: Java 21.0.12+8 builds Java 11
   bytecode for the supported App Engine Java 25 runtime in EE 8 compatibility
   mode, with checksum-pinned Gradle 8.14.5, the current App Engine plugin and
@@ -1457,6 +1465,9 @@ Phase 1:
   Blobstore-content and live Search-index inventory operation without promotion.
 - [x] Capture and reconcile two matching reports from the reviewed,
   non-promoted App Engine version, then delete all temporary versions.
+- [x] Classify the eight unreferenced Blobstore objects in a protected artifact,
+  bind their metadata to the complete byte-verification report, and prove each
+  duplicate byte sequence is preserved in the normalized catalog archive.
 - [x] Add the strict approved-difference format with exact fingerprints, named
   ownership, expiry, and stale-approval rejection.
 - [x] Define and validate the normalized catalog/media/screenshot mirror format
@@ -1545,8 +1556,9 @@ privately without activation. Front-door preparation, request observability, the
 private comparator, its dashboard, the first private capacity gate, the
 stage-only half of repeatable mirror synchronization, and the read-only
 reverse-sync planner are complete. While hostname and owner confirmation remain
-pending, the next safe executable work is additional private soak automation
-and broader capacity steps. Actual
+pending, the revision-bound private soak continues to accumulate automatically.
+The remaining data-policy choice is how to retain or invite the ten legacy user
+records. Actual
 legacy reverse writes and load-balancer provisioning still require explicit
 operator gates and remain unavailable.
 Synchronized-catalog activation remains disabled.

@@ -249,8 +249,8 @@ Every current durable relationship resolves correctly:
 - All 60 media slots resolve to exactly 60 media entities, with no orphaned
   media, missing parent apps, or ownership mismatches.
 - All 90 distinct screenshot references resolve to Blobstore metadata.
-- Eight additional Blobstore objects are unreferenced. They must be preserved
-  and investigated during migration rather than deleted automatically.
+- Eight additional Blobstore objects are unreferenced. They were conservatively
+  retained for separate protected classification rather than deleted.
 
 The live encodings also establish importer defaults that are not obvious from
 the Java field declarations:
@@ -377,10 +377,24 @@ default database.
 Infrastructure discovery and Datastore, Blobstore, and Search reconciliation are
 complete enough to choose the target topology. Remaining data work is:
 
-- Investigate and classify the eight unreferenced Blobstore objects.
 - Decide whether the remaining legacy `RetroStoreUser` records become invited
   Firebase identities, disabled historical records, or both. The new Firebase
   administrator role store is deliberately separate from those legacy records.
+
+The eight unreferenced Blobstore objects were classified read-only on
+2026-08-10. The protected mode-0600 artifact reconciles 32 apps, 90 distinct
+screenshot references, and all 98 Blobstore metadata rows. The eight objects
+are seven PNG files and one JPEG totaling 182,036 bytes. Every object has size,
+MD5, filename, and creation metadata, and every size+MD5 pair matches exactly
+one referenced screenshot. The earlier bounded App Engine scan independently
+proved that all 98 metadata MD5 values match the bytes. Finally, the classifier
+recomputed MD5 from the matching objects in the retained normalized catalog ZIP
+and verified all eight byte sequences are present there. The archive remains
+8,418,142 bytes with SHA-256
+`3bf584091e59bd5200bc36c8178aa9923148e8999eae0238f5577a5ade4fcefa`.
+No additional content copy is needed to preserve them, although the protected
+key-to-screenshot mapping is retained for audit. No legacy object was changed,
+fetched again, or deleted.
 
 The approved target locations are `nam5` for both named Firestore databases,
 `US` for the two private buckets, and `us-central1` for Cloud Run. The immutable

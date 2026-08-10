@@ -806,3 +806,25 @@ hashed all 98 production objects twice and reconciled all 32 live Search
 documents with their source app entities. The normalized reports matched; see
 `docs/appengine-bundled-services-inventory.md` for the retained aggregate
 evidence and controlled-deployment record.
+
+The aggregate command deliberately cannot classify orphan identifiers. Use the
+separate production-read classifier only with an explicit project confirmation,
+the retained sanitized byte-verification report, and the retained normalized
+catalog archive:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.inventory.classify_orphaned_blobs \
+  --project trs-80 \
+  --confirm-project trs-80 \
+  --auth gcloud \
+  --bundled-services-report ../.migration-artifacts/bundled-services-inventory-20260806-150441.json \
+  --catalog-archive ../.migration-artifacts/retrostore-catalog-export.zip \
+  --output ../.migration-artifacts/orphaned-blob-preservation.json
+```
+
+The output is create-only with mode `0600`, contains Blobstore keys and their
+mapping to normalized screenshot IDs, and must stay in the gitignored restricted
+artifact directory. The command has no mutation adapter. It fails on missing or
+duplicate metadata, unverified content evidence, or an archive that does not
+contain byte-identical preservation sources.
