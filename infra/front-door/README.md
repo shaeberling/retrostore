@@ -3,7 +3,9 @@
 This directory freezes the proposed routing and operational gates without
 creating cloud resources. `route-groups.json` is the machine-readable source of
 truth and `monitoring-thresholds.json` contains conservative provisional
-defaults. Run the local, read-only check with:
+defaults. `private-soak-baseline.json` binds the current private comparison
+clock to one exact revision and deliberately denies cutover authority. Run the
+local, read-only check with:
 
 ```shell
 python3 infra/front-door/validate.py
@@ -11,6 +13,12 @@ python3 infra/front-door/validate.py
 
 No script in this directory provisions, updates, or deletes a Google Cloud or
 DNS resource.
+
+The current private soak boundary is 2026-08-10 00:40 UTC, rounded up after
+revision `retrostore-api-compat-candidate-observability2` became ready. Any
+material service revision requires a reviewed baseline update and starts a new
+clock. The baseline explicitly records that production routing, catalog
+activation, and load-balancer provisioning remain unauthorized.
 
 ## Verified current state
 

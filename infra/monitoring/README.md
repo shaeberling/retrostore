@@ -106,3 +106,11 @@ front-door gates for every API method. Cloud Monitoring independently reported
 for the bounded window. The result establishes comfortable headroom for this
 specific private read workload; broader concurrency and duration steps remain
 required before production routing.
+
+The checksum-validating soak auditor currently sees three retained comparison
+reports with no differences or failed gates. One report is after the
+`observability2` boundary and starts the current private evidence clock at
+2026-08-10 01:18:54 UTC. A gap over 90 minutes, a failed/changed report, or a
+different serving revision makes the clock non-current. Reaching fourteen days
+will satisfy only this private evidence gate; it cannot substitute for the
+separate hostname, ownership, front-door, consumer, or writer-handoff gates.

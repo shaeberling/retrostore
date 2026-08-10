@@ -4,12 +4,14 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parent
 ROUTES_PATH = ROOT / "route-groups.json"
 THRESHOLDS_PATH = ROOT / "monitoring-thresholds.json"
+PRIVATE_SOAK_PATH = ROOT / "private-soak-baseline.json"
 
 FROZEN_API_METHODS = {
     "getApp",
@@ -161,10 +163,53 @@ def validate_thresholds(thresholds: dict[str, Any]) -> None:
     )
 
 
+def validate_private_soak(baseline: dict[str, Any]) -> None:
+    _require(baseline.get("schema_version") == 1, "unsupported private soak schema")
+    _require(
+        baseline.get("status") == "private_evidence_only_no_cutover_authority",
+        "private soak must not imply cutover authority",
+    )
+    _require(baseline.get("project") == "trs-80", "private soak project must be trs-80")
+    _require(baseline.get("region") == "us-central1", "private soak region changed")
+    _require(
+        baseline.get("service") == "retrostore-api-compat-candidate",
+        "private soak service changed",
+    )
+    _require(
+        baseline.get("candidate_url")
+        == "https://retrostore-api-compat-candidate-760396810462.us-central1.run.app",
+        "private soak candidate URL changed",
+    )
+    revision = baseline.get("revision")
+    _require(
+        isinstance(revision, str)
+        and revision.startswith("retrostore-api-compat-candidate-"),
+        "private soak revision is invalid",
+    )
+    ready_at = baseline.get("revision_ready_at")
+    not_before = baseline.get("soak_not_before")
+    try:
+        ready_timestamp = datetime.fromisoformat(ready_at.replace("Z", "+00:00"))
+        boundary_timestamp = datetime.fromisoformat(not_before.replace("Z", "+00:00"))
+    except (AttributeError, ValueError) as error:
+        raise ValueError("private soak timestamps are invalid") from error
+    _require(
+        boundary_timestamp >= ready_timestamp,
+        "private soak boundary predates revision readiness",
+    )
+    for name in (
+        "production_routing_changed",
+        "catalog_activation_authorized",
+        "load_balancer_authorized",
+    ):
+        _require(baseline.get(name) is False, f"private soak unexpectedly authorizes {name}")
+
+
 def main() -> int:
     validate_routes(_load(ROUTES_PATH))
     validate_thresholds(_load(THRESHOLDS_PATH))
-    print("front-door route and threshold invariants: OK")
+    validate_private_soak(_load(PRIVATE_SOAK_PATH))
+    print("front-door route, threshold, and private-soak invariants: OK")
     return 0
 
 

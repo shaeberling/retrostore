@@ -349,6 +349,13 @@ warmup, one active instance, 1.97% mean CPU, 42.90% mean memory, and 3.94 ms mea
 in-container latency. The harness cannot send `uploadState` and its reports do
 not contain payloads or credentials.
 
+A separate read-only soak auditor now verifies the retained comparison object
+paths, generations, content digests, schemas, counts, URLs, and approval gates,
+then confirms the expected Cloud Run revision still serves 100% of private
+traffic. The checked-in boundary starts after `observability2` became ready.
+Its first run validated all three retained zero-diff reports and found one after
+the boundary, so the private 14-day clock is current but not yet eligible.
+
 The pre-existing App Engine, Compute, and Firebase Admin SDK identities remain.
 The migration adds separate keyless migrator, public API, and administration
 identities with scoped access to the named databases, private buckets, and

@@ -99,6 +99,17 @@ and retained the 26,470-byte report
 The job is now pinned to the hardened `observability2` API image; changing the
 private service revision alone cannot silently change the comparator runtime.
 
+The checked-in `../front-door/private-soak-baseline.json` binds the current
+private evidence clock to candidate revision `observability2` beginning no
+earlier than 2026-08-10 00:40 UTC. The local
+`retrostore.contract.soak_status` auditor verifies every retained object's
+content digest and internal counts, checks that the expected revision still has
+100% of private service traffic, and calculates continuity using the 90-minute
+stale-evidence limit. Its first run validated three reports; one was after the
+revision boundary and passed 158/158. The 14-day gate is current but not yet
+eligible. This private clock is evidence only and does not authorize a hostname,
+load balancer, data activation, or production route change.
+
 References:
 
 - [Execute Cloud Run jobs on a schedule](https://cloud.google.com/run/docs/execute/jobs-on-schedule)

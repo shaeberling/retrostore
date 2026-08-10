@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "status": "private_evidence_only_no_cutover_authority",
+  "project": "trs-80",
+  "region": "us-central1",
+  "service": "retrostore-api-compat-candidate",
+  "candidate_url": "https://retrostore-api-compat-candidate-760396810462.us-central1.run.app",
+  "revision": "retrostore-api-compat-candidate-observability2",
+  "revision_ready_at": "2026-08-10T00:39:20.568076Z",
+  "soak_not_before": "2026-08-10T00:40:00Z",
+  "boundary_basis": "Rounded up after the expected revision became ready and before its first retained scheduled comparison.",
+  "production_routing_changed": false,
+  "catalog_activation_authorized": false,
+  "load_balancer_authorized": false
+}

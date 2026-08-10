@@ -298,6 +298,30 @@ about 1.97% mean CPU utilization, 42.90% mean memory utilization, and 3.94 ms
 mean in-container latency over the bounded evidence window. This is useful
 headroom evidence for the tested shape, not a final production capacity claim.
 
+Validate the retained hourly evidence and calculate the continuous private
+zero-diff clock with:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.contract.soak_status \
+  --thresholds ../infra/front-door/monitoring-thresholds.json \
+  --baseline ../infra/front-door/private-soak-baseline.json \
+  --output /tmp/retrostore-private-soak-status.json \
+  --apply \
+  --confirm-project trs-80 \
+  --confirm-service retrostore-api-compat-candidate \
+  --confirm-revision retrostore-api-compat-candidate-observability2 \
+  --require-current
+```
+
+The command impersonates the read-capable migration identity without a key,
+downloads only the comparison prefix, pins every download to its object
+generation, and verifies its path timestamp, content-derived SHA-256, schema,
+URLs, result counts, difference counts, and approval gate. It also proves the
+checked-in revision is currently serving 100% of the private candidate. A
+failure or gap over 90 minutes restarts or stops the calculated streak. The
+summary retains only aggregate evidence and cannot authorize a cutover.
+
 Exercise the deployed write path with one synthetic state only. This guarded
 command is a dry run unless `--apply` and an exact URL confirmation are both
 present; its report never includes the allocated state token:

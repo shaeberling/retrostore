@@ -398,6 +398,13 @@ Completed foundation work:
   one active instance with 1.97% mean CPU, 42.90% mean memory, and 3.94 ms mean
   in-container latency. The harness cannot send `uploadState`, and the evidence
   reports contain no payloads or credentials.
+- A checksum-validating private soak auditor now binds evidence to the checked-in
+  `observability2` readiness boundary, verifies the revision still serves 100%
+  of private traffic, and independently validates every retained comparison
+  object and result count. Its first run accepted all three existing zero-diff
+  reports; the one after the boundary starts a current but not-yet-eligible
+  fourteen-day clock. The baseline explicitly denies cutover, load-balancer,
+  and catalog-activation authority.
 
 Open foundation work:
 
@@ -1504,6 +1511,8 @@ Phase 1:
 - [x] Add and exercise a guarded private read-load harness with semantic
   comparison, per-method latency gates, and exact-revision Cloud Run resource
   evidence without exposing payloads, tokens, or catalog values.
+- [x] Add a generation- and checksum-validating retained-evidence auditor with a
+  revision-bound private zero-diff clock and explicit no-cutover baseline.
 - [ ] Confirm the proposed hostnames and formally name the go/no-go and rollback
   owners before any load-balancer, certificate, public IAM, or DNS resource is
   created. Current DNS, certificates, HTTP behavior, and absence of an existing
