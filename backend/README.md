@@ -460,6 +460,15 @@ the App Engine importer must not be enabled until its ID allocation, screenshot
 Blobstore creation, Search updates, exact baseline precondition, and complete
 post-import export/API reconciliation are implemented and tested together.
 
+The legacy Java tree also contains a disabled
+`NormalizedCatalogArchiveValidator`. It independently validates both complete
+archives, their enums, positional slots, references, object bytes, and aggregate,
+then reports only added/changed/removed counts and the counts of numeric author
+and media allocations, absence checks, and screenshot Blobstore writes. It has
+no servlet registration, entity mapper, ID allocator, Blobstore/Search adapter,
+Objectify call, or apply method. The candidate's catalog values and IDs are not
+returned in its preflight report.
+
 ## Controlled working-catalog materialization
 
 The initial admin working set is derived deterministically from the same

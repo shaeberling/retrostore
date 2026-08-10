@@ -376,6 +376,10 @@ Completed foundation work:
   app/Search upsert, one numeric author-ID allocation, no media/screenshots or
   removals, and no catalog values or identities. Applying that plan remains
   unavailable until the guarded App Engine writer is implemented and rehearsed.
+- A disabled Java catalog-archive validator independently checks normalized
+  baseline/candidate archives and derives aggregate-only record changes, numeric
+  allocation/absence checks, and screenshot Blobstore requirements. It has no
+  route, legacy service adapters, entity mapper, or mutation method.
 - A private live-state archive and token-free legacy rollback planner are
   implemented. The real isolated export reconciled five live states and 170
   protobuf bytes without exposing tokens or payloads in logs/reports. The plan
@@ -1510,8 +1514,9 @@ privately without activation. Front-door preparation, request observability, the
 private comparator, its dashboard, the stage-only half of repeatable mirror
 synchronization, and the read-only reverse-sync planner are complete. While
 hostname and owner confirmation remain pending, the next safe executable work
-is the disabled App Engine catalog/state reverse-import validation boundary.
-Load-balancer provisioning still requires explicit approval.
+is performance/capacity evidence and additional private soak automation. Actual
+legacy reverse writes and load-balancer provisioning still require explicit
+operator gates and remain unavailable.
 Synchronized-catalog activation remains disabled.
 The RetroStore Card and TRS-IO hardware update subsystem stays unchanged on App
 Engine and is not part of that work queue.

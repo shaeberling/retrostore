@@ -381,6 +381,13 @@ and one required legacy numeric author-ID allocation. The deterministic plan
 has no apply path; no legacy entity, Blobstore object, Search document, route,
 or active cloud pointer changed.
 
+A disabled Java catalog validator now independently parses the normalized
+baseline/candidate format, verifies all enums, slots, references, objects,
+checksums, and reconciliation data, and derives aggregate-only legacy mutation
+and allocation requirements. Its test candidate exercises app, author, media,
+screenshot, and Search-dependent work. It has no route, Objectify, Blobstore,
+Search, allocation, entity-mapping, or apply operation.
+
 State continuity now has a separate private archive format and token-free
 rollback plan. A read-only real-cloud export found five logically live isolated
 states totaling 170 protobuf bytes, validated their Firestore records and exact
