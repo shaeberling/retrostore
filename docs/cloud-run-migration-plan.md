@@ -1503,8 +1503,6 @@ the rollback. If a gate fails, traffic stays on or returns to App Engine.
 
 ## Decisions still to make
 
-- Whether plain HTTP support is retained indefinitely or formally deprecated
-  after all C clients have moved to HTTPS.
 - The public static website bucket's CDN, cache-invalidation, and deployment
   policy. It must remain separate from the private application-assets bucket.
   A non-executable proposal now uses a fresh empty bucket per release, atomic
@@ -1531,6 +1529,13 @@ the rollback. If a gate fails, traffic stays on or returns to App Engine.
 
 These decisions do not block contract capture, the Python project skeleton, or
 the read-only infrastructure inventory.
+
+Plain HTTP is no longer a migration decision: the reviewed native clients use
+raw port 80, so the in-place replacement must preserve it without an HTTPS
+redirect. Any deprecation belongs to a later, separately approved client
+migration after all deployed native consumers are proven upgraded. A safe live
+probe also confirmed the current port-80 `listApps` request returns HTTP 200 and
+716 protobuf bytes with no redirect.
 
 ## Immediate next milestone
 
@@ -1650,6 +1655,9 @@ Phase 1:
 - [x] Add a local-only static deployment planner that checksum-verifies all 78
   objects, rejects every known existing project bucket, emits only
   create-if-absent uploads and zero deletes, and deliberately has no apply path.
+- [x] Bind plain HTTP port 80 pass-through into the validated migration contract
+  because both reviewed native client trees still require it; an HTTPS-only
+  policy is explicitly deferred to a separate future client migration.
 - [x] Run the revision- and checksum-pinned JVM, TRS-80 KMP, and embedded-C
   clients through an authenticated loopback proxy to the current private
   revision, including isolated synthetic state lifecycles and native pagination.

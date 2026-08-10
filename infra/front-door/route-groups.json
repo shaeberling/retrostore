@@ -8,6 +8,17 @@
     "load_balancer_type": "global_external_application_load_balancer",
     "load_balancing_scheme": "EXTERNAL_MANAGED",
     "preserve_plain_http": true,
+    "plain_http_compatibility": {
+      "status": "required_for_in_place_migration",
+      "port": 80,
+      "redirect_to_https": false,
+      "frontend_behavior": "route_through_same_url_map",
+      "deprecation_scope": "separate_future_client_migration",
+      "reviewed_evidence": [
+        "TRS-80@aecbddcc7f5515fb844bb7a1fc350d8ffaaf5ce5/app/src/main/c/retrostore/include/utils.h",
+        "native-client-library/retrostore/retrostore.cpp"
+      ]
+    },
     "preserve_ipv6": true,
     "production_baseline_backend": "app_engine_default",
     "transparent_request_mirroring": false

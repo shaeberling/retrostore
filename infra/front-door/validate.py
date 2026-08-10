@@ -189,6 +189,21 @@ def validate_routes(routes: dict[str, Any]) -> None:
         routes["front_door"]["transparent_request_mirroring"] is False,
         "serverless backends must not claim transparent request mirroring",
     )
+    front_door = routes["front_door"]
+    plain_http = front_door["plain_http_compatibility"]
+    _require(front_door["preserve_plain_http"] is True, "plain HTTP must be preserved")
+    _require(
+        plain_http["status"] == "required_for_in_place_migration"
+        and plain_http["port"] == 80
+        and plain_http["redirect_to_https"] is False
+        and plain_http["frontend_behavior"] == "route_through_same_url_map"
+        and plain_http["deprecation_scope"] == "separate_future_client_migration",
+        "plain HTTP compatibility policy changed",
+    )
+    _require(
+        len(plain_http["reviewed_evidence"]) >= 2,
+        "plain HTTP compatibility requires reviewed native-client evidence",
+    )
 
     hostnames = routes["hostnames"]
     hostname_values = [entry["value"] for entry in hostnames.values()]

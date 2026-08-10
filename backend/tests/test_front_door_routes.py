@@ -58,3 +58,12 @@ def test_overlapping_prefix_routes_are_rejected() -> None:
 
     with pytest.raises(ValueError, match="overlapping route prefixes"):
         _validator().validate_routes(routes)
+
+
+def test_plain_http_cannot_be_removed_or_redirected_during_migration() -> None:
+    routes = copy.deepcopy(_routes())
+    routes["front_door"]["preserve_plain_http"] = False
+    routes["front_door"]["plain_http_compatibility"]["redirect_to_https"] = True
+
+    with pytest.raises(ValueError, match="plain HTTP must be preserved"):
+        _validator().validate_routes(routes)

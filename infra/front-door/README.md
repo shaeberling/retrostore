@@ -171,6 +171,19 @@ immediately. The route recovery objective is five minutes.
 These are conservative defaults that keep the work executable; owner
 confirmation is still required before production traffic moves.
 
+## Plain HTTP compatibility
+
+Plain HTTP on port 80 is a migration requirement, not a cutover-time option.
+The pinned TRS-80 native client connects to `retrostore.org:80` with a raw
+socket, and this repository's ESP32 client also has `DEFAULT_PORT = 80` with an
+open HTTPS TODO. The replacement front door therefore routes HTTP through the
+same URL map and must not redirect it to HTTPS. A future HTTP deprecation may
+only happen as a separate client migration after a complete deployed-consumer
+inventory proves no remaining dependency. A safe production probe on 2026-08-10
+also confirmed that `POST http://retrostore.org/api/listApps` returns HTTP 200,
+an empty redirect target, and the protobuf media type; redirecting would change
+today's observable contract.
+
 ## Google Cloud references
 
 - [Global external Application Load Balancer with serverless backends](https://cloud.google.com/load-balancing/docs/https/setup-global-ext-https-serverless)
