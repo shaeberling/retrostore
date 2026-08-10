@@ -65,7 +65,12 @@ def _arguments(tmp_path: Path) -> list[str]:
     ]
 
 
-def _artifact(generated_at: datetime, *, different: bool = False) -> tuple[str, bytes]:
+def _artifact(
+    generated_at: datetime,
+    *,
+    different: bool = False,
+    schema_version: int = 2,
+) -> tuple[str, bytes]:
     results = [
         {
             "scenario": f"scenario-{index}",
@@ -94,14 +99,60 @@ def _artifact(generated_at: datetime, *, different: bool = False) -> tuple[str, 
             "stale_approvals": 0,
         },
     }
+    artifact = {
+        "schema_version": schema_version,
+        "generated_at": generated_at.isoformat(),
+        "kind": (
+            "retrostore_exhaustive_http_comparison"
+            if schema_version == 1
+            else "retrostore_multi_surface_http_comparison"
+        ),
+        "report": report,
+    }
+    if schema_version == 2:
+        artifact["surface_reports"] = {
+            "legacy_downloads": {
+                "schema_version": 1,
+                "kind": "retrostore_legacy_download_comparison",
+                "reference_url": "https://retrostore.org",
+                "candidate": (
+                    "https://retrostore-api-compat-candidate-760396810462."
+                    "us-central1.run.app"
+                ),
+                "scope": {"scenario_count": 94},
+                "summary": {
+                    "total": 94,
+                    "matching": 94,
+                    "different": 0,
+                    "passes": True,
+                },
+                "differences": [],
+            },
+            "public_app_list": {
+                "schema_version": 1,
+                "kind": "retrostore_public_website_app_list_comparison",
+                "reference_url": "https://retrostore.org",
+                "candidate": (
+                    "https://retrostore-api-compat-candidate-760396810462."
+                    "us-central1.run.app"
+                ),
+                "scope": {
+                    "reference_app_count": 32,
+                    "candidate_app_count": 32,
+                },
+                "summary": {"different": 0, "passes": True},
+                "differences": [],
+            },
+        }
+        artifact["overall_gate"] = {
+            "passes": not different,
+            "api_contract_passes": not different,
+            "legacy_downloads_passes": True,
+            "public_app_list_passes": True,
+        }
     body = (
         json.dumps(
-            {
-                "schema_version": 1,
-                "generated_at": generated_at.isoformat(),
-                "kind": "retrostore_exhaustive_http_comparison",
-                "report": report,
-            },
+            artifact,
             indent=2,
             sort_keys=True,
         )
@@ -125,6 +176,7 @@ def _evidence(at: datetime, *, passes: bool = True) -> ComparisonEvidence:
         different=0 if passes else 1,
         difference_fields=0 if passes else 1,
         approval_gate_passes=passes,
+        additional_surfaces_pass=passes,
     )
 
 
@@ -163,8 +215,20 @@ def test_parser_validates_digest_counts_and_zero_diff_gate() -> None:
 
     assert evidence.generated_at == generated_at
     assert evidence.zero_diff_passes is True
+    assert evidence.additional_surfaces_pass is True
     with pytest.raises(ValueError, match="digest"):
         soak_status.parse_comparison_artifact(name, body + b" ")
+
+
+def test_legacy_api_only_artifact_no_longer_satisfies_multi_surface_soak() -> None:
+    generated_at = datetime(2026, 8, 10, 1, 17, 1, 123456, tzinfo=UTC)
+    name, body = _artifact(generated_at, schema_version=1)
+
+    evidence = soak_status.parse_comparison_artifact(name, body)
+
+    assert evidence.approval_gate_passes is True
+    assert evidence.additional_surfaces_pass is False
+    assert evidence.zero_diff_passes is False
 
 
 def test_soak_streak_restarts_after_failure_and_rejects_staleness() -> None:

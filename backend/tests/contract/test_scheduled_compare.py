@@ -43,29 +43,51 @@ def test_scheduled_comparison_uses_identity_token_and_retains_report(capsys) -> 
             "results": [],
         }
 
+    def surface_comparator(*args: object) -> dict[str, object]:
+        calls.append(("surfaces", *args))
+        return {
+            "legacy_downloads": {
+                "summary": {"total": 94, "matching": 94, "different": 0, "passes": True},
+                "scope": {"scenario_count": 94},
+                "differences": [],
+            },
+            "public_app_list": {
+                "summary": {"different": 0, "passes": True},
+                "scope": {"reference_app_count": 32, "candidate_app_count": 32},
+                "differences": [],
+            },
+        }
+
     result = run_scheduled_comparison(
         _config(),
         store,
         now=datetime(2026, 8, 10, 3, 4, 5, tzinfo=UTC),
         token_fetcher=lambda audience: f"secret-token-for-{audience}",
         comparator=comparator,
+        surface_comparator=surface_comparator,
     )
 
-    assert calls == [
-        (
-            "https://retrostore.org",
-            "https://candidate.example",
-            30.0,
-            {"Authorization": "Bearer secret-token-for-https://candidate.example"},
-        )
-    ]
+    assert calls[0] == (
+        "https://retrostore.org",
+        "https://candidate.example",
+        30.0,
+        {"Authorization": "Bearer secret-token-for-https://candidate.example"},
+    )
+    assert calls[1][0] == "surfaces"
+    assert calls[1][1] == _config()
+    assert calls[1][2] == {
+        "Authorization": "Bearer secret-token-for-https://candidate.example"
+    }
+    assert calls[1][3] == datetime(2026, 8, 10, 3, 4, 5, tzinfo=UTC)
     assert result["summary"] == {"total": 158, "matching": 158, "different": 0}
     assert result["approval_gate"]["passes"] is True
     assert len(store.objects) == 1
     object_name, body = next(iter(store.objects.items()))
     assert object_name.startswith("operations/comparisons/2026/08/10/20260810T030405")
     artifact = json.loads(body)
-    assert artifact["report"]["approval_gate"]["passes"] is True
+    assert artifact["schema_version"] == 2
+    assert artifact["overall_gate"]["passes"] is True
+    assert artifact["surface_reports"]["legacy_downloads"]["summary"]["passes"] is True
     assert "secret-token" not in body.decode()
     log_event = json.loads(capsys.readouterr().out)
     assert log_event["event"] == "scheduled_comparison"

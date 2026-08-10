@@ -41,11 +41,13 @@ class ComparisonEvidence:
     different: int
     difference_fields: int
     approval_gate_passes: bool
+    additional_surfaces_pass: bool
 
     @property
     def zero_diff_passes(self) -> bool:
         return (
             self.approval_gate_passes
+            and self.additional_surfaces_pass
             and self.total >= 158
             and self.matching == self.total
             and self.different == 0
@@ -163,9 +165,15 @@ def parse_comparison_artifact(object_name: str, body: bytes) -> ComparisonEviden
         raise ValueError(f"Comparison artifact is not valid UTF-8 JSON: {object_name}") from error
     if not isinstance(artifact, dict):
         raise ValueError(f"Comparison artifact root is not an object: {object_name}")
-    if artifact.get("schema_version") != 1:
+    schema_version = artifact.get("schema_version")
+    if schema_version not in {1, 2}:
         raise ValueError(f"Unsupported comparison artifact schema: {object_name}")
-    if artifact.get("kind") != "retrostore_exhaustive_http_comparison":
+    expected_kind = (
+        "retrostore_exhaustive_http_comparison"
+        if schema_version == 1
+        else "retrostore_multi_surface_http_comparison"
+    )
+    if artifact.get("kind") != expected_kind:
         raise ValueError(f"Unexpected comparison artifact kind: {object_name}")
     generated_at = _parse_timestamp(artifact.get("generated_at"), "generated_at")
     expected_timestamp = generated_at.strftime("%Y%m%dT%H%M%S%fZ")
@@ -235,6 +243,13 @@ def parse_comparison_artifact(object_name: str, body: bytes) -> ComparisonEviden
         raise ValueError(f"Comparison difference-field count is inconsistent: {object_name}")
     if gate_passes != (unapproved == 0 and expired == 0 and stale == 0):
         raise ValueError(f"Comparison approval result is inconsistent: {object_name}")
+    additional_surfaces_pass = False
+    if schema_version == 2:
+        additional_surfaces_pass = _validate_additional_surfaces(
+            artifact,
+            object_name=object_name,
+            api_gate_passes=gate_passes,
+        )
     return ComparisonEvidence(
         generated_at=generated_at,
         object_name=object_name,
@@ -244,7 +259,104 @@ def parse_comparison_artifact(object_name: str, body: bytes) -> ComparisonEviden
         different=different,
         difference_fields=difference_fields,
         approval_gate_passes=gate_passes,
+        additional_surfaces_pass=additional_surfaces_pass,
     )
+
+
+def _validate_additional_surfaces(
+    artifact: Mapping[str, Any],
+    *,
+    object_name: str,
+    api_gate_passes: bool,
+) -> bool:
+    reports = artifact.get("surface_reports")
+    overall = artifact.get("overall_gate")
+    if not isinstance(reports, Mapping) or not isinstance(overall, Mapping):
+        raise ValueError(f"Comparison surface reports are missing: {object_name}")
+    downloads = reports.get("legacy_downloads")
+    public_apps = reports.get("public_app_list")
+    if not isinstance(downloads, Mapping) or not isinstance(public_apps, Mapping):
+        raise ValueError(f"Comparison surface report is invalid: {object_name}")
+
+    download_summary = downloads.get("summary")
+    download_scope = downloads.get("scope")
+    download_differences = downloads.get("differences")
+    if (
+        downloads.get("schema_version") != 1
+        or downloads.get("kind") != "retrostore_legacy_download_comparison"
+        or downloads.get("reference_url") != "https://retrostore.org"
+        or downloads.get("candidate") != _CANDIDATE_URL
+        or not isinstance(download_summary, Mapping)
+        or not isinstance(download_scope, Mapping)
+        or not isinstance(download_differences, list)
+    ):
+        raise ValueError(f"Legacy download surface report is malformed: {object_name}")
+    download_total = _nonnegative_int(
+        download_summary.get("total"), "downloads.summary.total", object_name
+    )
+    download_matching = _nonnegative_int(
+        download_summary.get("matching"), "downloads.summary.matching", object_name
+    )
+    download_different = _nonnegative_int(
+        download_summary.get("different"), "downloads.summary.different", object_name
+    )
+    download_scenarios = _nonnegative_int(
+        download_scope.get("scenario_count"), "downloads.scope.scenario_count", object_name
+    )
+    download_passes = download_summary.get("passes")
+    if (
+        not isinstance(download_passes, bool)
+        or download_total != download_scenarios
+        or download_matching + download_different != download_total
+        or download_different != len(download_differences)
+        or download_passes != (download_different == 0)
+    ):
+        raise ValueError(f"Legacy download surface counts are inconsistent: {object_name}")
+
+    public_summary = public_apps.get("summary")
+    public_scope = public_apps.get("scope")
+    public_differences = public_apps.get("differences")
+    if (
+        public_apps.get("schema_version") != 1
+        or public_apps.get("kind")
+        != "retrostore_public_website_app_list_comparison"
+        or public_apps.get("reference_url") != "https://retrostore.org"
+        or public_apps.get("candidate") != _CANDIDATE_URL
+        or not isinstance(public_summary, Mapping)
+        or not isinstance(public_scope, Mapping)
+        or not isinstance(public_differences, list)
+    ):
+        raise ValueError(f"Public app-list surface report is malformed: {object_name}")
+    public_different = _nonnegative_int(
+        public_summary.get("different"), "public_apps.summary.different", object_name
+    )
+    reference_count = _nonnegative_int(
+        public_scope.get("reference_app_count"),
+        "public_apps.scope.reference_app_count",
+        object_name,
+    )
+    candidate_count = _nonnegative_int(
+        public_scope.get("candidate_app_count"),
+        "public_apps.scope.candidate_app_count",
+        object_name,
+    )
+    public_passes = public_summary.get("passes")
+    if (
+        not isinstance(public_passes, bool)
+        or public_different != len(public_differences)
+        or public_passes != (public_different == 0 and reference_count == candidate_count)
+    ):
+        raise ValueError(f"Public app-list surface counts are inconsistent: {object_name}")
+
+    expected_overall = {
+        "passes": api_gate_passes and download_passes and public_passes,
+        "api_contract_passes": api_gate_passes,
+        "legacy_downloads_passes": download_passes,
+        "public_app_list_passes": public_passes,
+    }
+    if dict(overall) != expected_overall:
+        raise ValueError(f"Comparison overall gate is inconsistent: {object_name}")
+    return download_passes and public_passes
 
 
 def evaluate_soak(
@@ -474,6 +586,7 @@ def _evidence_reference(item: ComparisonEvidence) -> dict[str, Any]:
         "different": item.different,
         "difference_fields": item.difference_fields,
         "approval_gate_passes": item.approval_gate_passes,
+        "additional_surfaces_pass": item.additional_surfaces_pass,
         "zero_diff_passes": item.zero_diff_passes,
     }
 

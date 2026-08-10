@@ -12,12 +12,18 @@ from datetime import UTC, datetime
 from typing import Any, Protocol
 from urllib.parse import urlsplit
 
+import httpx
 from google.auth.transport.requests import Request
 from google.cloud import storage
 from google.oauth2 import id_token
 
 from retrostore.contract.approvals import evaluate_approvals
 from retrostore.contract.exhaustive import compare_exhaustive
+from retrostore.contract.legacy_downloads import (
+    compare_download_clients,
+    discover_download_scenarios_from_reference,
+)
+from retrostore.contract.public_app_list import compare_public_app_clients
 from retrostore.observability import emit_structured_event
 
 _SAFE_PREFIX = re.compile(r"[a-z0-9][a-z0-9/_-]{0,199}/")
@@ -115,25 +121,45 @@ def run_scheduled_comparison(
     now: datetime | None = None,
     token_fetcher: Callable[[str], str] = google_identity_token,
     comparator: Callable[..., dict[str, Any]] = compare_exhaustive,
+    surface_comparator: Callable[..., dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     config.validate()
     generated_at = (now or datetime.now(UTC)).astimezone(UTC)
     candidate_token = token_fetcher(config.candidate_url)
+    candidate_headers = {"Authorization": f"Bearer {candidate_token}"}
     report = evaluate_approvals(
         comparator(
             config.reference_url,
             config.candidate_url,
             config.timeout_seconds,
-            {"Authorization": f"Bearer {candidate_token}"},
+            candidate_headers,
         ),
         (),
         today=generated_at.date(),
     )
+    compare_surfaces = surface_comparator or _compare_additional_surfaces
+    surface_reports = compare_surfaces(config, candidate_headers, generated_at)
+    overall_gate = {
+        "passes": (
+            report["approval_gate"]["passes"]
+            and surface_reports["legacy_downloads"]["summary"]["passes"]
+            and surface_reports["public_app_list"]["summary"]["passes"]
+        ),
+        "api_contract_passes": report["approval_gate"]["passes"],
+        "legacy_downloads_passes": surface_reports["legacy_downloads"]["summary"][
+            "passes"
+        ],
+        "public_app_list_passes": surface_reports["public_app_list"]["summary"][
+            "passes"
+        ],
+    }
     artifact = {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at": generated_at.isoformat(),
-        "kind": "retrostore_exhaustive_http_comparison",
+        "kind": "retrostore_multi_surface_http_comparison",
         "report": report,
+        "surface_reports": surface_reports,
+        "overall_gate": overall_gate,
     }
     body = (json.dumps(artifact, indent=2, sort_keys=True) + "\n").encode()
     digest = hashlib.sha256(body).hexdigest()
@@ -149,17 +175,51 @@ def run_scheduled_comparison(
         "generated_at": generated_at.isoformat(),
         "summary": report["summary"],
         "scope": report.get("scope", {}),
-        "approval_gate": report["approval_gate"],
+        "approval_gate": overall_gate,
     }
     emit_structured_event(
         {
             "event": "scheduled_comparison",
             "service": "retrostore-comparator",
-            "severity": "INFO" if report["approval_gate"]["passes"] else "ERROR",
+            "severity": "INFO" if overall_gate["passes"] else "ERROR",
             **result,
         }
     )
     return result
+
+
+def _compare_additional_surfaces(
+    config: ScheduledComparisonConfig,
+    candidate_headers: dict[str, str],
+    generated_at: datetime,
+) -> dict[str, Any]:
+    with httpx.Client(
+        base_url=config.reference_url,
+        follow_redirects=False,
+        timeout=config.timeout_seconds,
+    ) as reference, httpx.Client(
+        base_url=config.candidate_url,
+        headers=candidate_headers,
+        follow_redirects=False,
+        timeout=config.timeout_seconds,
+    ) as candidate:
+        download_scenarios = discover_download_scenarios_from_reference(reference)
+        downloads = compare_download_clients(
+            reference,
+            candidate,
+            download_scenarios,
+            reference_url=config.reference_url,
+            candidate_label=config.candidate_url,
+            generated_at=generated_at,
+        )
+        public_apps = compare_public_app_clients(
+            reference,
+            candidate,
+            reference_url=config.reference_url,
+            candidate_label=config.candidate_url,
+            generated_at=generated_at,
+        )
+    return {"legacy_downloads": downloads, "public_app_list": public_apps}
 
 
 def main() -> int:

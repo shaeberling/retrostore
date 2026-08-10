@@ -12,7 +12,7 @@ from datetime import UTC, datetime
 from io import BytesIO
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlencode, urlsplit
+from urllib.parse import parse_qs, urlencode, urlsplit
 
 import httpx
 
@@ -80,6 +80,87 @@ def discover_download_scenarios(mirror: CatalogMirror) -> tuple[DownloadScenario
                 f"app-{app_token}-unknown-type",
                 "/downloadapp?"
                 + urlencode({"appId": app.id, "type": "not-a-real-type"}),
+                False,
+            )
+        )
+    return tuple(scenarios)
+
+
+def discover_download_scenarios_from_reference(
+    reference: httpx.Client,
+    *,
+    public_listing_path: str = "/rpc?m=pubapplist",
+) -> tuple[DownloadScenario, ...]:
+    """Derive the bounded download corpus from the public website and ZIPs."""
+
+    listing = reference.get(public_listing_path)
+    if listing.status_code != 200 or len(listing.content) > _MAX_RESPONSE_BYTES:
+        raise ValueError("Cannot discover downloads from the public app list")
+    try:
+        value = listing.json()
+    except json.JSONDecodeError as error:
+        raise ValueError("Public app list is not valid JSON") from error
+    if not isinstance(value, list) or len(value) > 1_000:
+        raise ValueError("Public app list must be a bounded array")
+
+    app_paths: dict[str, str] = {}
+    for item in value:
+        if not isinstance(item, Mapping):
+            raise ValueError("Public app list contains a malformed entry")
+        path = item.get("downloadUrl")
+        if not isinstance(path, str):
+            raise ValueError("Public app list entry has no download URL")
+        parsed = urlsplit(path)
+        query = parse_qs(parsed.query, keep_blank_values=True, strict_parsing=True)
+        app_ids = query.get("appId")
+        if (
+            parsed.scheme
+            or parsed.netloc
+            or parsed.path != "/downloadapp"
+            or parsed.fragment
+            or set(query) != {"appId"}
+            or app_ids is None
+            or len(app_ids) != 1
+            or not app_ids[0]
+            or len(app_ids[0]) > 512
+            or app_ids[0] in app_paths
+        ):
+            raise ValueError("Public app list contains an unsafe download URL")
+        app_paths[app_ids[0]] = path
+
+    scenarios = [
+        DownloadScenario("missing-app-id", "/downloadapp", False),
+        DownloadScenario(
+            "unknown-app-id",
+            "/downloadapp?" + urlencode({"appId": "not-a-real-app"}),
+            False,
+        ),
+    ]
+    for app_id, path in sorted(app_paths.items()):
+        app_token = hashlib.sha256(app_id.encode()).hexdigest()[:16]
+        response = reference.get(path)
+        if response.status_code != 200 or len(response.content) > _MAX_RESPONSE_BYTES:
+            raise ValueError("Cannot discover typed downloads from a legacy ZIP")
+        extensions = _zip_extensions(response.content)
+        scenarios.append(DownloadScenario(f"app-{app_token}-zip", path, True))
+        for extension in extensions:
+            extension_token = hashlib.sha256(extension.encode()).hexdigest()[:8]
+            scenarios.append(
+                DownloadScenario(
+                    f"app-{app_token}-type-{extension_token}",
+                    "/downloadapp?"
+                    + urlencode({"appId": app_id, "type": extension}),
+                    False,
+                )
+            )
+    if app_paths:
+        app_id = min(app_paths)
+        app_token = hashlib.sha256(app_id.encode()).hexdigest()[:16]
+        scenarios.append(
+            DownloadScenario(
+                f"app-{app_token}-unknown-type",
+                "/downloadapp?"
+                + urlencode({"appId": app_id, "type": "not-a-real-type"}),
                 False,
             )
         )
@@ -288,6 +369,22 @@ def _normalize_zip(body: bytes) -> list[dict[str, Any]]:
                     }
                 )
             return sorted(result, key=lambda item: item["filename_sha256"])
+    except zipfile.BadZipFile as error:
+        raise ValueError("Legacy download response is not a valid ZIP archive") from error
+
+
+def _zip_extensions(body: bytes) -> tuple[str, ...]:
+    try:
+        with zipfile.ZipFile(BytesIO(body)) as archive:
+            entries = archive.infolist()
+            if len(entries) > _MAX_ZIP_ENTRIES:
+                raise ValueError("Legacy download archive contains too many entries")
+            extensions = {
+                extension
+                for entry in entries
+                if (extension := _filename_extension(entry.filename)) is not None
+            }
+            return tuple(sorted(extensions))
     except zipfile.BadZipFile as error:
         raise ValueError("Legacy download response is not a valid ZIP archive") from error
 

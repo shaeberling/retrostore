@@ -7,6 +7,7 @@ from retrostore.contract.legacy_downloads import (
     _candidate_origin,
     compare_download_clients,
     discover_download_scenarios,
+    discover_download_scenarios_from_reference,
 )
 from retrostore.mirror import load_catalog_mirror_archive
 from services.api_compat.app import create_archive_app
@@ -107,3 +108,23 @@ def test_candidate_url_guard_accepts_only_service_and_tagged_origins() -> None:
             pass
         else:
             raise AssertionError(f"Expected candidate guard to reject {invalid}")
+
+
+def test_reference_discovery_matches_the_archive_corpus(tmp_path: Path) -> None:
+    archive = tmp_path / "catalog.zip"
+    _write_archive(archive)
+    app = create_archive_app(archive, {"TESTING": True})
+    mirror = load_catalog_mirror_archive(archive)
+
+    with httpx.Client(
+        transport=httpx.WSGITransport(app=app),
+        base_url="https://reference.test",
+    ) as reference:
+        discovered = discover_download_scenarios_from_reference(
+            reference, public_listing_path="/public/apps.json"
+        )
+
+    expected = discover_download_scenarios(mirror)
+    assert [(item.path, item.zip_response) for item in discovered] == [
+        (item.path, item.zip_response) for item in expected
+    ]
