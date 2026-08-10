@@ -357,6 +357,10 @@ def validate_thresholds(thresholds: dict[str, Any]) -> None:
         "every canary step requires full public HTTP/HTTPS parity",
     )
     _require(
+        canary["require_app_engine_fallback_parity_at_each_step"] is True,
+        "every canary step requires App Engine fallback parity",
+    )
+    _require(
         canary["require_native_port_80_smoke_at_each_step"] is True,
         "every canary step requires a native port-80 smoke",
     )

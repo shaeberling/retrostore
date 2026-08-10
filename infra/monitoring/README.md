@@ -140,14 +140,14 @@ sample; exact-revision native telemetry passed the evidence/resource gate. A
 fresh 2,000-request confirmation passed every method gate at 38.08 requests per
 second with zero semantic differences, transport errors, or 5xx responses.
 
-The checksum-validating soak auditor currently sees ten retained comparison
-reports. All ten API comparisons matched 158/158; the first seven predate
+The checksum-validating soak auditor currently sees eleven retained comparison
+reports. All eleven API comparisons matched 158/158; the first seven predate
 multi-surface evidence and are retained as API-only history. The schema-2 report
 after the `website1` boundary also passed all 94 downloads and all 32 website
 entries. The schema-3 report after the `redirects1` boundary additionally passed
 all six exact public redirects, starting the current private evidence clock at
-2026-08-10 03:55:01 UTC. Two schema-3 reports now extend that streak, including
-the first automatic generation-4 execution. A gap over 90 minutes, a
+2026-08-10 03:55:01 UTC. Three schema-3 reports now extend that streak,
+including two automatic generation-4 executions. A gap over 90 minutes, a
 failed/changed report, or a different serving revision makes the clock
 non-current. Reaching fourteen days
 will satisfy only this private evidence gate; it cannot substitute for the

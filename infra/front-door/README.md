@@ -24,8 +24,10 @@ activation, and load-balancer provisioning remain unauthorized.
 The first automatic generation-4 schedule fired at 04:17 UTC under the
 comparator service account and retained a second eligible schema-3 artifact at
 04:18:28 UTC. It passed the API (158/158), downloads (94/94), public catalog
-(32/32), and redirects (6/6). The checksum auditor validated all ten historical
-artifacts and reports two current-boundary artifacts with no continuity gap.
+(32/32), and redirects (6/6). The next hourly execution retained a third
+eligible artifact at 05:19:27 UTC with the same zero-difference result. The
+checksum auditor validated all eleven historical artifacts and reports three
+current-boundary artifacts with no continuity gap.
 
 ## Verified current state
 
@@ -97,6 +99,25 @@ redirects, so those three backends change or roll back in one URL-map update.
 Because the dynamic `/public/apps.json` path is not a static object, there is no
 static/dynamic route overlap to resolve. Validation rejects every undeclared
 exact/prefix overlap, all duplicate exact routes, and all overlapping prefixes.
+
+A separate 12-scenario fallback corpus covers an unknown root path, one missing
+object in each legacy asset family, `/public/`, a redirect near-miss, a download
+near-miss, and an unknown API method. Tests prove none is claimed by a migrating
+route group. The live HTTP-versus-HTTPS baseline passed 12/12 while retaining no
+response body: the observed behaviors include legacy login fall-through, empty
+and body-bearing 404s, and bounded 400s. Every future canary step must compare
+this corpus through the candidate front door and App Engine reference, in
+addition to the 338 known public reads.
+
+Run the read-only fallback comparison with:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run --directory backend python \
+  -m retrostore.contract.front_door_fallbacks \
+  --reference-url https://retrostore.org \
+  --candidate-url https://CANDIDATE_HOST \
+  --output ../.migration-artifacts/front-door-fallbacks.json
+```
 
 The local static deployment planner now verifies the complete bundle and emits
 only create-if-absent upload descriptions. It cannot call Cloud Storage, refuses

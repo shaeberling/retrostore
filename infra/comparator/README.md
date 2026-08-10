@@ -118,9 +118,13 @@ four surfaces and retained artifact
 The first automatic generation-4 execution
 `retrostore-hourly-comparator-28rck` then succeeded under the scheduler identity
 and retained schema-3 artifact
-`20260810T041828121946Z-c7f3d3c9581d2133.json`. The auditor checksum-validated
-ten reports total, with two current-boundary reports and no continuity gap. The
-earlier schema-1 and schema-2 reports remain valid history but cannot extend
+`20260810T041828121946Z-c7f3d3c9581d2133.json`. The next hourly execution,
+`retrostore-hourly-comparator-kcwrn`, also succeeded and retained artifact
+`20260810T051927297893Z-d7fa173b8efc4bcd.json`, full SHA-256
+`d7fa173b8efc4bcdda7187d4db162ec799e433b71907771e82be2026926b9b47`.
+The auditor checksum-validated eleven reports total, with three current-boundary
+reports and no continuity gap. The earlier schema-1 and schema-2 reports remain
+valid history but cannot extend
 this exact revision and schema-3 clock. The 14-day gate is current but not yet
 eligible.
 

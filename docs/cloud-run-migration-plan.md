@@ -446,11 +446,12 @@ Completed foundation work:
   seeded the current clock at 03:55:01 UTC. The earlier schema-1 and schema-2
   artifacts remain valid historical evidence but cannot satisfy this exact
   revision and schema-3 gate.
-  The first independently scheduled generation-4 execution then completed under
-  the comparator service account at 04:18:28 UTC with 158/158 API cases and all
-  three additional surfaces matching. The auditor checksum-validated all ten
-  retained artifacts; two schema-3 reports now extend the current streak with a
-  maximum observed gap of 1,406.73 seconds. The fourteen-day clock is current
+  Independently scheduled generation-4 executions then completed under the
+  comparator service account at 04:18:28 and 05:19:27 UTC with 158/158 API
+  cases and all three additional surfaces matching. The auditor
+  checksum-validated all eleven retained artifacts; three schema-3 reports now
+  extend the current streak with a maximum observed gap of 3,659.18 seconds.
+  The fourteen-day clock is current
   but not yet eligible. The baseline explicitly denies cutover, load-balancer,
   and catalog-activation authority.
 - The promoted private `downloads1` revision received two additional guarded
@@ -1679,6 +1680,9 @@ Phase 1:
 - [x] Eliminate the static/dynamic route overlap: route `/` and the 78 verified
   static objects exactly, keep `/public/apps.json` separate, leave missing paths
   on App Engine, and retain all three website backends in one atomic handoff.
+- [x] Add a sanitized 12-path App Engine fallback corpus for missing assets and
+  route near-misses, prove HTTP/HTTPS equivalence, prove no migrating group
+  claims a fallback path, and require it at every future canary step.
 - [x] Add a local-only static deployment planner that checksum-verifies all 78
   objects, rejects every known existing project bucket, emits only
   create-if-absent uploads and zero deletes, and deliberately has no apply path.

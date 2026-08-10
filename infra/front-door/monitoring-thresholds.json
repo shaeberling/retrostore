@@ -39,6 +39,7 @@
     "minimum_observation_hours_per_step": 24,
     "require_complete_comparator_at_each_step": true,
     "require_full_public_transport_parity_at_each_step": true,
+    "require_app_engine_fallback_parity_at_each_step": true,
     "require_native_port_80_smoke_at_each_step": true,
     "require_all_consumer_smokes_at_100_percent": true,
     "state_canary_allowed": false,

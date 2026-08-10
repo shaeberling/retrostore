@@ -76,3 +76,12 @@ def test_plain_http_corpus_and_native_smoke_are_required_at_every_canary_step() 
 
     with pytest.raises(ValueError, match="full public HTTP/HTTPS parity"):
         _validator().validate_thresholds(thresholds)
+
+
+def test_app_engine_fallback_corpus_is_required_at_every_canary_step() -> None:
+    thresholds_path = REPOSITORY_ROOT / "infra/front-door/monitoring-thresholds.json"
+    thresholds = json.loads(thresholds_path.read_text())
+    thresholds["canary"]["require_app_engine_fallback_parity_at_each_step"] = False
+
+    with pytest.raises(ValueError, match="App Engine fallback parity"):
+        _validator().validate_thresholds(thresholds)

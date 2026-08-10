@@ -153,6 +153,9 @@ does not route whole asset prefixes. Safe live probes showed why: a missing
 `/public/*` or `/gfx/*` object returns 404, while several other missing asset
 paths fall through to the legacy login page with HTTP 200. Exact routing keeps
 all such unrecognized paths on App Engine, preserving those edge semantics.
+The corresponding 12-scenario fallback corpus matched production HTTP and
+HTTPS exactly after normalizing only the host-bearing login-forward body; it is
+now a required candidate-front-door canary gate.
 
 The legacy `/rpc` registry contains:
 
@@ -376,10 +379,10 @@ A separate read-only soak auditor now verifies the retained comparison object
 paths, generations, content digests, schemas, counts, URLs, and approval gates,
 then confirms the expected Cloud Run revision still serves 100% of private
 traffic. The checked-in boundary now requires `redirects1` at 100% private
-traffic and schema-3 four-surface artifacts. The latest run validated ten
-retained reports: all ten APIs matched 158/158, one older schema-2 report passed
-the download/catalog gate, and two schema-3 reports passed all 94 downloads,
-the 32-entry website JSON list, and all six public redirects. They start the
+traffic and schema-3 four-surface artifacts. The latest run validated eleven
+retained reports: all eleven APIs matched 158/158, one older schema-2 report
+passed the download/catalog gate, and three schema-3 reports passed all 94
+downloads, the 32-entry website JSON list, and all six public redirects. They start the
 current clock at 2026-08-10 03:55:01 UTC with no continuity gap. The private
 14-day clock is current but not yet eligible; the earlier reports remain
 historical evidence.
