@@ -122,6 +122,10 @@ def validate_routes(routes: dict[str, Any]) -> None:
             group["canary_steps_percent"] == [1, 5, 25, 50, 100],
             f"{group_id} has unexpected canary steps",
         )
+    _require(
+        _paths(by_id["legacy_media_download"]) == {("exact", "/downloadapp")},
+        "only the exact tested legacy download path may move",
+    )
 
     admin = by_id["new_admin"]
     _require(
@@ -138,6 +142,16 @@ def validate_routes(routes: dict[str, Any]) -> None:
     _require(
         "legacy_screenshot_assets" not in by_id,
         "the login-protected screenshot preview must not be classified as a public asset route",
+    )
+    public_website = by_id["public_website_catalog"]
+    _require(
+        _paths(public_website) == {("exact", "/public/apps.json")},
+        "the candidate public website JSON route changed unexpectedly",
+    )
+    _require(
+        public_website["migration_mode"] == "atomic_route_change"
+        and not public_website["canary_steps_percent"],
+        "the public website and its JSON dependency must move together",
     )
 
     production = routes["candidate_maps"]["production_initial"]

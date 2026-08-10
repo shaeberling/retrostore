@@ -44,6 +44,9 @@ rollback window.
 Observed Firebase resources:
 
 - Default Hosting site: `trs-80`, served at `https://trs-80.web.app`.
+  Its live channel currently contains the separately deployed TRS-80 KMP web
+  application (24 files in the 2026-08-06 release), so the RetroStore static
+  bundle must not reuse this site.
 - Registered Firebase apps include the Android app named `TRS-80 Android`,
   namespace `org.puder.trs80`, and the web app used by the new administration
   candidate.
@@ -130,6 +133,7 @@ The source dispatch order is significant:
 | `/app[/]` | Redirect to the Google Play app | Preserve redirect |
 | `/api/<method>` | Public compatibility API | Flask compatibility service |
 | `/downloadapp?appId=...&type=...` | Raw media or generated ZIP download | Compatibility service |
+| `/rpc?m=pubapplist` | Public JSON catalog used only by the legacy static website | Replaced in the new static bundle by parity-tested `/public/apps.json`; other `/rpc` methods remain admin-only |
 | `/screenshotServe?key=...` | Login-protected Polymer-admin screenshot preview | Retire with the legacy admin; public clients receive direct serving URLs from `/api/*` |
 | `/reportapp` | Public report form and Mail-service submission | Rebuild or explicitly retire after review |
 | `/card/{revision}/version` | RetroStore Card firmware version | Remain unchanged on App Engine; excluded from current migration |
@@ -148,6 +152,8 @@ The legacy `/rpc` registry contains:
 
 - `userlist`, `getSiteContext`, `addEditUser`, and `deleteUser`.
 - `addEditApp`, `getAppFormData`, `applist`, `pubapplist`, and `deleteApp`.
+  `pubapplist` is the one public read method; the others are authenticated admin
+  operations.
 - `listDiskImages`, `deleteDiskImage`, and `uploadDiskImage`.
 - `listScreenshots`, `deleteScreenshot`, and `reorderScreenshots`.
 

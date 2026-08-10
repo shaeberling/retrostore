@@ -888,3 +888,21 @@ bytes are SHA-256 compared. ZIPs are compared by filename digest, uncompressed
 size, and content SHA-256; generated timestamp/compressor envelope differences
 are ignored because App Engine rebuilds that envelope on each request. Reports
 contain no app IDs, filenames, or media bytes.
+
+The legacy static website's public `/rpc?m=pubapplist` response is reproduced
+at the query-independent candidate path `/public/apps.json`. Compare the full
+JSON list against the same normalized archive with:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.contract.public_app_list \
+  --archive ../.migration-artifacts/retrostore-catalog-export.zip \
+  --reference-url https://retrostore.org \
+  --output ../.migration-artifacts/public-app-list-comparison.json
+```
+
+The report contains only counts, aggregate digests, and sanitized difference
+field names. It excludes app IDs, names, descriptions, screenshot URLs, and
+credentials. The first complete comparison matched all 32 entries with zero
+differences. A private tag can be tested with the same candidate URL, audience,
+and runtime-identity arguments accepted by the download comparator.

@@ -98,6 +98,20 @@
             "value": "/assets/screenshots/"
           },
           "backend": "cloud_run_api"
+        },
+        {
+          "match": {
+            "kind": "exact",
+            "value": "/downloadapp"
+          },
+          "backend": "cloud_run_api"
+        },
+        {
+          "match": {
+            "kind": "exact",
+            "value": "/public/apps.json"
+          },
+          "backend": "cloud_run_api"
         }
       ]
     },
@@ -232,7 +246,7 @@
       "id": "legacy_media_download",
       "paths": [
         {
-          "kind": "prefix",
+          "kind": "exact",
           "value": "/downloadapp"
         }
       ],
@@ -241,6 +255,21 @@
       "disposition": "migrate_after_semantic_zip_and_typed_media_parity",
       "migration_mode": "weighted_read_canary",
       "canary_steps_percent": [1, 5, 25, 50, 100],
+      "rollback_backend": "app_engine_default"
+    },
+    {
+      "id": "public_website_catalog",
+      "paths": [
+        {
+          "kind": "exact",
+          "value": "/public/apps.json"
+        }
+      ],
+      "current_backend": "app_engine_default",
+      "future_backend": "cloud_run_api",
+      "disposition": "enable_with_static_website_candidate_after_json_parity",
+      "migration_mode": "atomic_route_change",
+      "canary_steps_percent": [],
       "rollback_backend": "app_engine_default"
     },
     {

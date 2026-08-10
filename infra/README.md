@@ -50,6 +50,10 @@ The read-only load-balancer, route-group, monitoring-threshold, and rollback
 preparation is in `front-door/`. Its validator is run in CI and deliberately has
 no cloud apply path.
 
+The create-only, local public website bundle and asset-closure check are in
+`public-site/`. They deliberately have no deploy command and cannot overwrite
+the existing TRS-80 Firebase Hosting site.
+
 The privacy-safe request telemetry design is in `monitoring/`, and the
 read-only scheduled full-corpus runner is in `comparator/`. Comparator reports
 use a dedicated prefix in the durable bucket with the prefix-only lifecycle in

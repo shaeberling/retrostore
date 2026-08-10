@@ -117,6 +117,22 @@ def test_archive_candidate_loads_only_from_explicit_verified_path(tmp_path: Path
     assert typed.data == b"disk image"
     assert typed.headers["Access-Control-Allow-Origin"] == "*"
 
+    public_apps = client.get("/public/apps.json")
+    assert public_apps.status_code == 200
+    assert public_apps.content_type == "application/json"
+    assert public_apps.get_json() == [
+        {
+            "author": "Jane Doe",
+            "description": "Tank game",
+            "downloadUrl": "/downloadapp?appId=app-1",
+            "emulatorAppId": "app-1",
+            "name": "Armored Patrol",
+            "reportUrl": "/reportapp?appId=app-1",
+            "screenshots": ["https://legacy.example/shot-1"],
+            "version": "1.0",
+        }
+    ]
+
 
 def test_legacy_download_preserves_error_text_and_media_tie_break() -> None:
     from services.api_compat.app import LegacyDownloadApp, LegacyDownloadMedia
@@ -174,6 +190,9 @@ def test_new_screenshot_uses_the_immutable_candidate_route(tmp_path: Path) -> No
         "https://preview.example.test/s/shot-1"
     ]
     assert client.get("/s/shot-1").data == b"screenshot"
+    assert client.get("/public/apps.json").get_json()[0]["screenshots"] == [
+        "https://preview.example.test/s/shot-1"
+    ]
 
 
 def test_candidate_rejects_a_public_origin_with_a_path(tmp_path: Path) -> None:

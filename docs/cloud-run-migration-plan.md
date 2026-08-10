@@ -450,6 +450,21 @@ Completed foundation work:
   in a 13-request sample while native revision metrics passed; the independent
   confirmation passed every latency gate at 38.08 requests/second. Neither run
   changed production routing or service configuration.
+- The legacy public website's sole catalog dependency was isolated from the
+  admin RPC family. `/rpc?m=pubapplist` is a public JSON read used by
+  `apps.html`; the normalized mirror now exposes the same payload at the new
+  unambiguous `/public/apps.json` path. A production-versus-archive comparison
+  matched all 32 entries and every field with zero differences. The static
+  candidate will change its fetch path, while all legacy admin RPCs remain on
+  App Engine until the writer handoff.
+- A create-only static-site builder now packages the current public pages,
+  vendored browser dependencies, favicon, and graphics without deployment. It
+  rewrites only the new JSON fetch and two legacy lightbox paths, removes two
+  references to an absent unused script, and validates local asset closure. The
+  first build contained 48 files/2,909,581 bytes with zero missing assets. The
+  existing default Firebase Hosting site was confirmed to contain the separate
+  TRS-80 KMP web application and is explicitly excluded; no new site or bucket
+  was created.
 
 Open foundation work:
 

@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote, urlsplit
 
-from flask import Flask, Response, abort, request
+from flask import Flask, Response, abort, jsonify, request
 
 from retrostore.api_compat.service import build_handlers
 from retrostore.api_compat.storage import CompatibilityStorage
@@ -49,6 +49,7 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
         RETROSTORE_PROJECT=os.environ.get("RETROSTORE_PROJECT"),
         RETROSTORE_REQUEST_LOGGING=True,
         RETROSTORE_LEGACY_DOWNLOADS={},
+        RETROSTORE_PUBLIC_WEBSITE_APPS=(),
         RETROSTORE_SCREENSHOTS={},
     )
     if config:
@@ -150,6 +151,10 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
         response.headers["Content-Disposition"] = f'attachment; filename="{filename}.zip"'
         return response
 
+    @app.get("/public/apps.json")
+    def public_website_apps() -> Response:
+        return jsonify(app.config["RETROSTORE_PUBLIC_WEBSITE_APPS"])
+
     return app
 
 
@@ -180,6 +185,7 @@ def create_archive_app(
     mirror = load_catalog_mirror_archive(Path(archive_path))
     screenshots = _public_screenshots(mirror)
     downloads = _legacy_downloads(mirror)
+    public_apps = _public_website_apps(mirror, public_origin)
     storage = MirrorCompatibilityStorage(
         mirror,
         screenshot_url=_screenshot_url_resolver(public_origin),
@@ -188,6 +194,7 @@ def create_archive_app(
         {
             "RETROSTORE_API_STORAGE": storage,
             "RETROSTORE_LEGACY_DOWNLOADS": downloads,
+            "RETROSTORE_PUBLIC_WEBSITE_APPS": public_apps,
             "RETROSTORE_SCREENSHOTS": screenshots,
         }
     )
@@ -273,6 +280,9 @@ def create_cloud_app(config: Mapping[str, Any] | None = None) -> Flask:
         state_storage=state_storage,
     )
     candidate_config["RETROSTORE_LEGACY_DOWNLOADS"] = _legacy_downloads(mirror)
+    candidate_config["RETROSTORE_PUBLIC_WEBSITE_APPS"] = _public_website_apps(
+        mirror, public_origin
+    )
     candidate_config["RETROSTORE_SCREENSHOTS"] = _public_screenshots(mirror)
     return create_app(candidate_config)
 
@@ -336,6 +346,39 @@ def _legacy_downloads(mirror: Any) -> Mapping[str, LegacyDownloadApp]:
             ),
         )
     return result
+
+
+def _public_website_apps(
+    mirror: Any, public_origin: str
+) -> tuple[dict[str, object], ...]:
+    media_by_app: dict[str, list[Any]] = {}
+    for media in mirror.media.values():
+        media_by_app.setdefault(media.app_id, []).append(media)
+
+    screenshots = mirror.screenshots
+    result: list[dict[str, object]] = []
+    for app in mirror.apps:
+        item: dict[str, object] = {
+            "name": app.name,
+            "version": app.version,
+            "author": app.author_name if app.author_id is not None else "Unknown author",
+            "description": app.description,
+            "screenshots": [
+                screenshot.legacy_serving_url
+                or f"{public_origin}/s/{quote(screenshot.id, safe='')}"
+                for screenshot_id in app.screenshot_ids
+                for screenshot in (screenshots[screenshot_id],)
+            ],
+            "reportUrl": f"/reportapp?appId={app.id}",
+            "downloadUrl": f"/downloadapp?appId={app.id}",
+        }
+        if any(
+            media.filename.casefold().endswith(".dmk")
+            for media in media_by_app.get(app.id, ())
+        ):
+            item["emulatorAppId"] = app.id
+        result.append(item)
+    return tuple(sorted(result, key=lambda item: str(item["name"])))
 
 
 def _legacy_download_error(message: str) -> Response:
