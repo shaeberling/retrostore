@@ -416,6 +416,24 @@ members are represented only by count and an aggregate SHA-256. The first live
 run passed all three services, each of which returned 403 anonymously and had
 no public IAM principal.
 
+Audit the comparator job, scheduler, conditional report-prefix writer, bucket
+lifecycle, and private IAM as one evidence pipeline:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.contract.comparator_runtime_status \
+  --baseline ../infra/comparator/runtime-baseline.json \
+  --output ../.migration-artifacts/comparator-runtime-status.json \
+  --apply \
+  --confirm-project trs-80
+```
+
+This auditor runs only resource descriptions and IAM-policy reads. It rejects
+job image/configuration drift, a paused or redirected scheduler, non-successful
+latest execution, changed 90-day prefix lifecycle, widened report-writer IAM,
+and public job/bucket members. Its sanitized report contains neither environment
+nor IAM member values. The first live run passed all nine checks.
+
 Exercise the deployed write path with one synthetic state only. This guarded
 command is a dry run unless `--apply` and an exact URL confirmation are both
 present; its report never includes the allocated state token:

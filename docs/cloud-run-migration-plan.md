@@ -1676,6 +1676,9 @@ Phase 1:
 - [x] Pin and live-audit all three private Cloud Run services for immutable
   revision/image, runtime configuration, traffic, IAM, and anonymous denial,
   emitting only sanitized aggregate drift evidence.
+- [x] Pin and live-audit the complete scheduled evidence pipeline: comparator
+  generation/configuration, job IAM, scheduler target and identity, successful
+  latest execution, report-prefix writer, private bucket, and lifecycle.
 - [x] Run the revision- and checksum-pinned JVM, TRS-80 KMP, and embedded-C
   clients through an authenticated loopback proxy to the current private
   revision, including isolated synthetic state lifecycles and native pagination.

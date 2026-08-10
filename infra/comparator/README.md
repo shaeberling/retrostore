@@ -115,9 +115,21 @@ stale-evidence limit. Execution `retrostore-hourly-comparator-8n9n6` passed all
 four surfaces and retained artifact
 `20260810T035501395467Z-3c3d3bb30dec2e14.json` with full SHA-256
 `3c3d3bb30dec2e148c7a635f7d928dc4a4e133238d6e8ba1dc1213b7c85da084`.
-The auditor validated nine retained reports total. The earlier schema-1 and
-schema-2 reports remain valid history but cannot extend this exact revision and
-schema-3 clock. The 14-day gate is current but not yet eligible.
+The first automatic generation-4 execution
+`retrostore-hourly-comparator-28rck` then succeeded under the scheduler identity
+and retained schema-3 artifact
+`20260810T041828121946Z-c7f3d3c9581d2133.json`. The auditor checksum-validated
+ten reports total, with two current-boundary reports and no continuity gap. The
+earlier schema-1 and schema-2 reports remain valid history but cannot extend
+this exact revision and schema-3 clock. The 14-day gate is current but not yet
+eligible.
+
+`runtime-baseline.json` independently pins job generation/image/configuration,
+job invokers, the enabled UTC scheduler target and identity, and the private
+report bucket's conditional writer and 90-day prefix lifecycle. The read-only
+runtime auditor documented in `backend/README.md` passed all nine live checks on
+2026-08-10. It emits neither environment values nor IAM members and has no
+mutation operation.
 This private clock is evidence only and does not authorize a hostname,
 load balancer, data activation, or production route change.
 

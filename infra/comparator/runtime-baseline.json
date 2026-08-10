@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "status": "private_read_only_comparator_pipeline",
+  "project": "trs-80",
+  "region": "us-central1",
+  "last_verified": "2026-08-10",
+  "job": {
+    "name": "retrostore-hourly-comparator",
+    "generation": 4,
+    "image": "us-central1-docker.pkg.dev/trs-80/retrostore/api@sha256:22d135c40f50ec10649f9a8480ad9898dbceb52a6c2628cbad1f73ac93bed3d4",
+    "service_account": "retrostore-comparator@trs-80.iam.gserviceaccount.com",
+    "command": ["python"],
+    "args": ["-m", "retrostore.contract.scheduled_compare"],
+    "environment": {
+      "RETROSTORE_PROJECT": "trs-80",
+      "RETROSTORE_REFERENCE_URL": "https://retrostore.org",
+      "RETROSTORE_CANDIDATE_URL": "https://retrostore-api-compat-candidate-760396810462.us-central1.run.app",
+      "RETROSTORE_COMPARISON_BUCKET": "trs-80-retrostore-assets"
+    },
+    "task_count": 1,
+    "max_retries": 0,
+    "timeout_seconds": 900,
+    "cpu": "1",
+    "memory": "512Mi",
+    "allowed_invokers": [
+      "serviceAccount:retrostore-comparator@trs-80.iam.gserviceaccount.com"
+    ]
+  },
+  "scheduler": {
+    "name": "retrostore-hourly-comparator",
+    "state": "ENABLED",
+    "schedule": "17 * * * *",
+    "time_zone": "Etc/UTC",
+    "attempt_deadline_seconds": 900,
+    "http_method": "POST",
+    "uri": "https://run.googleapis.com/v2/projects/trs-80/locations/us-central1/jobs/retrostore-hourly-comparator:run",
+    "oauth_service_account": "retrostore-comparator@trs-80.iam.gserviceaccount.com",
+    "oauth_scope": "https://www.googleapis.com/auth/cloud-platform",
+    "body_base64": "e30="
+  },
+  "report_storage": {
+    "bucket": "trs-80-retrostore-assets",
+    "prefix": "operations/comparisons/",
+    "public_access_prevention": "enforced",
+    "uniform_bucket_level_access": true,
+    "delete_age_days": 90,
+    "soft_delete_days": 7,
+    "creator_role": "roles/storage.objectCreator",
+    "creator_member": "serviceAccount:retrostore-comparator@trs-80.iam.gserviceaccount.com",
+    "condition_title": "retrostore-comparison-report-prefix",
+    "condition_expression": "resource.name.startsWith(\"projects/_/buckets/trs-80-retrostore-assets/objects/operations/comparisons/\")"
+  },
+  "safety": {
+    "production_routing_changed": false,
+    "candidate_traffic_changed": false,
+    "public_iam_authorized": false,
+    "comparison_writes_outside_prefix_authorized": false
+  }
+}
