@@ -68,6 +68,23 @@
       "status": "confirmation_required"
     }
   },
+  "path_precedence": [
+    {
+      "host": "retrostore.org",
+      "higher_priority_group": "public_website_catalog",
+      "higher_priority_path": {
+        "kind": "exact",
+        "value": "/public/apps.json"
+      },
+      "lower_priority_group": "public_static_site",
+      "lower_priority_path": {
+        "kind": "prefix",
+        "value": "/public/"
+      },
+      "handoff_group": "public_website",
+      "reason": "The dynamic catalog JSON must override the preserved static /public/ alias."
+    }
+  ],
   "candidate_maps": {
     "front_door_rehearsal": {
       "hostname": "lb-next.retrostore.org",

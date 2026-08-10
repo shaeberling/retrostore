@@ -21,6 +21,12 @@ material service revision requires a reviewed baseline update and starts a new
 clock. The baseline explicitly records that production routing, catalog
 activation, and load-balancer provisioning remain unauthorized.
 
+The first automatic generation-4 schedule fired at 04:17 UTC under the
+comparator service account and retained a second eligible schema-3 artifact at
+04:18:28 UTC. It passed the API (158/158), downloads (94/94), public catalog
+(32/32), and redirects (6/6). The checksum auditor validated all ten historical
+artifacts and reports two current-boundary artifacts with no continuity gap.
+
 ## Verified current state
 
 The read-only inventory was refreshed on 2026-08-10:
@@ -86,6 +92,10 @@ The static route group enumerates every root page and asset prefix, including
 the legacy `/public/` alias. It targets only the not-yet-created backend bucket.
 It shares one `public_website` handoff group with `/public/apps.json` and the six
 redirects, so those three backends change or roll back in one URL-map update.
+The one intentional same-host overlap is now machine-readable: the exact
+dynamic `/public/apps.json` route has priority over the static `/public/`
+prefix. Validation rejects every undeclared exact/prefix overlap, all duplicate
+exact routes, and all overlapping prefixes.
 
 ## Why active comparison is required
 

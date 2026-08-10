@@ -92,6 +92,92 @@ def _api_methods(groups: list[dict[str, Any]]) -> dict[str, str]:
     return owners
 
 
+def _validate_route_overlaps(routes: dict[str, Any]) -> None:
+    """Require every same-host exact/prefix overlap to be explicit and atomic."""
+    overlaps: set[tuple[str, str, str, str, str]] = set()
+    groups = routes["route_groups"]
+    for index, left_group in enumerate(groups):
+        left_host = left_group.get("host", routes["hostnames"]["production"]["value"])
+        for right_group in groups[index + 1 :]:
+            right_host = right_group.get(
+                "host", routes["hostnames"]["production"]["value"]
+            )
+            if left_host != right_host:
+                continue
+            for left_kind, left_path in _paths(left_group):
+                for right_kind, right_path in _paths(right_group):
+                    if "default" in {left_kind, right_kind}:
+                        continue
+                    if left_kind == right_kind == "exact":
+                        _require(
+                            left_path != right_path,
+                            f"duplicate exact route {left_path} on {left_host}",
+                        )
+                        continue
+                    if left_kind == right_kind == "prefix":
+                        _require(
+                            not (
+                                left_path.startswith(right_path)
+                                or right_path.startswith(left_path)
+                            ),
+                            f"overlapping route prefixes {left_path} and {right_path} "
+                            f"on {left_host}",
+                        )
+                        continue
+                    if left_kind == "exact":
+                        exact_group, exact_path = left_group, left_path
+                        prefix_group, prefix_path = right_group, right_path
+                    else:
+                        exact_group, exact_path = right_group, right_path
+                        prefix_group, prefix_path = left_group, left_path
+                    if exact_path.startswith(prefix_path):
+                        overlaps.add(
+                            (
+                                left_host,
+                                exact_group["id"],
+                                exact_path,
+                                prefix_group["id"],
+                                prefix_path,
+                            )
+                        )
+
+    declared: set[tuple[str, str, str, str, str]] = set()
+    groups_by_id = {group["id"]: group for group in groups}
+    for rule in routes.get("path_precedence", []):
+        high = rule["higher_priority_path"]
+        low = rule["lower_priority_path"]
+        _require(
+            high["kind"] == "exact" and low["kind"] == "prefix",
+            "path precedence must place one exact path above one prefix",
+        )
+        high_group = groups_by_id[rule["higher_priority_group"]]
+        low_group = groups_by_id[rule["lower_priority_group"]]
+        _require(
+            (high["kind"], high["value"]) in _paths(high_group)
+            and (low["kind"], low["value"]) in _paths(low_group),
+            "path precedence references a route outside its declared group",
+        )
+        _require(
+            high_group.get("handoff_group") == rule["handoff_group"]
+            and low_group.get("handoff_group") == rule["handoff_group"],
+            "overlapping routes must move in one atomic handoff group",
+        )
+        declared.add(
+            (
+                rule["host"],
+                rule["higher_priority_group"],
+                high["value"],
+                rule["lower_priority_group"],
+                low["value"],
+            )
+        )
+    _require(
+        overlaps == declared,
+        f"route precedence declarations do not match overlaps: "
+        f"observed={sorted(overlaps)!r}, declared={sorted(declared)!r}",
+    )
+
+
 def validate_routes(routes: dict[str, Any]) -> None:
     _require(routes.get("schema_version") == 1, "unsupported route schema")
     _require(routes.get("project") == "trs-80", "route project must be trs-80")
@@ -121,6 +207,7 @@ def validate_routes(routes: dict[str, Any]) -> None:
     groups = routes["route_groups"]
     by_id = {group["id"]: group for group in groups}
     _require(len(by_id) == len(groups), "route group IDs must be unique")
+    _validate_route_overlaps(routes)
 
     hardware = by_id["hardware_update"]
     _require(_paths(hardware) == HARDWARE_PATHS, "hardware route island is incomplete")

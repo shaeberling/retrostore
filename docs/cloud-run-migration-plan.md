@@ -446,8 +446,13 @@ Completed foundation work:
   seeded the current clock at 03:55:01 UTC. The earlier schema-1 and schema-2
   artifacts remain valid historical evidence but cannot satisfy this exact
   revision and schema-3 gate.
-  The fourteen-day clock is current but not yet eligible. The baseline explicitly
-  denies cutover, load-balancer, and catalog-activation authority.
+  The first independently scheduled generation-4 execution then completed under
+  the comparator service account at 04:18:28 UTC with 158/158 API cases and all
+  three additional surfaces matching. The auditor checksum-validated all ten
+  retained artifacts; two schema-3 reports now extend the current streak with a
+  maximum observed gap of 1,406.73 seconds. The fourteen-day clock is current
+  but not yet eligible. The baseline explicitly denies cutover, load-balancer,
+  and catalog-activation authority.
 - The promoted private `downloads1` revision received two additional guarded
   concurrency-8 API runs. Both matched 2,000/2,000 responses. The first retained
   a provisional `listAppsNano` latency non-pass caused by two client-path stalls
@@ -1636,6 +1641,9 @@ Phase 1:
 - [x] Close the complete public static route set, preserve the legacy `/public/`
   aliases, generate per-object deployment metadata, and compare all 78 objects
   plus `/` with zero differences outside six deterministic HTML changes.
+- [x] Make the one intentional static/dynamic route overlap machine-readable:
+  exact `/public/apps.json` wins over the `/public/` static alias, both remain
+  in one atomic handoff group, and validation rejects every undeclared overlap.
 - [x] Run the revision- and checksum-pinned JVM, TRS-80 KMP, and embedded-C
   clients through an authenticated loopback proxy to the current private
   revision, including isolated synthetic state lifecycles and native pagination.
