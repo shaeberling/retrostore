@@ -179,6 +179,28 @@ pins, and exact coverage split are documented in `consumer-tests/README.md`. CI
 checks out only the reviewed client source paths and runs this command
 independently of the legacy Java build.
 
+The same clients can exercise an authenticated private deployment without
+making it public. Start `gcloud run services proxy` on an explicit loopback
+port, then use the guarded external mode:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.contract.consumer_clients \
+  --trs80-checkout /path/to/TRS-80 \
+  --candidate-url http://127.0.0.1:18082 \
+  --output /tmp/retrostore-private-consumers.json \
+  --apply \
+  --confirm-candidate-url http://127.0.0.1:18082
+```
+
+Only an exact HTTP `127.0.0.1` origin is accepted. External mode requires the
+confirmation because the published JVM and KMP clients each create one isolated
+synthetic state. The result artifact contains no token, payload, or credential.
+The JVM-only KMP test adapter forces HTTP/1.1 because the authenticated gcloud
+loopback proxy does not accept its automatic cleartext HTTP/2 upgrade; the
+reviewed Android, iOS, and wasm transport sources remain checksum-pinned and
+unchanged.
+
 ## Protobuf generation
 
 `proto/ApiProtos.proto` is a frozen upstream contract. Do not edit it to change

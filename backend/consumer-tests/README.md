@@ -18,8 +18,10 @@ reviewed KMP client, protobuf, shared application wiring, all three platform
 HTTP transports, and every embedded C source compiled by the harness. The C test
 replaces only the hardcoded socket connection with a loopback transport; its
 request generation, cJSON, nanopb bindings, and response parsing remain upstream
-code. This intentionally avoids copying either client and silently letting that
-copy drift from the application. The upstream application's unrelated
+code. It finds the reviewed media fixture through the native client's own
+paginated catalog instead of assuming a fixture-only list position. This
+intentionally avoids copying either client and silently letting that copy drift
+from the application. The upstream application's unrelated
 UI/resource build does not enter this test build.
 
 The platform behavior is part of the gate even though the shared KMP client is
@@ -50,6 +52,15 @@ The runner binds the representative Flask app to an ephemeral loopback port,
 compiles/runs the embedded C client, runs both JVM suites, and shuts the server
 down even when a consumer fails. Every state write is isolated in the in-memory
 fixture; the command never writes to either deployed service.
+
+Guarded external mode accepts only an exact `http://127.0.0.1:<port>` origin
+provided by an authenticated Cloud Run proxy. It requires `--apply`, the exact
+`--confirm-candidate-url`, and `--output`; the JVM and KMP clients then create
+one short-lived synthetic state each. The output reports only pass/fail and
+method coverage, never state tokens, response bodies, or credentials. The
+JVM-only KMP transport adapter uses HTTP/1.1 in this mode because the gcloud
+proxy does not accept a cleartext HTTP/2 upgrade. None of the checksum-pinned
+production transport sources is modified.
 
 The harness uses the KMP application's stable Kotlin 2.4.10, Wire 6.4.5, and
 coroutines 1.11.0 versions. JUnit 6.1.2 was the current stable release when the

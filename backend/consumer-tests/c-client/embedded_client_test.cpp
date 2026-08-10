@@ -28,7 +28,21 @@ int main() {
   int type = 0;
   int size = 0;
   unsigned char* bytes = nullptr;
-  if (!get_app_code(2, &type, &bytes, &size)) {
+  int media_index = -1;
+  for (int index = 0; index < 100; ++index) {
+    const char* candidate_title = get_app_title(index);
+    if (candidate_title == nullptr || candidate_title[0] == '\0') {
+      break;
+    }
+    if (std::strcmp(candidate_title, "Space Invaders (Model I Edition) (Tim Walter)") == 0) {
+      media_index = index;
+      break;
+    }
+  }
+  if (media_index < 0) {
+    return fail("embedded paginated listApps did not find the reviewed media fixture");
+  }
+  if (!get_app_code(media_index, &type, &bytes, &size)) {
     return fail("embedded fetchMediaImages request failed");
   }
   if (type != 3 || size != 3477 || bytes == nullptr) {

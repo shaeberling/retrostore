@@ -18,7 +18,10 @@ import org.retrostore.client.common.proto.Trs80Model
 class KmpClientCompatibilityTest {
     @Test
     fun currentKmpClientExercisesItsFiveCandidateMethods() = runBlocking {
-        val http = HttpClient.newHttpClient()
+        // The authenticated gcloud loopback proxy is HTTP/1.1. Avoid the JVM
+        // test adapter's h2c upgrade attempt; the reviewed Android, iOS, and
+        // wasm transports remain checksum-pinned separately.
+        val http = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build()
         val candidateUrl = System.getProperty("candidateUrl")
         val client = RetrostoreClient("$candidateUrl/api/%s") { url, body ->
             val request =

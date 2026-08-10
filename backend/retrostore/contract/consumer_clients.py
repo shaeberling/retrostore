@@ -2,6 +2,7 @@
 
 import argparse
 import hashlib
+import json
 import os
 import shutil
 import subprocess
@@ -13,6 +14,7 @@ from urllib.parse import urlsplit
 
 from werkzeug.serving import make_server
 
+from retrostore.contracts import PUBLIC_API_METHODS
 from services.api_compat.app import create_representative_app
 
 TRS80_REVISION = "aecbddcc7f5515fb844bb7a1fc350d8ffaaf5ce5"
@@ -201,17 +203,38 @@ def run_embedded_c_client(checkout: Path, candidate_url: str, build_directory: P
     return completed.returncode
 
 
-def run(checkout: Path) -> int:
+def validate_loopback_candidate_url(candidate_url: str) -> str:
+    endpoint = urlsplit(candidate_url)
+    if (
+        endpoint.scheme != "http"
+        or endpoint.hostname != "127.0.0.1"
+        or endpoint.port is None
+        or endpoint.username is not None
+        or endpoint.password is not None
+        or endpoint.path not in {"", "/"}
+        or endpoint.query
+        or endpoint.fragment
+    ):
+        raise ValueError("External client tests require an HTTP 127.0.0.1 proxy origin")
+    return f"http://127.0.0.1:{endpoint.port}"
+
+
+def run(checkout: Path, candidate_url: str | None = None) -> int:
     checkout = checkout.resolve()
     validate_trs80_revision(checkout)
     validate_trs80_client(checkout)
 
     backend_directory = Path(__file__).resolve().parents[2]
     repository_directory = backend_directory.parent
-    server = make_server("127.0.0.1", 0, create_representative_app())
-    server_thread = threading.Thread(target=server.serve_forever, daemon=True)
-    server_thread.start()
-    candidate_url = f"http://127.0.0.1:{server.server_port}"
+    server = None
+    server_thread = None
+    if candidate_url is None:
+        server = make_server("127.0.0.1", 0, create_representative_app())
+        server_thread = threading.Thread(target=server.serve_forever, daemon=True)
+        server_thread.start()
+        candidate_url = f"http://127.0.0.1:{server.server_port}"
+    else:
+        candidate_url = validate_loopback_candidate_url(candidate_url)
 
     try:
         with tempfile.TemporaryDirectory(prefix="retrostore-c-client-") as temporary_directory:
@@ -240,8 +263,9 @@ def run(checkout: Path) -> int:
         )
         return completed.returncode
     finally:
-        server.shutdown()
-        server_thread.join(timeout=5)
+        if server is not None and server_thread is not None:
+            server.shutdown()
+            server_thread.join(timeout=5)
 
 
 def main() -> None:
@@ -252,8 +276,49 @@ def main() -> None:
         required=True,
         help=f"TRS-80 checkout at reviewed revision {TRS80_REVISION}",
     )
+    parser.add_argument("--candidate-url")
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--apply", action="store_true")
+    parser.add_argument("--confirm-candidate-url")
     args = parser.parse_args()
-    raise SystemExit(run(args.trs80_checkout))
+    external = args.candidate_url is not None
+    if external:
+        candidate_url = validate_loopback_candidate_url(args.candidate_url)
+        if not args.apply or args.confirm_candidate_url != candidate_url:
+            raise ValueError(
+                "External client tests require --apply and the exact loopback "
+                "--confirm-candidate-url"
+            )
+        if args.output is None:
+            raise ValueError("External client tests require --output")
+    elif args.apply or args.confirm_candidate_url is not None or args.output is not None:
+        raise ValueError("External-only options require --candidate-url")
+
+    result = run(args.trs80_checkout, args.candidate_url)
+    if external:
+        report = {
+            "schema_version": 1,
+            "operation": "deployed_private_consumer_client_gate",
+            "applied": True,
+            "candidate_transport": "authenticated_loopback_proxy",
+            "reviewed_trs80_revision": TRS80_REVISION,
+            "clients": {
+                "published_jvm_sdk_methods": sorted(PUBLIC_API_METHODS),
+                "trs80_kmp_methods": sorted(TRS80_KMP_METHODS),
+                "trs80_embedded_c_methods": sorted(TRS80_EMBEDDED_C_METHODS),
+            },
+            "result": {"passes": result == 0},
+            "safety": {
+                "contains_state_tokens": False,
+                "contains_response_payloads": False,
+                "contains_credentials": False,
+                "synthetic_state_only": True,
+                "production_host_rejected": True,
+            },
+        }
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+    raise SystemExit(result)
 
 
 if __name__ == "__main__":

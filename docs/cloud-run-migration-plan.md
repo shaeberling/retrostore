@@ -493,6 +493,12 @@ Completed foundation work:
   promotion. It now serves 100% of only the private candidate. Its image is the
   same generation-4 comparator digest, IAM and resource limits are unchanged,
   and production/App Engine routing and the active catalog pointer did not move.
+- The real published JVM, pinned TRS-80 KMP, and pinned embedded-C clients now
+  also pass end to end against `redirects1` through an authenticated loopback
+  proxy. The native gate discovers its media fixture through real catalog
+  pagination, and the proxy-only JVM KMP adapter explicitly uses HTTP/1.1. Two
+  failed diagnostic artifacts are retained from those harness corrections; the
+  final token-free artifact passes all covered methods and synthetic states.
 
 Open foundation work:
 
@@ -1630,6 +1636,9 @@ Phase 1:
 - [x] Close the complete public static route set, preserve the legacy `/public/`
   aliases, generate per-object deployment metadata, and compare all 78 objects
   plus `/` with zero differences outside six deterministic HTML changes.
+- [x] Run the revision- and checksum-pinned JVM, TRS-80 KMP, and embedded-C
+  clients through an authenticated loopback proxy to the current private
+  revision, including isolated synthetic state lifecycles and native pagination.
 - [ ] Confirm the proposed hostnames and formally name the go/no-go and rollback
   owners before any load-balancer, certificate, public IAM, or DNS resource is
   created. Current DNS, certificates, HTTP behavior, and absence of an existing

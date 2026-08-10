@@ -154,6 +154,15 @@ It now receives 100% of only the private candidate traffic. The prior tagged
 revisions remain available at zero traffic, the invoker policy is unchanged,
 and no production route or catalog pointer moved.
 
+The current revision also passed the deployed real-client gate through a
+temporary authenticated loopback proxy. The published JVM SDK exercised all
+nine methods, the pinned TRS-80 KMP client exercised its five methods, and the
+pinned embedded C client exercised its three legacy-JSON/nanopb methods. The
+native fixture now finds its reviewed media app through the client's own
+pagination instead of assuming a representative-only catalog position. The two
+managed clients used isolated synthetic states; the retained result exposes no
+tokens or payloads. The temporary proxy was stopped after the passing run.
+
 ## Private staged-snapshot preview
 
 - Service: `retrostore-api-preview`

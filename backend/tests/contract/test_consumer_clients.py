@@ -9,6 +9,7 @@ from retrostore.contract.consumer_clients import (
     TRS80_EMBEDDED_C_METHODS,
     TRS80_KMP_METHODS,
     TRS80_REVISION,
+    validate_loopback_candidate_url,
     validate_trs80_client,
     validate_trs80_revision,
 )
@@ -73,3 +74,18 @@ def test_validate_trs80_client_rejects_changed_source(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="does not match reviewed revision"):
         validate_trs80_client(tmp_path)
+
+
+def test_external_client_gate_accepts_only_an_exact_loopback_origin() -> None:
+    assert validate_loopback_candidate_url("http://127.0.0.1:18082/") == (
+        "http://127.0.0.1:18082"
+    )
+
+    for value in (
+        "https://127.0.0.1:18082",
+        "http://localhost:18082",
+        "http://127.0.0.1:18082/path",
+        "http://retrostore.org",
+    ):
+        with pytest.raises(ValueError, match="127.0.0.1"):
+            validate_loopback_candidate_url(value)
