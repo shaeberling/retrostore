@@ -1,0 +1,133 @@
+import json
+from datetime import UTC, datetime
+from pathlib import Path
+
+import pytest
+
+from retrostore.contract.migration_readiness import evaluate_migration_readiness
+
+DECISIONS_PATH = Path(__file__).parents[3] / "infra/readiness/decision-register.json"
+
+
+def _decisions() -> dict[str, object]:
+    return json.loads(DECISIONS_PATH.read_text())
+
+
+def _soak(*, eligible: bool = False) -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "operation": "private_api_zero_diff_soak_status",
+        "applied": True,
+        "revision": "retrostore-api-compat-candidate-redirects1",
+        "soak": {
+            "current": True,
+            "eligible": eligible,
+            "report_count": 2,
+            "required_days": 14,
+            "started_at": "2026-08-10T03:55:01+00:00",
+            "latest_at": "2026-08-10T04:18:28+00:00",
+            "reasons": [] if eligible else ["required_duration_not_reached"],
+        },
+    }
+
+
+def _summary_report(operation: str, *, passes: bool = True) -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "operation": operation,
+        "applied": True,
+        "summary": {
+            "passes": passes,
+            "failing": 0 if passes else 1,
+        },
+    }
+
+
+def _consumers(*, passes: bool = True) -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "operation": "deployed_private_consumer_client_gate",
+        "applied": True,
+        "result": {"passes": passes},
+        "clients": {
+            "published_jvm_sdk_methods": ["listApps"],
+            "trs80_kmp_methods": ["listApps"],
+            "trs80_embedded_c_methods": ["listApps"],
+        },
+    }
+
+
+def _transport(*, passes: bool = True) -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "kind": "retrostore_public_http_https_transport_parity",
+        "scope": {"scenario_count": 338},
+        "summary": {
+            "total": 338,
+            "matching": 338 if passes else 337,
+            "different": 0 if passes else 1,
+            "passes": passes,
+        },
+    }
+
+
+def _evaluate(**overrides) -> dict[str, object]:
+    inputs = {
+        "decisions": _decisions(),
+        "soak": _soak(),
+        "candidates": _summary_report("private_cloud_run_candidate_drift_audit"),
+        "comparator": _summary_report("scheduled_comparator_runtime_drift_audit"),
+        "consumers": _consumers(),
+        "public_transport": _transport(),
+        "generated_at": datetime(2026, 8, 10, tzinfo=UTC),
+    }
+    inputs.update(overrides)
+    return evaluate_migration_readiness(**inputs)
+
+
+def test_readiness_distinguishes_passing_evidence_from_pending_authority() -> None:
+    report = _evaluate()
+
+    assert report["evidence"]["passes"] is True
+    assert report["gates"]["private_engineering_evidence"] == {
+        "passes": True,
+        "blockers": [],
+    }
+    assert report["decisions"]["pending_count"] == 10
+    assert report["gates"]["public_resource_creation"]["passes"] is False
+    assert report["gates"]["read_canary"]["passes"] is False
+    assert "private_zero_diff_soak_not_eligible" in report["gates"]["read_canary"][
+        "blockers"
+    ]
+    assert report["gates"]["app_engine_retirement"]["passes"] is False
+    assert report["safety"]["mutation_or_cutover_capability_present"] is False
+
+
+def test_readiness_reports_failed_real_client_evidence() -> None:
+    report = _evaluate(consumers=_consumers(passes=False))
+
+    assert report["evidence"]["passes"] is False
+    assert "pinned_consumers_pass" in report["gates"]["private_engineering_evidence"][
+        "blockers"
+    ]
+    assert "evidence:pinned_consumers_pass" in report["gates"]["read_canary"][
+        "blockers"
+    ]
+
+
+def test_readiness_rejects_evidence_for_a_different_revision() -> None:
+    soak = _soak()
+    soak["revision"] = "retrostore-api-compat-candidate-other"
+
+    with pytest.raises(ValueError, match="not the pinned private candidate"):
+        _evaluate(soak=soak)
+
+
+def test_eligible_soak_removes_only_the_time_blocker() -> None:
+    report = _evaluate(soak=_soak(eligible=True))
+
+    assert "private_zero_diff_soak_not_eligible" not in report["gates"]["read_canary"][
+        "blockers"
+    ]
+    assert report["gates"]["read_canary"]["passes"] is False
+    assert "candidate_hostnames" in report["gates"]["read_canary"]["blockers"]

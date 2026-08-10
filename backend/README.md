@@ -463,6 +463,26 @@ latest execution, changed 90-day prefix lifecycle, widened report-writer IAM,
 and public job/bucket members. Its sanitized report contains neither environment
 nor IAM member values. The first live run passed all nine checks.
 
+Combine the sanitized current evidence and the decision register locally:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.contract.migration_readiness \
+  --decisions ../infra/readiness/decision-register.json \
+  --soak ../.migration-artifacts/private-api-soak-status-scheduled-20260810.json \
+  --candidates ../.migration-artifacts/private-candidate-status-20260810.json \
+  --comparator ../.migration-artifacts/comparator-runtime-status-20260810.json \
+  --consumers ../.migration-artifacts/deployed-consumer-client-gate-redirects1-v3-20260810.json \
+  --public-transport ../.migration-artifacts/public-http-https-parity-v2-20260810.json \
+  --output ../.migration-artifacts/migration-readiness.json
+```
+
+The evaluator has no cloud or mutation operation. Its first real run reports
+all five engineering checks passing while correctly denying public resource
+creation, read canary, and App Engine retirement. The blockers are the
+fourteen-day duration and the exact pending decision IDs, not an unspecified
+catch-all.
+
 Exercise the deployed write path with one synthetic state only. This guarded
 command is a dry run unless `--apply` and an exact URL confirmation are both
 present; its report never includes the allocated state token:

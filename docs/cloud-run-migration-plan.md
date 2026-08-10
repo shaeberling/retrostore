@@ -1696,6 +1696,9 @@ Phase 1:
 - [x] Reconcile the live migration dashboard and disabled alert policies,
   update only stale gate text for the four-surface/338-transport coverage, and
   add CI checks that prohibit silent alert enablement or channel attachment.
+- [x] Add and run a local-only readiness evaluator over the actual soak, service
+  drift, comparator drift, pinned-client, 338-transport, and decision artifacts;
+  all engineering checks pass while authority/time gates remain fail-closed.
 - [x] Run the revision- and checksum-pinned JVM, TRS-80 KMP, and embedded-C
   clients through an authenticated loopback proxy to the current private
   revision, including isolated synthetic state lifecycles and native pagination.

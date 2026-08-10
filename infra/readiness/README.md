@@ -17,3 +17,10 @@ Private implementation, tests, comparisons, and drift audits may continue.
 Load balancers, certificates, DNS, public IAM, traffic changes, App Engine
 retirement, and legacy deletion remain unavailable until their exact decisions
 and evidence gates are satisfied.
+
+`retrostore.contract.migration_readiness` combines this register with the
+sanitized soak, private-service drift, comparator-pipeline drift, real-client,
+and 338-scenario transport artifacts. It has no cloud client or apply mode. The
+2026-08-10 evaluation passed every current engineering check, while separately
+and correctly reporting that the 14-day clock and explicit decisions still
+block public resources, a read canary, and App Engine retirement.
