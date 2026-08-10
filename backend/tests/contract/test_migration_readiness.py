@@ -28,10 +28,18 @@ def _soak(*, eligible: bool = False) -> dict[str, object]:
             "latest_at": "2026-08-10T04:18:28+00:00",
             "reasons": [] if eligible else ["required_duration_not_reached"],
         },
+        "safety": {
+            "contains_catalog_field_values": False,
+            "contains_comparison_results": False,
+            "contains_credentials": False,
+            "contains_request_or_response_payloads": False,
+            "contains_state_tokens": False,
+        },
     }
 
 
 def _summary_report(operation: str, *, passes: bool = True) -> dict[str, object]:
+    candidate = operation == "private_cloud_run_candidate_drift_audit"
     return {
         "schema_version": 1,
         "operation": operation,
@@ -39,7 +47,26 @@ def _summary_report(operation: str, *, passes: bool = True) -> dict[str, object]
         "summary": {
             "passes": passes,
             "failing": 0 if passes else 1,
+            "passing": (3 if candidate else 9) - (not passes),
+            "service_count" if candidate else "check_count": 3 if candidate else 9,
         },
+        "safety": (
+            {
+                "contains_credentials": False,
+                "contains_environment_values": False,
+                "contains_invoker_member_values": False,
+                "production_routing_changed": False,
+                "public_iam_changed": False,
+            }
+            if candidate
+            else {
+                "contains_comparison_payloads": False,
+                "contains_credentials": False,
+                "contains_environment_values": False,
+                "contains_iam_member_values": False,
+                "production_routing_changed": False,
+            }
+        ),
     }
 
 
@@ -50,9 +77,32 @@ def _consumers(*, passes: bool = True) -> dict[str, object]:
         "applied": True,
         "result": {"passes": passes},
         "clients": {
-            "published_jvm_sdk_methods": ["listApps"],
-            "trs80_kmp_methods": ["listApps"],
-            "trs80_embedded_c_methods": ["listApps"],
+            "published_jvm_sdk_methods": [
+                "downloadState",
+                "downloadStateMemoryRegion",
+                "fetchMediaImageRefs",
+                "fetchMediaImageRegion",
+                "fetchMediaImages",
+                "getApp",
+                "listApps",
+                "listAppsNano",
+                "uploadState",
+            ],
+            "trs80_kmp_methods": [
+                "downloadState",
+                "fetchMediaImages",
+                "getApp",
+                "listApps",
+                "uploadState",
+            ],
+            "trs80_embedded_c_methods": ["fetchMediaImages", "getApp", "listApps"],
+        },
+        "safety": {
+            "contains_credentials": False,
+            "contains_response_payloads": False,
+            "contains_state_tokens": False,
+            "production_host_rejected": True,
+            "synthetic_state_only": True,
         },
     }
 
@@ -61,12 +111,26 @@ def _transport(*, passes: bool = True) -> dict[str, object]:
     return {
         "schema_version": 1,
         "kind": "retrostore_public_http_https_transport_parity",
-        "scope": {"scenario_count": 338},
+        "scope": {
+            "scenario_count": 338,
+            "api_scenario_count": 158,
+            "download_scenario_count": 94,
+            "redirect_scenario_count": 6,
+            "static_scenario_count": 79,
+            "public_listing_scenario_count": 1,
+        },
         "summary": {
             "total": 338,
             "matching": 338 if passes else 337,
             "different": 0 if passes else 1,
             "passes": passes,
+        },
+        "safety": {
+            "contains_app_ids_or_filenames": False,
+            "contains_catalog_values": False,
+            "contains_credentials": False,
+            "contains_request_or_response_payloads": False,
+            "production_changed": False,
         },
     }
 
@@ -131,3 +195,11 @@ def test_eligible_soak_removes_only_the_time_blocker() -> None:
     ]
     assert report["gates"]["read_canary"]["passes"] is False
     assert "candidate_hostnames" in report["gates"]["read_canary"]["blockers"]
+
+
+def test_readiness_rejects_green_evidence_with_unsafe_privacy_flags() -> None:
+    transport = _transport()
+    transport["safety"]["contains_catalog_values"] = True
+
+    with pytest.raises(ValueError, match="unsafe or missing privacy flags"):
+        _evaluate(public_transport=transport)

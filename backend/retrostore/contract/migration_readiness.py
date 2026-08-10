@@ -7,6 +7,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from retrostore.contracts import PUBLIC_API_METHODS
+
 _REVISION = "retrostore-api-compat-candidate-redirects1"
 _PUBLIC_RESOURCE_DECISIONS = frozenset(
     {
@@ -175,12 +177,26 @@ def _pending_decisions(decisions: Mapping[str, Any]) -> set[str]:
 
 def _soak_current(soak: Mapping[str, Any]) -> bool:
     _validate_applied_report(soak, "private_api_zero_diff_soak_status")
+    _require_safety_false(
+        soak,
+        {
+            "contains_catalog_field_values",
+            "contains_comparison_results",
+            "contains_credentials",
+            "contains_request_or_response_payloads",
+            "contains_state_tokens",
+        },
+    )
     if soak.get("revision") != _REVISION:
         raise ValueError("Soak report revision is not the pinned private candidate")
     value = soak.get("soak")
     if not isinstance(value, dict):
         raise ValueError("Soak report has no status")
-    return value.get("current") is True
+    return (
+        value.get("current") is True
+        and value.get("required_days") == 14
+        and value.get("report_count", 0) >= 2
+    )
 
 
 def _soak_eligible(soak: Mapping[str, Any]) -> bool:
@@ -192,16 +208,61 @@ def _summary_passes(report: Mapping[str, Any], operation: str) -> bool:
     summary = report.get("summary")
     if not isinstance(summary, dict):
         raise ValueError(f"{operation} has no summary")
-    return summary.get("passes") is True and summary.get("failing") == 0
+    if operation == "private_cloud_run_candidate_drift_audit":
+        _require_safety_false(
+            report,
+            {
+                "contains_credentials",
+                "contains_environment_values",
+                "contains_invoker_member_values",
+                "production_routing_changed",
+                "public_iam_changed",
+            },
+        )
+        expected = summary.get("service_count") == summary.get("passing") == 3
+    else:
+        _require_safety_false(
+            report,
+            {
+                "contains_comparison_payloads",
+                "contains_credentials",
+                "contains_environment_values",
+                "contains_iam_member_values",
+                "production_routing_changed",
+            },
+        )
+        expected = summary.get("check_count") == summary.get("passing") == 9
+    return summary.get("passes") is True and summary.get("failing") == 0 and expected
 
 
 def _consumer_gate_passes(report: Mapping[str, Any]) -> bool:
     _validate_applied_report(report, "deployed_private_consumer_client_gate")
+    _require_safety_false(
+        report,
+        {"contains_credentials", "contains_response_payloads", "contains_state_tokens"},
+    )
     result = report.get("result")
     clients = report.get("clients")
     if not isinstance(result, dict) or not isinstance(clients, dict):
         raise ValueError("Consumer gate is incomplete")
-    return result.get("passes") is True and all(clients.values())
+    expected_clients = {
+        "published_jvm_sdk_methods": set(PUBLIC_API_METHODS),
+        "trs80_kmp_methods": {
+            "downloadState",
+            "fetchMediaImages",
+            "getApp",
+            "listApps",
+            "uploadState",
+        },
+        "trs80_embedded_c_methods": {"fetchMediaImages", "getApp", "listApps"},
+    }
+    return (
+        result.get("passes") is True
+        and report.get("safety", {}).get("production_host_rejected") is True
+        and report.get("safety", {}).get("synthetic_state_only") is True
+        and set(clients) == set(expected_clients)
+        and all(set(clients[name]) == methods for name, methods in expected_clients.items())
+    )
 
 
 def _public_transport_passes(report: Mapping[str, Any]) -> bool:
@@ -214,11 +275,26 @@ def _public_transport_passes(report: Mapping[str, Any]) -> bool:
     scope = report.get("scope")
     if not isinstance(summary, dict) or not isinstance(scope, dict):
         raise ValueError("Public transport report is incomplete")
+    _require_safety_false(
+        report,
+        {
+            "contains_app_ids_or_filenames",
+            "contains_catalog_values",
+            "contains_credentials",
+            "contains_request_or_response_payloads",
+            "production_changed",
+        },
+    )
     return (
         summary.get("passes") is True
         and summary.get("different") == 0
         and summary.get("matching") == summary.get("total") == 338
         and scope.get("scenario_count") == 338
+        and scope.get("api_scenario_count") == 158
+        and scope.get("download_scenario_count") == 94
+        and scope.get("redirect_scenario_count") == 6
+        and scope.get("static_scenario_count") == 79
+        and scope.get("public_listing_scenario_count") == 1
     )
 
 
@@ -229,6 +305,12 @@ def _validate_applied_report(report: Mapping[str, Any], operation: str) -> None:
         or report.get("applied") is not True
     ):
         raise ValueError(f"{operation} report identity is invalid")
+
+
+def _require_safety_false(report: Mapping[str, Any], names: set[str]) -> None:
+    safety = report.get("safety")
+    if not isinstance(safety, dict) or any(safety.get(name) is not False for name in names):
+        raise ValueError("Evidence report has unsafe or missing privacy flags")
 
 
 def _load(path: Path) -> dict[str, Any]:
