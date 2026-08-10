@@ -86,3 +86,23 @@ no notification channels, so they cannot notify an unintended recipient. Their
 checked-in JSON remains the reviewable source for later updates. Enabling them
 requires a confirmed operator and notification destination; the migration does
 not infer those operational responsibilities.
+
+## Private capacity evidence
+
+`retrostore.contract.load_test` replays only the exhaustive read corpus against
+the authenticated private API candidate, compares every response with a fresh
+production reference, and records aggregate request/latency evidence. Its
+companion `retrostore.contract.cloud_run_metrics` reads six native Cloud Run
+metrics for the exact revision and load window. Both commands default to a
+no-network plan and require exact target confirmations for execution.
+
+The 2026-08-10 revision `retrostore-api-compat-candidate-observability2` run sent
+2,000 measured requests at concurrency 8 after 16 warmups. It sustained 39.15
+requests per second with 2,000 HTTP 200 responses, zero transport errors, zero
+5xx responses, zero semantic differences, and passing provisional p95/p99
+front-door gates for every API method. Cloud Monitoring independently reported
+2,016 successful requests, one active instance, 1.97% mean CPU utilization,
+42.90% mean memory utilization, and 3.94 ms mean in-container request latency
+for the bounded window. The result establishes comfortable headroom for this
+specific private read workload; broader concurrency and duration steps remain
+required before production routing.

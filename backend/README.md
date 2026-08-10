@@ -250,6 +250,54 @@ UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
   --output /tmp/retrostore-cloud-comparison.json
 ```
 
+The guarded capacity harness first captures the same exhaustive production
+reference once, then sends only those read-only scenarios concurrently to the
+private candidate. It compares every response while measuring latency and
+never includes `uploadState`. The command is a no-network dry run unless the
+candidate URL is repeated exactly with `--apply`:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.contract.load_test \
+  --candidate-url PRIVATE_CLOUD_RUN_URL \
+  --candidate-gcloud-identity-token-service-account \
+    retrostore-api@trs-80.iam.gserviceaccount.com \
+  --duration-seconds 60 \
+  --concurrency 8 \
+  --max-requests 2000 \
+  --warmup-requests 16 \
+  --output /tmp/retrostore-private-load.json \
+  --apply \
+  --confirm-candidate-url PRIVATE_CLOUD_RUN_URL
+```
+
+The report has provisional front-door p95/p99 gates, response counts, and
+aggregate latencies but no request/response payloads or identity token. Pair it
+with the exact Cloud Run revision's native CPU, memory, instance, concurrency,
+request-count, and in-container latency metrics. This second command reads only
+Cloud Monitoring, verifies the configured project, and also requires all exact
+target confirmations:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.contract.cloud_run_metrics \
+  --load-report /tmp/retrostore-private-load.json \
+  --revision PRIVATE_CLOUD_RUN_REVISION \
+  --output /tmp/retrostore-private-load-metrics.json \
+  --apply \
+  --confirm-project trs-80 \
+  --confirm-service retrostore-api-compat-candidate \
+  --confirm-revision PRIVATE_CLOUD_RUN_REVISION
+```
+
+The first real run on 2026-08-10 passed 2,000/2,000 measured requests with zero
+transport errors, 5xx responses, or contract differences at 39.15 requests per
+second. All per-method latency gates passed. Cloud Monitoring independently
+counted exactly 2,016 HTTP 200 requests including warmup, one active instance,
+about 1.97% mean CPU utilization, 42.90% mean memory utilization, and 3.94 ms
+mean in-container latency over the bounded evidence window. This is useful
+headroom evidence for the tested shape, not a final production capacity claim.
+
 Exercise the deployed write path with one synthetic state only. This guarded
 command is a dry run unless `--apply` and an exact URL confirmation are both
 present; its report never includes the allocated state token:

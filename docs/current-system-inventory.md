@@ -340,6 +340,15 @@ exist. Difference and 90-minute stale-evidence alert policies are installed but
 deliberately disabled without notification channels pending assignment of the
 responsible recipient.
 
+The private API candidate also has a guarded read-only capacity harness. Its
+first 60-second/2,000-request run on 2026-08-10 exercised the full 158-scenario
+corpus at concurrency 8 and completed at 39.15 requests per second with every
+response HTTP 200, zero semantic differences, and all provisional per-method
+p95/p99 gates passing. Native metrics counted exactly 2,016 requests including
+warmup, one active instance, 1.97% mean CPU, 42.90% mean memory, and 3.94 ms mean
+in-container latency. The harness cannot send `uploadState` and its reports do
+not contain payloads or credentials.
+
 The pre-existing App Engine, Compute, and Firebase Admin SDK identities remain.
 The migration adds separate keyless migrator, public API, and administration
 identities with scoped access to the named databases, private buckets, and

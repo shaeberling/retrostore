@@ -390,6 +390,14 @@ Completed foundation work:
   entities and performs aggregate-only absent/identical/expired collision
   preflight, but has no route or persistence operation. Production collision
   preflight and a writer-frozen replay remain intentionally unavailable.
+- A guarded private capacity harness now replays only the exhaustive read corpus
+  with per-response semantic comparison and provisional per-method latency
+  gates. Its first real run passed 2,000 requests at concurrency 8 and 39.15
+  requests per second with zero errors, 5xx responses, or differences. Cloud
+  Monitoring independently counted the 2,016 measured-plus-warmup requests on
+  one active instance with 1.97% mean CPU, 42.90% mean memory, and 3.94 ms mean
+  in-container latency. The harness cannot send `uploadState`, and the evidence
+  reports contain no payloads or credentials.
 
 Open foundation work:
 
@@ -1493,6 +1501,9 @@ Phase 1:
   machine-readable front-door plan.
 - [x] Deploy privacy-safe structured request events and a least-privilege,
   read-only hourly comparator job that retains immutable full-corpus reports.
+- [x] Add and exercise a guarded private read-load harness with semantic
+  comparison, per-method latency gates, and exact-revision Cloud Run resource
+  evidence without exposing payloads, tokens, or catalog values.
 - [ ] Confirm the proposed hostnames and formally name the go/no-go and rollback
   owners before any load-balancer, certificate, public IAM, or DNS resource is
   created. Current DNS, certificates, HTTP behavior, and absence of an existing
@@ -1511,10 +1522,11 @@ also deployed and have passed complete authenticated lifecycle proofs. The
 working-set-to-immutable-snapshot publication boundary, separate pinned preview,
 guarded activation/rollback command, and copy-on-write draft UI are now deployed
 privately without activation. Front-door preparation, request observability, the
-private comparator, its dashboard, the stage-only half of repeatable mirror
-synchronization, and the read-only reverse-sync planner are complete. While
-hostname and owner confirmation remain pending, the next safe executable work
-is performance/capacity evidence and additional private soak automation. Actual
+private comparator, its dashboard, the first private capacity gate, the
+stage-only half of repeatable mirror synchronization, and the read-only
+reverse-sync planner are complete. While hostname and owner confirmation remain
+pending, the next safe executable work is additional private soak automation
+and broader capacity steps. Actual
 legacy reverse writes and load-balancer provisioning still require explicit
 operator gates and remain unavailable.
 Synchronized-catalog activation remains disabled.
