@@ -97,6 +97,14 @@ dynamic `/public/apps.json` route has priority over the static `/public/`
 prefix. Validation rejects every undeclared exact/prefix overlap, all duplicate
 exact routes, and all overlapping prefixes.
 
+The local static deployment planner now verifies the complete bundle and emits
+only create-if-absent upload descriptions. It cannot call Cloud Storage, refuses
+the private assets/state and Firebase/App Engine buckets, never emits deletes,
+and never marks a plan deployable. The conservative initial proposal uses a new
+empty bucket for each release, an atomic URL-map backend switch, disabled CDN,
+and `Cache-Control: no-store`; bucket/IAM and cache/CDN choices remain approval
+items.
+
 ## Why active comparison is required
 
 Global external Application Load Balancers support host/path routing and

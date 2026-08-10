@@ -1507,6 +1507,9 @@ the rollback. If a gate fails, traffic stays on or returns to App Engine.
   after all C clients have moved to HTTPS.
 - The public static website bucket's CDN, cache-invalidation, and deployment
   policy. It must remain separate from the private application-assets bucket.
+  A non-executable proposal now uses a fresh empty bucket per release, atomic
+  backend switching, CDN disabled, and `Cache-Control: no-store` for the initial
+  handoff; this still needs confirmation before bucket or IAM creation.
 - The retention period for normalized migration exports and legacy backups.
 - Whether application reports continue through email, become the recommended
   isolated private admin queue, or are explicitly retired. The current
@@ -1644,6 +1647,9 @@ Phase 1:
 - [x] Make the one intentional static/dynamic route overlap machine-readable:
   exact `/public/apps.json` wins over the `/public/` static alias, both remain
   in one atomic handoff group, and validation rejects every undeclared overlap.
+- [x] Add a local-only static deployment planner that checksum-verifies all 78
+  objects, rejects every known existing project bucket, emits only
+  create-if-absent uploads and zero deletes, and deliberately has no apply path.
 - [x] Run the revision- and checksum-pinned JVM, TRS-80 KMP, and embedded-C
   clients through an authenticated loopback proxy to the current private
   revision, including isolated synthetic state lifecycles and native pagination.

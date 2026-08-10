@@ -932,3 +932,34 @@ field names. It excludes app IDs, names, descriptions, screenshot URLs, and
 credentials. The first complete comparison matched all 32 entries with zero
 differences. A private tag can be tested with the same candidate URL, audience,
 and runtime-identity arguments accepted by the download comparator.
+
+Build the closed 78-object public website bundle locally with an exact output
+confirmation:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python -m retrostore.public_site \
+  --output /tmp/retrostore-public-site \
+  --report /tmp/retrostore-public-site-build.json \
+  --apply \
+  --confirm-output /tmp/retrostore-public-site
+```
+
+Then verify every file against that report and emit a non-executable deployment
+plan:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.public_site_deployment \
+  --bundle /tmp/retrostore-public-site \
+  --build-report /tmp/retrostore-public-site-build.json \
+  --target-bucket trs-80-retrostore-public-example-release \
+  --output /tmp/retrostore-public-site-deployment.json
+```
+
+The planner has no `--apply` mode and makes no cloud requests. It refuses all
+five known existing project buckets and any name outside the dedicated
+`trs-80-retrostore-public-` namespace. Every upload has a create-only generation
+precondition, the object set and aggregate digest must exactly match the build,
+and the delete list is always empty. Its initial CDN-disabled, `no-store`,
+new-bucket-per-release policy is explicitly a proposal requiring confirmation;
+the emitted plan is never marked ready to apply.
