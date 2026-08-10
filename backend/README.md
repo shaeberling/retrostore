@@ -654,6 +654,13 @@ all three state RPC routes atomically, and restoring exactly one writer. It has
 no apply path. No Blobstore or Search operation is involved because legacy
 states are Objectify entities with embedded memory bytes.
 
+The legacy Java tree contains a matching `NormalizedStateArchiveValidator`.
+It independently enforces the archive limits, live windows, paths, protobufs,
+checksums, and aggregate, then maps each record to a fresh in-memory Objectify
+`SystemState` entity. It has no servlet registration, Objectify call, mutation
+method, or apply command. This closes the cross-language format/conversion gate,
+not the exact-token collision and writer-handoff gates.
+
 ## Read-only production inventory
 
 The inventory command reads the legacy Datastore-mode database and emits a

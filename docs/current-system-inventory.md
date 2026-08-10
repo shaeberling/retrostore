@@ -389,3 +389,9 @@ with mode `0600`. The public report contains no tokens or payloads. The legacy
 plan maps those records directly to embedded Objectify `SystemState` entities,
 requires absent-or-identical token preflight and atomic routing of all three
 state RPCs, and has no apply path. No legacy state was written.
+
+The legacy App Engine code now has a matching disabled archive validator. The
+full Java suite proves cross-language parsing, checksum/aggregate validation,
+live-window enforcement, protobuf validation, and in-memory conversion of exact
+tokens, creation timestamps, models, registers, and memory regions. The class is
+not registered in `MainServlet` and has no Objectify or other mutation method.

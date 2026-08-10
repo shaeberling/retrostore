@@ -381,6 +381,10 @@ Completed foundation work:
   protobuf bytes without exposing tokens or payloads in logs/reports. The plan
   preserves exact tokens/timestamps, requires absent-or-identical collision
   checks and atomic routing for all three state RPCs, and cannot apply writes.
+- A matching disabled Java state-archive validator passes the complete App
+  Engine test suite. It maps verified records into fresh in-memory legacy
+  entities but has no route or persistence operation. Exact-token collision
+  preflight and a writer-frozen replay remain intentionally unimplemented.
 
 Open foundation work:
 
