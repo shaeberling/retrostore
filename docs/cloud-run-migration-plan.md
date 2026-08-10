@@ -346,8 +346,9 @@ Completed foundation work:
   atomic state/admin handoffs. Its safety validator runs in CI. Read-only cloud
   discovery on 2026-08-10 reconfirmed that no load-balancer resource exists and
   that Certificate Manager is not enabled. No resource was created.
-- Privacy-safe request telemetry is deployed on private API/admin revisions
-  `observability1`. Both were tested at zero traffic before promotion; the API
+- Privacy-safe request telemetry is deployed on private API revision
+  `observability2` and admin revision `observability1`. Both were tested at zero
+  traffic before promotion; the API
   still matched production 158/158 and the admin passed all readiness and
   browser-bootstrap smoke checks. The real JVM, pinned TRS-80 KMP, and embedded
   C clients also pass against the instrumented service. Cloud Logging parses
@@ -359,6 +360,10 @@ Completed foundation work:
   `operations/comparisons/`. Its first manual execution retained a
   checksum-verified 158/158 report with zero approvals. A prefix-only 90-day
   lifecycle is applied, and an hourly UTC Cloud Scheduler trigger is enabled.
+- Cloud Scheduler successfully started a second 158/158 execution. The migration
+  dashboard, a passing-comparison log metric, and difference/stale-evidence
+  alert policies are deployed. The policies are intentionally disabled and
+  channel-free until the responsible recipient is confirmed.
 
 Open foundation work:
 
@@ -368,9 +373,9 @@ Open foundation work:
   confirmation. Provisioning the load balancer, DNS authorizations,
   certificates, public candidate services, or DNS records remains a separate
   explicitly approved action.
-- Create dashboards and alert policies after the first scheduled comparator
-  delivery establishes the Cloud Scheduler path. A notification channel and
-  its responsible recipient still require owner confirmation.
+- Confirm the alert recipient and notification channel, attach it to the two
+  installed policies, and explicitly enable them. Until then, the dashboard and
+  logs provide evidence but do not page anyone.
 - The `native-client-library` Arduino tree in this repository is an unfinished
   prototype: it sends a bodyless GET, ignores its configurable host, and has no
   media implementation. It is distinct from the working native C/ESP32 source

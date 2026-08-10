@@ -95,9 +95,9 @@ eight-day bucket lifecycle remain asynchronous cleanup mechanisms.
 
 - Service: `retrostore-api-compat-candidate`
 - Region: `us-central1`
-- Revision: `retrostore-api-compat-candidate-observability1`
+- Revision: `retrostore-api-compat-candidate-observability2`
 - Runtime identity: `retrostore-api@trs-80.iam.gserviceaccount.com`
-- Image digest: `sha256:40f2a6a653e3e87f3c807b28bc95dedf74328ece74029aa25eb723d86c55312c`
+- Image digest: `sha256:3a36e48a2a1f4a4a0952493099ffd1b229e96248bdba8d3c56228fb264b81310`
 - Authentication: private; only the runtime identity and migration operator
   have service-scoped `roles/run.invoker`
 - Production URL map: unchanged
@@ -112,13 +112,18 @@ all 158 read-only observations. The private authenticated HTTP state lifecycle
 also passed upload, full download, memory-excluded download, and overlapping
 region retrieval. No production routing changed.
 
-Revision `observability1` adds bounded JSON request events without URLs, query
+Revision `observability1` added bounded JSON request events without URLs, query
 strings, client addresses, user agents, tokens, cookies, identities, request
 bodies, or response bodies. The zero-traffic revision passed health/readiness,
 anonymous HTTP 403, the real JVM/KMP/embedded-C consumer harness, and the full
 158/158 production comparison before receiving 100% of private candidate
 traffic. Cloud Logging parsed its `httpRequest` fields, service/API labels, and
 Cloud Trace correlation as structured fields.
+
+Revision `observability2` hardens the API-method label: a request whose path is
+not one of the nine frozen API methods is recorded only as `unknown`, never as
+attacker-controlled path text. It passed the same health, denial, consumer, and
+158/158 zero-traffic gates before receiving 100% of private candidate traffic.
 
 ## Private staged-snapshot preview
 

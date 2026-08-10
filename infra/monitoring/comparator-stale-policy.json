@@ -1,0 +1,36 @@
+{
+  "displayName": "RetroStore comparator stale (disabled pending channel)",
+  "combiner": "OR",
+  "enabled": false,
+  "conditions": [
+    {
+      "displayName": "No passing comparator event for 90 minutes",
+      "conditionAbsent": {
+        "filter": "resource.type=\"cloud_run_job\" AND metric.type=\"logging.googleapis.com/user/retrostore_comparison_pass\" AND resource.label.\"job_name\"=\"retrostore-hourly-comparator\"",
+        "duration": "5400s",
+        "aggregations": [
+          {
+            "alignmentPeriod": "3600s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM",
+            "groupByFields": [
+              "resource.label.job_name"
+            ]
+          }
+        ],
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ],
+  "documentation": {
+    "mimeType": "text/markdown",
+    "subject": "RetroStore comparator evidence is stale",
+    "content": "Check Cloud Scheduler delivery, the latest Cloud Run Job execution, private candidate IAM, and report-prefix object creation. The zero-diff soak clock does not advance while evidence is stale."
+  },
+  "userLabels": {
+    "service": "retrostore",
+    "gate": "comparison"
+  }
+}

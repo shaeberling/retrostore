@@ -77,7 +77,7 @@ does not change application-asset retention.
 
 - Job: `retrostore-hourly-comparator`, `us-central1`
 - Runtime identity: `retrostore-comparator@trs-80.iam.gserviceaccount.com`
-- Image digest: `sha256:40f2a6a653e3e87f3c807b28bc95dedf74328ece74029aa25eb723d86c55312c`
+- Image digest: `sha256:3a36e48a2a1f4a4a0952493099ffd1b229e96248bdba8d3c56228fb264b81310`
 - Candidate: private `retrostore-api-compat-candidate`
 - Retries: zero; timeout: 15 minutes; one task
 - Schedule: minute 17 hourly, `Etc/UTC`, enabled
@@ -90,6 +90,14 @@ media bytes with no approval. The object exists only below the approved report
 prefix. Bucket IAM is conditional on that prefix, and the applied lifecycle
 matches only that prefix. Uniform bucket-level access, public-access prevention,
 and seven-day soft delete remain enabled.
+
+Cloud Scheduler then started execution `retrostore-hourly-comparator-tpl7s`
+through the authenticated Cloud Run v2 job endpoint. It also matched 158/158
+and retained the 26,470-byte report
+`20260810T003533221691Z-f43d86a7e3f563c9.json`, whose full SHA-256 is
+`f43d86a7e3f563c9063c0762ca2299ca45d01d850864ecd8964fe1c2bc4b3e66`.
+The job is now pinned to the hardened `observability2` API image; changing the
+private service revision alone cannot silently change the comparator runtime.
 
 References:
 

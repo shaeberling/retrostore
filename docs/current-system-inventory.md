@@ -334,6 +334,11 @@ asset-read, overwrite, or delete permission. Its first 158-scenario execution
 passed and retained a checksum-verified report. Cloud Scheduler is enabled with
 an hourly UTC trigger. The assets bucket now deletes only comparison-report
 objects after 90 days; application asset paths are not lifecycle targets.
+The scheduler-triggered execution also passed 158/158, proving the authenticated
+delivery path. A migration dashboard and successful-comparison log metric now
+exist. Difference and 90-minute stale-evidence alert policies are installed but
+deliberately disabled without notification channels pending assignment of the
+responsible recipient.
 
 The pre-existing App Engine, Compute, and Firebase Admin SDK identities remain.
 The migration adds separate keyless migrator, public API, and administration
