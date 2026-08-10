@@ -416,6 +416,22 @@ members are represented only by count and an aggregate SHA-256. The first live
 run passed all three services, each of which returned 403 anonymously and had
 no public IAM principal.
 
+Prove the current plain-HTTP native transport has the same complete read
+contract as HTTPS without changing the revision-bound private soak:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.contract.exhaustive \
+  --reference-url https://retrostore.org \
+  --candidate-url http://retrostore.org \
+  --output ../.migration-artifacts/plain-http-transport-parity.json
+```
+
+The mutation-safe corpus excludes `uploadState`. Its first transport run matched
+158/158 scenarios over 32 apps, 60 media objects, and 6,826,237 media bytes.
+Run the full transport corpus and the pinned native port-80 client smoke at every
+future front-door and read-canary step; an HTTP redirect is a failure.
+
 Audit the comparator job, scheduler, conditional report-prefix writer, bucket
 lifecycle, and private IAM as one evidence pipeline:
 

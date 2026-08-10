@@ -38,6 +38,8 @@
     "read_steps_percent": [1, 5, 25, 50, 100],
     "minimum_observation_hours_per_step": 24,
     "require_complete_comparator_at_each_step": true,
+    "require_plain_http_full_corpus_at_each_step": true,
+    "require_native_port_80_smoke_at_each_step": true,
     "require_all_consumer_smokes_at_100_percent": true,
     "state_canary_allowed": false,
     "admin_writer_canary_allowed": false

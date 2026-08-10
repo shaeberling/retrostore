@@ -339,6 +339,14 @@ def validate_thresholds(thresholds: dict[str, Any]) -> None:
 
     canary = thresholds["canary"]
     _require(canary["read_steps_percent"] == [1, 5, 25, 50, 100], "canary steps differ")
+    _require(
+        canary["require_plain_http_full_corpus_at_each_step"] is True,
+        "every canary step requires the full plain-HTTP corpus",
+    )
+    _require(
+        canary["require_native_port_80_smoke_at_each_step"] is True,
+        "every canary step requires a native port-80 smoke",
+    )
     _require(canary["state_canary_allowed"] is False, "state canary must be disabled")
     _require(canary["admin_writer_canary_allowed"] is False, "admin canary must be disabled")
     _require(

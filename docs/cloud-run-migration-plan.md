@@ -1548,6 +1548,11 @@ redirect. Any deprecation belongs to a later, separately approved client
 migration after all deployed native consumers are proven upgraded. A safe live
 probe also confirmed the current port-80 `listApps` request returns HTTP 200 and
 716 protobuf bytes with no redirect.
+The full mutation-safe transport audit subsequently matched HTTP and HTTPS for
+all 158 catalog/media scenarios, 32 apps, 60 media objects, and 6,826,237 media
+bytes. Every future front-door and canary step now requires that corpus and a
+pinned native port-80 smoke; this does not alter or restart the private
+schema-3 soak.
 
 ## Immediate next milestone
 
@@ -1679,6 +1684,9 @@ Phase 1:
 - [x] Pin and live-audit the complete scheduled evidence pipeline: comparator
   generation/configuration, job IAM, scheduler target and identity, successful
   latest execution, report-prefix writer, private bucket, and lifecycle.
+- [x] Prove all 158 public read scenarios are identical over production HTTP and
+  HTTPS, then require the full transport corpus and native port-80 smoke at every
+  future front-door and read-canary step.
 - [x] Run the revision- and checksum-pinned JVM, TRS-80 KMP, and embedded-C
   clients through an authenticated loopback proxy to the current private
   revision, including isolated synthetic state lifecycles and native pagination.

@@ -67,3 +67,12 @@ def test_plain_http_cannot_be_removed_or_redirected_during_migration() -> None:
 
     with pytest.raises(ValueError, match="plain HTTP must be preserved"):
         _validator().validate_routes(routes)
+
+
+def test_plain_http_corpus_and_native_smoke_are_required_at_every_canary_step() -> None:
+    thresholds_path = REPOSITORY_ROOT / "infra/front-door/monitoring-thresholds.json"
+    thresholds = json.loads(thresholds_path.read_text())
+    thresholds["canary"]["require_plain_http_full_corpus_at_each_step"] = False
+
+    with pytest.raises(ValueError, match="full plain-HTTP corpus"):
+        _validator().validate_thresholds(thresholds)
