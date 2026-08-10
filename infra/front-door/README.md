@@ -73,8 +73,11 @@ Cloud Run phase.
 
 All unclassified paths default to App Engine. This fail-closed default prevents
 a newly discovered legacy endpoint from accidentally reaching a partial Cloud
-Run implementation. In particular, `/downloadapp`, `/screenshotServe`,
-`/reportapp`, and the Polymer RPC/upload/import routes remain on App Engine.
+Run implementation. `/reportapp` and the Polymer RPC/upload/import routes remain
+on App Engine. `/screenshotServe` is part of that login-protected Polymer admin
+surface, not a public asset route; it retires only with the old admin. The
+separately classified read-only `/downloadapp` route now has a tested private
+Cloud Run implementation but no production routing authority.
 
 ## Why active comparison is required
 

@@ -244,21 +244,6 @@
       "rollback_backend": "app_engine_default"
     },
     {
-      "id": "legacy_screenshot_assets",
-      "paths": [
-        {
-          "kind": "prefix",
-          "value": "/screenshotServe"
-        }
-      ],
-      "current_backend": "app_engine_default",
-      "future_backend": "app_engine_default",
-      "disposition": "preserve_existing_urls",
-      "migration_mode": "blocked_by_images_service_contract",
-      "canary_steps_percent": [],
-      "rollback_backend": "app_engine_default"
-    },
-    {
       "id": "public_report",
       "paths": [
         {
@@ -291,6 +276,10 @@
         {
           "kind": "prefix",
           "value": "/screenshotUrlForUpload"
+        },
+        {
+          "kind": "prefix",
+          "value": "/screenshotServe"
         },
         {
           "kind": "prefix",

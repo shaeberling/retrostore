@@ -320,6 +320,13 @@ Completed foundation work:
   every existing legacy screenshot URL remains unchanged. The absolute URL was
   checked against the Android, iOS, and web KMP fetch implementations, while
   the short production form fits the reviewed native URL-size expectation.
+- Live route-order verification established that `/screenshotServe` is behind
+  the legacy login gate. Anonymous requests with missing, invalid, and known
+  valid Blobstore keys all return the same admin-login forwarding page. Its only
+  source-tree consumer is the Polymer admin; the pinned KMP application has no
+  reference and public API responses contain direct image-serving URLs. It is
+  therefore classified with legacy-admin retirement, not as a public Images
+  service compatibility route.
 - Exact compare-and-swap activation and rollback are implemented behind a
   separate dry-run-first operator command. Apply requires the dedicated
   migrator, four exact confirmations, a transaction-time re-read and full hash
@@ -1447,8 +1454,6 @@ the rollback. If a gate fails, traffic stays on or returns to App Engine.
   policy. It must remain separate from the private application-assets bucket.
 - The retention period for normalized migration exports and legacy backups.
 - Whether application reports continue through email or become an admin queue.
-- Whether stable screenshot URLs are initially served by Flask or routed through
-  a CDN from the first release.
 - Approval or revision of the proposed legacy-user policy: preserve all ten as
   non-authorizing historical profiles, retain the one matched administrator,
   and manually review rather than automatically invite the other two legacy

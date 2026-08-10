@@ -130,7 +130,7 @@ The source dispatch order is significant:
 | `/app[/]` | Redirect to the Google Play app | Preserve redirect |
 | `/api/<method>` | Public compatibility API | Flask compatibility service |
 | `/downloadapp?appId=...&type=...` | Raw media or generated ZIP download | Compatibility service |
-| `/screenshotServe?key=...` | Redirect through App Engine Images service | Stable screenshot asset route |
+| `/screenshotServe?key=...` | Login-protected Polymer-admin screenshot preview | Retire with the legacy admin; public clients receive direct serving URLs from `/api/*` |
 | `/reportapp` | Public report form and Mail-service submission | Rebuild or explicitly retire after review |
 | `/card/{revision}/version` | RetroStore Card firmware version | Remain unchanged on App Engine; excluded from current migration |
 | `/card/{revision}/firmware` | RetroStore Card firmware bytes | Remain unchanged on App Engine; excluded from current migration |

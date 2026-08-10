@@ -130,6 +130,16 @@ def validate_routes(routes: dict[str, Any]) -> None:
     )
     _require(not admin["canary_steps_percent"], "admin writers cannot be canaried")
 
+    legacy_admin = by_id["legacy_catalog_admin"]
+    _require(
+        ("prefix", "/screenshotServe") in _paths(legacy_admin),
+        "the login-protected legacy screenshot preview belongs to the legacy admin",
+    )
+    _require(
+        "legacy_screenshot_assets" not in by_id,
+        "the login-protected screenshot preview must not be classified as a public asset route",
+    )
+
     production = routes["candidate_maps"]["production_initial"]
     _require(production["default_backend"] == "app_engine_default", "initial production changed")
     _require(not production["route_overrides"], "initial production must have no route overrides")
