@@ -115,7 +115,7 @@ def validate_routes(routes: dict[str, Any]) -> None:
     )
     _require(not state["canary_steps_percent"], "state methods cannot be canaried")
 
-    for group_id in ("catalog_api_reads", "media_api_reads"):
+    for group_id in ("catalog_api_reads", "media_api_reads", "legacy_media_download"):
         group = by_id[group_id]
         _require(group["migration_mode"] == "weighted_read_canary", f"{group_id} must canary")
         _require(

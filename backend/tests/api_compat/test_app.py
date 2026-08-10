@@ -1,3 +1,5 @@
+import zipfile
+from io import BytesIO
 from pathlib import Path
 
 import pytest
@@ -97,6 +99,56 @@ def test_archive_candidate_loads_only_from_explicit_verified_path(tmp_path: Path
     assert screenshot.cache_control.immutable is True
     assert screenshot.headers["X-Content-Type-Options"] == "nosniff"
     assert screenshot.headers["Access-Control-Allow-Origin"] == "*"
+
+    download = client.get("/downloadapp?appId=app-1")
+    assert download.status_code == 200
+    assert download.content_type == "application/zip"
+    assert download.headers["Content-Disposition"] == (
+        'attachment; filename="Armored_Patrol.zip"'
+    )
+    assert "Access-Control-Allow-Origin" not in download.headers
+    with zipfile.ZipFile(BytesIO(download.data)) as archive:
+        assert sorted(archive.namelist()) == ["game.cmd", "game.dmk"]
+        assert archive.read("game.dmk") == b"disk image"
+
+    typed = client.get("/downloadapp?appId=app-1&type=DMK")
+    assert typed.status_code == 200
+    assert typed.content_type == "application/octet-stream"
+    assert typed.data == b"disk image"
+    assert typed.headers["Access-Control-Allow-Origin"] == "*"
+
+
+def test_legacy_download_preserves_error_text_and_media_tie_break() -> None:
+    from services.api_compat.app import LegacyDownloadApp, LegacyDownloadMedia
+
+    client = create_app(
+        {
+            "TESTING": True,
+            "RETROSTORE_LEGACY_DOWNLOADS": {
+                "app": LegacyDownloadApp(
+                    name="Name, with.space",
+                    media=(
+                        LegacyDownloadMedia("1", "first.dsk", b"first"),
+                        LegacyDownloadMedia("2", "second.dsk", b"second"),
+                    ),
+                )
+            },
+        }
+    ).test_client()
+
+    missing = client.get("/downloadapp")
+    invalid = client.get("/downloadapp?appId=missing")
+    typed = client.get("/downloadapp?appId=app&type=dsk")
+    zipped = client.get("/downloadapp?appId=app")
+
+    assert missing.status_code == 400
+    assert missing.data == b"'appId' missing."
+    assert missing.content_type == "text/plain;charset=iso-8859-1"
+    assert invalid.data == b"Cannot find app with ID missing"
+    assert typed.data == b"first"
+    assert zipped.headers["Content-Disposition"] == (
+        'attachment; filename="Name__with_space.zip"'
+    )
 
 
 def test_new_screenshot_uses_the_immutable_candidate_route(tmp_path: Path) -> None:

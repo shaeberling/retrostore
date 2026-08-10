@@ -858,3 +858,21 @@ UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
 Neither command has an identity-creation, role-mutation, or Firestore-write
 path. The proposed policy and approval boundary are documented in
 `docs/legacy-user-migration.md`.
+
+The compatibility service also reconstructs the public legacy
+`/downloadapp?appId=...&type=...` route from the normalized mirror. Compare all
+current app ZIPs, every current per-app extension, and malformed requests with:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.contract.legacy_downloads \
+  --archive ../.migration-artifacts/retrostore-catalog-export.zip \
+  --reference-url https://retrostore.org \
+  --output ../.migration-artifacts/legacy-download-comparison.json
+```
+
+The comparison checks exact status and relevant response headers. Direct media
+bytes are SHA-256 compared. ZIPs are compared by filename digest, uncompressed
+size, and content SHA-256; generated timestamp/compressor envelope differences
+are ignored because App Engine rebuilds that envelope on each request. Reports
+contain no app IDs, filenames, or media bytes.

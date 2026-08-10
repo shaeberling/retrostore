@@ -237,10 +237,10 @@
         }
       ],
       "current_backend": "app_engine_default",
-      "future_backend": "app_engine_default",
-      "disposition": "remain_until_compatibility_handler_exists",
-      "migration_mode": "blocked_by_missing_handler",
-      "canary_steps_percent": [],
+      "future_backend": "cloud_run_api",
+      "disposition": "migrate_after_semantic_zip_and_typed_media_parity",
+      "migration_mode": "weighted_read_canary",
+      "canary_steps_percent": [1, 5, 25, 50, 100],
       "rollback_backend": "app_engine_default"
     },
     {

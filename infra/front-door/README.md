@@ -126,6 +126,11 @@ continuous zero-diff days. Integrity tolerances are all zero. Read canaries use
 1%, 5%, 25%, 50%, and 100% steps with at least 24 hours at each step. Each step
 must pass a fresh complete corpus. State and admin handoffs are atomic.
 
+The same weighted read-canary sequence now covers `/downloadapp`. Its normalized
+mirror handler passed all 94 current ZIP, typed-media, and error scenarios
+against App Engine before any route was created. ZIP comparison is semantic
+because the legacy endpoint embeds request-time ZIP metadata.
+
 Availability rollback triggers at 1% unexpected 5xx responses over five minutes
 with at least 100 requests, a 0.25 percentage-point regression from App Engine,
 or five unexpected 5xx responses at lower traffic. Latency must stay within both

@@ -50,6 +50,13 @@ Completed foundation work:
   administrators require manual review. An identity-free planner proposes no
   automatic account creation and has no write path. The proposed historical
   profile policy is recorded in `docs/legacy-user-migration.md` for approval.
+- The public `/downloadapp` compatibility handler is now implemented against
+  the normalized mirror. It preserves legacy errors, content types, CORS,
+  attachment naming, case-insensitive typed downloads, and complete ZIP entry
+  bytes. A read-only exhaustive run compared 32 ZIP downloads plus 62 typed and
+  error scenarios against App Engine: all 94 matched semantically. ZIP envelope
+  timestamps/compressor bytes are deliberately normalized because the legacy
+  service regenerates them on every request. No route or traffic changed.
 - The legacy Java build is reproducible again: Java 21.0.12+8 builds Java 11
   bytecode for the supported App Engine Java 25 runtime in EE 8 compatibility
   mode, with checksum-pinned Gradle 8.14.5, the current App Engine plugin and
@@ -1483,6 +1490,9 @@ Phase 1:
 - [x] Reconcile legacy users, app attribution, Firebase identities, and modern
   roles in a protected read-only artifact; emit an identity-free no-write policy
   plan for explicit approval.
+- [x] Implement the legacy `/downloadapp` read route from the normalized mirror
+  and exhaustively prove every current ZIP entry and typed media response
+  against App Engine without routing traffic.
 - [x] Add the strict approved-difference format with exact fingerprints, named
   ownership, expiry, and stale-approval rejection.
 - [x] Define and validate the normalized catalog/media/screenshot mirror format

@@ -1,8 +1,10 @@
 """Flask entry point for the public compatibility API candidate."""
 
 import os
+import zipfile
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote, urlsplit
@@ -25,6 +27,19 @@ class PublicScreenshot:
     body: bytes
 
 
+@dataclass(frozen=True, slots=True)
+class LegacyDownloadMedia:
+    id: str
+    filename: str
+    body: bytes
+
+
+@dataclass(frozen=True, slots=True)
+class LegacyDownloadApp:
+    name: str
+    media: tuple[LegacyDownloadMedia, ...]
+
+
 def create_app(config: Mapping[str, Any] | None = None) -> Flask:
     app = Flask(__name__)
     app.config.from_mapping(
@@ -33,6 +48,7 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
         RETROSTORE_OBSERVABLE_API_METHODS=frozenset(PUBLIC_API_METHODS),
         RETROSTORE_PROJECT=os.environ.get("RETROSTORE_PROJECT"),
         RETROSTORE_REQUEST_LOGGING=True,
+        RETROSTORE_LEGACY_DOWNLOADS={},
         RETROSTORE_SCREENSHOTS={},
     )
     if config:
@@ -94,6 +110,46 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
         response.headers["Access-Control-Allow-Origin"] = "*"
         return response
 
+    @app.get("/downloadapp")
+    def legacy_download() -> Response:
+        app_id = request.args.get("appId")
+        if app_id is None:
+            return _legacy_download_error("'appId' missing.")
+
+        downloads: Mapping[str, LegacyDownloadApp] = app.config[
+            "RETROSTORE_LEGACY_DOWNLOADS"
+        ]
+        value = downloads.get(app_id)
+        if value is None:
+            return _legacy_download_error(f"Cannot find app with ID {app_id}")
+
+        requested_type = request.args.get("type")
+        if requested_type is not None:
+            suffix = f".{requested_type.casefold()}"
+            selected = next(
+                (
+                    media
+                    for media in value.media
+                    if media.filename.casefold().endswith(suffix)
+                ),
+                None,
+            )
+            if selected is None and value.media:
+                return _legacy_download_error(f"Cannot find app with ID {app_id}")
+            body = b"" if selected is None else selected.body
+            response = Response(body, content_type="application/octet-stream")
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            return response
+
+        output = BytesIO()
+        with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            for media in sorted(value.media, key=lambda item: item.filename):
+                archive.writestr(media.filename, media.body)
+        filename = _legacy_download_filename(value.name)
+        response = Response(output.getvalue(), content_type="application/zip")
+        response.headers["Content-Disposition"] = f'attachment; filename="{filename}.zip"'
+        return response
+
     return app
 
 
@@ -123,6 +179,7 @@ def create_archive_app(
     public_origin = _public_origin(candidate_config["RETROSTORE_PUBLIC_ORIGIN"])
     mirror = load_catalog_mirror_archive(Path(archive_path))
     screenshots = _public_screenshots(mirror)
+    downloads = _legacy_downloads(mirror)
     storage = MirrorCompatibilityStorage(
         mirror,
         screenshot_url=_screenshot_url_resolver(public_origin),
@@ -130,6 +187,7 @@ def create_archive_app(
     candidate_config.update(
         {
             "RETROSTORE_API_STORAGE": storage,
+            "RETROSTORE_LEGACY_DOWNLOADS": downloads,
             "RETROSTORE_SCREENSHOTS": screenshots,
         }
     )
@@ -214,6 +272,7 @@ def create_cloud_app(config: Mapping[str, Any] | None = None) -> Flask:
         screenshot_url=_screenshot_url_resolver(public_origin),
         state_storage=state_storage,
     )
+    candidate_config["RETROSTORE_LEGACY_DOWNLOADS"] = _legacy_downloads(mirror)
     candidate_config["RETROSTORE_SCREENSHOTS"] = _public_screenshots(mirror)
     return create_app(candidate_config)
 
@@ -254,6 +313,61 @@ def _public_screenshots(mirror: Any) -> Mapping[str, PublicScreenshot]:
         )
         for screenshot in mirror.screenshots.values()
     }
+
+
+def _legacy_downloads(mirror: Any) -> Mapping[str, LegacyDownloadApp]:
+    media_by_app: dict[str, list[LegacyDownloadMedia]] = {}
+    for media in mirror.media.values():
+        _validate_zip_filename(media.filename)
+        media_by_app.setdefault(media.app_id, []).append(
+            LegacyDownloadMedia(
+                id=media.id,
+                filename=media.filename,
+                body=mirror.object_bytes[media.object.path],
+            )
+        )
+    result = {}
+    for app in mirror.apps:
+        _legacy_download_filename(app.name)
+        result[app.id] = LegacyDownloadApp(
+            name=app.name,
+            media=tuple(
+                sorted(media_by_app.get(app.id, ()), key=_legacy_media_sort_key)
+            ),
+        )
+    return result
+
+
+def _legacy_download_error(message: str) -> Response:
+    response = Response(message.encode("iso-8859-1"), status=400)
+    response.headers["Content-Type"] = "text/plain;charset=iso-8859-1"
+    return response
+
+
+def _legacy_download_filename(app_name: str) -> str:
+    value = app_name.replace(" ", "_").replace(".", "_").replace(",", "_")
+    if not value or any(character in value for character in ('"', "\r", "\n")):
+        raise ValueError("App name cannot be represented as a legacy download filename")
+    return value
+
+
+def _validate_zip_filename(filename: str) -> None:
+    parts = filename.split("/")
+    if (
+        not filename
+        or filename.startswith("/")
+        or "\\" in filename
+        or "\0" in filename
+        or any(part in {"", ".", ".."} for part in parts)
+    ):
+        raise ValueError("Media filename is unsafe for a legacy download archive")
+
+
+def _legacy_media_sort_key(media: LegacyDownloadMedia) -> tuple[int, int | str]:
+    try:
+        return (0, int(media.id))
+    except ValueError:
+        return (1, media.id)
 
 
 app = create_app()
