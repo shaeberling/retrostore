@@ -41,6 +41,10 @@ jobs:
         run: python ../infra/front-door/validate.py
         working-directory: backend
 
+      - name: Validate data-retention no-delete invariants
+        run: python ../infra/data-retention/validate.py
+        working-directory: backend
+
       - name: Run tests
         run: uv run pytest
         working-directory: backend

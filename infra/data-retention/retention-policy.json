@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "status": "proposal_confirmation_required_no_changes",
+  "last_verified": "2026-08-10",
+  "observed_cloud_state": {
+    "comparison_reports": {
+      "bucket": "trs-80-retrostore-assets",
+      "prefix": "operations/comparisons/",
+      "delete_age_days": 90,
+      "soft_delete_days": 7,
+      "public_access_prevention": "enforced",
+      "uniform_bucket_level_access": true
+    },
+    "synthetic_and_future_state_payloads": {
+      "bucket": "trs-80-retrostore-state",
+      "delete_age_days": 8,
+      "soft_delete_days": 0,
+      "public_access_prevention": "enforced",
+      "uniform_bucket_level_access": true,
+      "retention_decision_scope": "separate_ephemeral_state_policy"
+    },
+    "legacy_default_bucket": {
+      "bucket": "trs-80.appspot.com",
+      "lifecycle_rule_count": 0,
+      "soft_delete_days": 7,
+      "normalized_backup_target": false
+    },
+    "normalized_migration_exports": {
+      "cloud_backup_location_assigned": false,
+      "current_operator_location": ".migration-artifacts",
+      "gitignored": true
+    }
+  },
+  "proposed_policy": {
+    "normalized_catalog_exports": {
+      "retain_days_after_final_app_engine_retirement": 365,
+      "automatic_deletion_enabled": false,
+      "deletion_mode": "manual_review_after_retention_window",
+      "required_storage": "separate_private_backup_bucket"
+    },
+    "legacy_data_backups": {
+      "retain_days_after_final_app_engine_retirement": 365,
+      "automatic_deletion_enabled": false,
+      "deletion_mode": "manual_review_after_retention_window",
+      "required_storage": "separate_private_backup_bucket"
+    },
+    "sensitive_identity_reconciliation": {
+      "retain_days_after_identity_handoff": 90,
+      "automatic_deletion_enabled": false,
+      "deletion_mode": "manual_review_after_retention_window",
+      "retain_identity_free_aggregate": true
+    },
+    "orphan_blob_key_mapping": {
+      "retain_days_after_final_app_engine_retirement": 365,
+      "automatic_deletion_enabled": false,
+      "deletion_mode": "manual_review_after_retention_window",
+      "retain_key_free_aggregate": true
+    },
+    "public_report_queue": {
+      "status": "not_applicable_until_queue_email_or_retire_decision",
+      "retention_days": null
+    }
+  },
+  "deletion_blockers": [
+    "app_engine_still_serves_any_migrating_route",
+    "legacy_writer_not_retired",
+    "state_or_catalog_rollback_window_open",
+    "final_export_not_checksum_verified",
+    "integrity_or_reference_reconciliation_not_zero",
+    "go_no_go_or_rollback_owner_unconfirmed",
+    "retention_policy_unapproved",
+    "legal_or_operational_hold"
+  ],
+  "required_approvals": {
+    "data_owner": null,
+    "rollback_owner": null,
+    "status": "confirmation_required"
+  },
+  "safety": {
+    "cloud_requests_made_by_validator": false,
+    "mutation_or_deletion_capability_present": false,
+    "legacy_data_changed": false,
+    "lifecycle_policy_changed": false
+  }
+}

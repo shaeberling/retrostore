@@ -1508,7 +1508,13 @@ the rollback. If a gate fails, traffic stays on or returns to App Engine.
   A non-executable proposal now uses a fresh empty bucket per release, atomic
   backend switching, CDN disabled, and `Cache-Control: no-store` for the initial
   handoff; this still needs confirmation before bucket or IAM creation.
-- The retention period for normalized migration exports and legacy backups.
+- The retention period for normalized migration exports and legacy backups. A
+  validated no-delete proposal recommends 365 days after final App Engine
+  retirement, separate private backup storage, and manual review afterward.
+  Sensitive identity reconciliation is proposed at 90 days after identity
+  handoff with only its identity-free aggregate retained. These clocks and
+  values remain unapproved; the current 90-day comparison-report and eight-day
+  ephemeral-state lifecycle rules are separate and unchanged.
 - Whether application reports continue through email, become the recommended
   isolated private admin queue, or are explicitly retired. The current
   contract, safe live probes, PII boundary, and least-privilege options are in
@@ -1658,6 +1664,9 @@ Phase 1:
 - [x] Bind plain HTTP port 80 pass-through into the validated migration contract
   because both reviewed native client trees still require it; an HTTPS-only
   policy is explicitly deferred to a separate future client migration.
+- [x] Inventory current bucket lifecycle controls and add an offline-validated,
+  no-delete retention proposal with explicit rollback, reconciliation, owner,
+  policy-approval, and legal/operational blockers.
 - [x] Run the revision- and checksum-pinned JVM, TRS-80 KMP, and embedded-C
   clients through an authenticated loopback proxy to the current private
   revision, including isolated synthetic state lifecycles and native pagination.

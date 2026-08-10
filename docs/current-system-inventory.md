@@ -317,7 +317,7 @@ delete so its lifecycle does not retain expired payloads for an extra week:
 | `trs-80.appspot.com` | 0 | 0 | Firebase/App Engine default bucket; no lifecycle rule |
 | `staging.trs-80.appspot.com` | 0 | 0 | App Engine staging; delete objects after 15 days |
 | `us.artifacts.trs-80.appspot.com` | 92 | About 1.35 GiB | Legacy Container Registry artifacts |
-| `trs-80-retrostore-assets` | 150 baseline objects | 12,738,856 baseline bytes | Private durable mirror; uniform access, public-access prevention, seven-day soft delete |
+| `trs-80-retrostore-assets` | 150 baseline objects plus retained operations | 12,738,856 baseline bytes plus retained operations | Private durable mirror; uniform access, public-access prevention, seven-day soft delete; comparison-report prefix deletes after 90 days |
 | `trs-80-retrostore-state` | Synthetic smoke-test objects only | Ephemeral | Private state target; uniform access, public-access prevention, delete after eight days, soft delete disabled |
 
 The three legacy buckets retain their existing ACL configuration. Uniform
