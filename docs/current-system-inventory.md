@@ -349,6 +349,16 @@ warmup, one active instance, 1.97% mean CPU, 42.90% mean memory, and 3.94 ms mea
 in-container latency. The harness cannot send `uploadState` and its reports do
 not contain payloads or credentials.
 
+The completed private ramp then covered 15,000 measured requests and 1.301 GB
+of responses at concurrency 8/12/16/20. Contract integrity remained perfect at
+every step. Concurrency 16 was the highest passing provisional latency step at
+62.05 requests per second; concurrency 20 was the first non-passing boundary
+because of two media latency gates, despite remaining on one instance with CPU
+p95 no higher than 26%, memory p95 no higher than 45%, and in-container p95/p99
+no higher than 12.1/17.72 ms. One startup measured 950.6 ms. The accepted
+concurrency-16 step recorded 54.4 billable instance/CPU seconds and 27.2
+GiB-seconds of memory allocation. No service setting or traffic changed.
+
 A separate read-only soak auditor now verifies the retained comparison object
 paths, generations, content digests, schemas, counts, URLs, and approval gates,
 then confirms the expected Cloud Run revision still serves 100% of private

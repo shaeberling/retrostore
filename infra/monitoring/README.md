@@ -92,9 +92,10 @@ not infer those operational responsibilities.
 `retrostore.contract.load_test` replays only the exhaustive read corpus against
 the authenticated private API candidate, compares every response with a fresh
 production reference, and records aggregate request/latency evidence. Its
-companion `retrostore.contract.cloud_run_metrics` reads six native Cloud Run
-metrics for the exact revision and load window. Both commands default to a
-no-network plan and require exact target confirmations for execution.
+companion `retrostore.contract.cloud_run_metrics` reads ten native Cloud Run
+metrics for the exact revision and load window, including allocation and
+billable time. Both commands default to a no-network plan and require exact
+target confirmations for execution.
 
 The 2026-08-10 revision `retrostore-api-compat-candidate-observability2` run sent
 2,000 measured requests at concurrency 8 after 16 warmups. It sustained 39.15
@@ -104,8 +105,18 @@ front-door gates for every API method. Cloud Monitoring independently reported
 2,016 successful requests, one active instance, 1.97% mean CPU utilization,
 42.90% mean memory utilization, and 3.94 ms mean in-container request latency
 for the bounded window. The result establishes comfortable headroom for this
-specific private read workload; broader concurrency and duration steps remain
-required before production routing.
+specific private read workload; it is not production-routing authority.
+
+The completed ramp covered 15,000 measured requests and 1.301 GB of responses
+with zero semantic differences, transport errors, or 5xx responses. Concurrency
+8, 12, and 16 passed; concurrency 16 reached 62.05 requests per second but was
+close to its provisional `listApps` p95 limit. Concurrency 20 reached 66.56
+requests per second and preserved a non-passing media latency boundary. Native
+telemetry still showed one instance, CPU p95 no higher than 26%, memory p95 no
+higher than 45%, and in-container p95/p99 no higher than 12.1/17.72 ms. One
+950.6 ms startup was observed. The concurrency-16 run consumed 54.4 billable
+instance/CPU seconds and 27.2 GiB-seconds of memory allocation. No Cloud Run
+configuration or traffic was changed.
 
 The checksum-validating soak auditor currently sees three retained comparison
 reports with no differences or failed gates. One report is after the

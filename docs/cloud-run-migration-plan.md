@@ -398,6 +398,14 @@ Completed foundation work:
   one active instance with 1.97% mean CPU, 42.90% mean memory, and 3.94 ms mean
   in-container latency. The harness cannot send `uploadState`, and the evidence
   reports contain no payloads or credentials.
+- The bounded private capacity ramp is complete at concurrency 8, 12, 16, and
+  20: 15,000 measured requests and 1.301 GB of responses had zero transport,
+  5xx, or compatibility failures. Concurrency 16 was the highest passing
+  provisional latency step at 62.05 requests/second; concurrency 20 is retained
+  as the first non-passing media latency boundary. Native telemetry stayed on
+  one instance with CPU p95 at most 26%, memory p95 at most 45%, and in-container
+  p95/p99 at most 12.1/17.72 ms, plus one 950.6 ms startup. Allocation metrics
+  provide raw cost inputs. No service configuration or traffic changed.
 - A checksum-validating private soak auditor now binds evidence to the checked-in
   `observability2` readiness boundary, verifies the revision still serves 100%
   of private traffic, and independently validates every retained comparison
@@ -1511,6 +1519,9 @@ Phase 1:
 - [x] Add and exercise a guarded private read-load harness with semantic
   comparison, per-method latency gates, and exact-revision Cloud Run resource
   evidence without exposing payloads, tokens, or catalog values.
+- [x] Run and summarize a bounded private capacity ramp through its first
+  non-passing latency step, including startup and raw allocation/cost metrics,
+  without changing the serving revision or traffic.
 - [x] Add a generation- and checksum-validating retained-evidence auditor with a
   revision-bound private zero-diff clock and explicit no-cutover baseline.
 - [ ] Confirm the proposed hostnames and formally name the go/no-go and rollback

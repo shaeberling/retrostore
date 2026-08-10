@@ -274,9 +274,9 @@ UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
 The report has provisional front-door p95/p99 gates, response counts, and
 aggregate latencies but no request/response payloads or identity token. Pair it
 with the exact Cloud Run revision's native CPU, memory, instance, concurrency,
-request-count, and in-container latency metrics. This second command reads only
-Cloud Monitoring, verifies the configured project, and also requires all exact
-target confirmations:
+request-count, in-container/startup latency, and billable/CPU/memory allocation
+metrics. This second command reads only Cloud Monitoring, verifies the
+configured project, and also requires all exact target confirmations:
 
 ```shell
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
@@ -287,7 +287,8 @@ UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
   --apply \
   --confirm-project trs-80 \
   --confirm-service retrostore-api-compat-candidate \
-  --confirm-revision PRIVATE_CLOUD_RUN_REVISION
+  --confirm-revision PRIVATE_CLOUD_RUN_REVISION \
+  --require-complete
 ```
 
 The first real run on 2026-08-10 passed 2,000/2,000 measured requests with zero
@@ -297,6 +298,42 @@ counted exactly 2,016 HTTP 200 requests including warmup, one active instance,
 about 1.97% mean CPU utilization, 42.90% mean memory utilization, and 3.94 ms
 mean in-container latency over the bounded evidence window. This is useful
 headroom evidence for the tested shape, not a final production capacity claim.
+
+The completed four-step ramp exercised 15,000 measured requests and
+1,301,486,720 response bytes at concurrency 8, 12, 16, and 20. Every response
+was HTTP 200 with zero transport errors, 5xx responses, or semantic differences.
+Concurrency 16 passed all provisional front-door gates at 62.05 requests per
+second, although its `listApps` p95 had only about 0.6 ms of margin and is a
+measured ceiling rather than an operating target. Concurrency 20 reached 66.56
+requests per second but failed the provisional `fetchMediaImageRegion` and
+`fetchMediaImages` latency gates. It is retained as the first non-passing
+boundary.
+
+The exact-revision native metrics show that boundary was not resource
+exhaustion: the concurrency-20 step remained on one instance with CPU p95 at or
+below 26%, memory p95 at or below 45%, and in-container p95/p99 latency at or
+below 12.1/17.72 ms. It also captured one 950.6 ms startup. The passing
+concurrency-16 step used 54.4 billable instance/CPU seconds and 27.2 GiB-seconds
+of memory allocation; these are raw cost inputs, not a price estimate. Combine
+paired, digest-bound reports without copying their payload-free source detail:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.contract.capacity_summary \
+  --pair /tmp/load-c8.json /tmp/metrics-c8.json \
+  --pair /tmp/load-c12.json /tmp/metrics-c12.json \
+  --pair /tmp/load-c16.json /tmp/metrics-c16.json \
+  --pair /tmp/load-c20.json /tmp/metrics-c20.json \
+  --output /tmp/retrostore-capacity-summary.json \
+  --require-integrity
+```
+
+The metrics collector accepts either the native request-count series or the
+native request-latency histogram as complete volume corroboration, records a
+warning if they disagree, and requires all resource/allocation series. This is
+necessary because the concurrency-20 request-count series reported 4,741 while
+its latency histogram independently contained all 5,020 measured-plus-warmup
+observations.
 
 Validate the retained hourly evidence and calculate the continuous private
 zero-diff clock with:
