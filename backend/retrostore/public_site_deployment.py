@@ -48,7 +48,9 @@ def plan_public_site_deployment(
             "project": "trs-80",
             "bucket": target_bucket,
             "required_state": "must_not_exist",
-            "required_location": "us-central1",
+            "required_location": "confirmation_required",
+            "proposed_location": "US",
+            "proposed_location_type": "multi-region",
             "dedicated_public_site_bucket": True,
             "uniform_bucket_level_access": True,
             "website": {
@@ -91,12 +93,30 @@ def plan_public_site_deployment(
                 "independent and always requires the bucket website suffix."
             ),
         },
+        "front_door": {
+            "status": "confirmation_required",
+            "default_backend": "app_engine_default",
+            "static_backend": "static_backend_bucket",
+            "static_matches": {
+                "kind": "exact_only",
+                "paths": ["/", *(f"/{item['object']}" for item in objects)],
+                "prefixes": [],
+            },
+            "atomic_companions": [
+                "cloud_run_api:/public/apps.json",
+                "cloud_run_api:/community[/]",
+                "cloud_run_api:/rsc[/]",
+                "cloud_run_api:/app[/]",
+            ],
+            "unknown_path_disposition": "app_engine_default",
+        },
         "required_external_approvals": [
             "candidate_hostnames",
             "go_no_go_owner",
             "rollback_operator",
             "public_bucket_and_iam",
             "cache_and_cdn_policy",
+            "bucket_location",
         ],
         "operations": {
             "uploads": [

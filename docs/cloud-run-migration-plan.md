@@ -1516,7 +1516,8 @@ the rollback. If a gate fails, traffic stays on or returns to App Engine.
 - The public static website bucket's CDN, cache-invalidation, and deployment
   policy. It must remain separate from the private application-assets bucket.
   A non-executable proposal uses a fresh empty bucket per release, atomic
-  backend switching, and the required `index.html` website main-page suffix.
+  backend switching, the proposed `US` multi-region location, and the required
+  `index.html` website main-page suffix.
   The recommended access option keeps the bucket private and enables CDN with
   `FORCE_CACHE_ALL`, an approved maximum TTL, and only the load-balancer
   cache-fill service account as object viewer. The alternative disables CDN

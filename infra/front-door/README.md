@@ -138,6 +138,13 @@ needs `allUsers` object-viewer access and public access prevention disabled; it
 can start with `Cache-Control: no-store`. Both use a new empty bucket per
 release and an atomic backend switch. Neither is authorized yet.
 
+The plan now proposes the `US` multi-region location, following Google's
+availability recommendation for production backend buckets and matching the
+current assets bucket's broad geography. Location remains part of the static
+site policy decision rather than an apply default. The emitted front-door
+section carries all 79 exact paths, zero prefixes, App Engine as the unknown-path
+default, and the JSON/redirect companion routes that must move atomically.
+
 Primary references: [Cloud Storage static website configuration](https://cloud.google.com/storage/docs/hosting-static-website)
 and [private backend-bucket access](https://cloud.google.com/cdn/docs/setting-up-cdn-with-bucket).
 

@@ -48,6 +48,16 @@ def test_static_deployment_plan_is_closed_create_only_and_not_executable(
         "main_page_suffix": "index.html",
         "not_found_page": None,
     }
+    assert plan["target"]["required_location"] == "confirmation_required"
+    assert plan["target"]["proposed_location"] == "US"
+    routes = plan["front_door"]["static_matches"]
+    assert routes["kind"] == "exact_only"
+    assert routes["prefixes"] == []
+    assert len(routes["paths"]) == 79
+    assert "/" in routes["paths"]
+    assert "/public/apps.html" in routes["paths"]
+    assert "/public/apps.json" not in routes["paths"]
+    assert plan["front_door"]["unknown_path_disposition"] == "app_engine_default"
     assert plan["safety"]["apply_capability_present"] is False
     assert plan["proposed_initial_policy"]["status"] == "confirmation_required"
     assert plan["proposed_initial_policy"]["root_request_resolution"] == (
