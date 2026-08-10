@@ -135,7 +135,7 @@ The source dispatch order is significant:
 | `/downloadapp?appId=...&type=...` | Raw media or generated ZIP download | Compatibility service |
 | `/rpc?m=pubapplist` | Public JSON catalog used only by the legacy static website | Replaced in the new static bundle by parity-tested `/public/apps.json`; other `/rpc` methods remain admin-only |
 | `/screenshotServe?key=...` | Login-protected Polymer-admin screenshot preview | Retire with the legacy admin; public clients receive direct serving URLs from `/api/*` |
-| `/reportapp` | Public report form and Mail-service submission | Rebuild or explicitly retire after review |
+| `/reportapp` | Public report form and Mail-service submission | Keep on App Engine pending the [documented queue/email/retirement decision](public-report-migration.md) |
 | `/card/{revision}/version` | RetroStore Card firmware version | Remain unchanged on App Engine; excluded from current migration |
 | `/card/{revision}/firmware` | RetroStore Card firmware bytes | Remain unchanged on App Engine; excluded from current migration |
 | `/trs-io/{revision}/version` | TRS-IO firmware version | Remain unchanged on App Engine; excluded from current migration |

@@ -174,7 +174,7 @@ def parse_comparison_artifact(object_name: str, body: bytes) -> ComparisonEviden
     if not isinstance(artifact, dict):
         raise ValueError(f"Comparison artifact root is not an object: {object_name}")
     schema_version = artifact.get("schema_version")
-    if schema_version not in {1, 2}:
+    if schema_version not in {1, 2, 3}:
         raise ValueError(f"Unsupported comparison artifact schema: {object_name}")
     expected_kind = (
         "retrostore_exhaustive_http_comparison"
@@ -252,11 +252,12 @@ def parse_comparison_artifact(object_name: str, body: bytes) -> ComparisonEviden
     if gate_passes != (unapproved == 0 and expired == 0 and stale == 0):
         raise ValueError(f"Comparison approval result is inconsistent: {object_name}")
     additional_surfaces_pass = False
-    if schema_version == 2:
+    if schema_version in {2, 3}:
         additional_surfaces_pass = _validate_additional_surfaces(
             artifact,
             object_name=object_name,
             api_gate_passes=gate_passes,
+            require_public_redirects=schema_version == 3,
         )
     return ComparisonEvidence(
         generated_at=generated_at,
@@ -276,6 +277,7 @@ def _validate_additional_surfaces(
     *,
     object_name: str,
     api_gate_passes: bool,
+    require_public_redirects: bool,
 ) -> bool:
     reports = artifact.get("surface_reports")
     overall = artifact.get("overall_gate")
@@ -356,15 +358,89 @@ def _validate_additional_surfaces(
     ):
         raise ValueError(f"Public app-list surface counts are inconsistent: {object_name}")
 
+    redirect_passes = True
+    if require_public_redirects:
+        redirects = reports.get("public_redirects")
+        if not isinstance(redirects, Mapping):
+            raise ValueError(f"Public redirect surface report is missing: {object_name}")
+        redirect_summary = redirects.get("summary")
+        redirect_scope = redirects.get("scope")
+        redirect_differences = redirects.get("differences")
+        redirect_results = redirects.get("results")
+        if (
+            redirects.get("schema_version") != 1
+            or redirects.get("kind") != "retrostore_public_redirect_comparison"
+            or redirects.get("reference_url") != "https://retrostore.org"
+            or redirects.get("candidate") != _CANDIDATE_URL
+            or not isinstance(redirect_summary, Mapping)
+            or not isinstance(redirect_scope, Mapping)
+            or not isinstance(redirect_differences, list)
+            or not isinstance(redirect_results, list)
+        ):
+            raise ValueError(f"Public redirect surface report is malformed: {object_name}")
+        redirect_total = _nonnegative_int(
+            redirect_summary.get("total"), "redirects.summary.total", object_name
+        )
+        redirect_matching = _nonnegative_int(
+            redirect_summary.get("matching"), "redirects.summary.matching", object_name
+        )
+        redirect_different = _nonnegative_int(
+            redirect_summary.get("different"), "redirects.summary.different", object_name
+        )
+        redirect_scenarios = _nonnegative_int(
+            redirect_scope.get("scenario_count"),
+            "redirects.scope.scenario_count",
+            object_name,
+        )
+        redirect_passes_value = redirect_summary.get("passes")
+        expected_redirect_paths = {
+            "/community",
+            "/community/",
+            "/rsc",
+            "/rsc/",
+            "/app",
+            "/app/",
+        }
+        if (
+            not all(
+                isinstance(result, Mapping)
+                and isinstance(result.get("path"), str)
+                and isinstance(result.get("matches"), bool)
+                and isinstance(result.get("reference"), Mapping)
+                and isinstance(result.get("candidate"), Mapping)
+                for result in redirect_results
+            )
+            or {result["path"] for result in redirect_results}
+            != expected_redirect_paths
+        ):
+            raise ValueError(f"Public redirect results are inconsistent: {object_name}")
+        result_different = sum(not result["matches"] for result in redirect_results)
+        if (
+            not isinstance(redirect_passes_value, bool)
+            or redirect_total != 6
+            or redirect_total != redirect_scenarios
+            or redirect_total != len(redirect_results)
+            or redirect_matching + redirect_different != redirect_total
+            or redirect_different != len(redirect_differences)
+            or redirect_different != result_different
+            or redirect_passes_value != (redirect_different == 0)
+        ):
+            raise ValueError(f"Public redirect surface counts are inconsistent: {object_name}")
+        redirect_passes = redirect_passes_value
+
     expected_overall = {
-        "passes": api_gate_passes and download_passes and public_passes,
+        "passes": (
+            api_gate_passes and download_passes and public_passes and redirect_passes
+        ),
         "api_contract_passes": api_gate_passes,
         "legacy_downloads_passes": download_passes,
         "public_app_list_passes": public_passes,
     }
+    if require_public_redirects:
+        expected_overall["public_redirects_passes"] = redirect_passes
     if dict(overall) != expected_overall:
         raise ValueError(f"Comparison overall gate is inconsistent: {object_name}")
-    return download_passes and public_passes
+    return download_passes and public_passes and redirect_passes
 
 
 def evaluate_soak(

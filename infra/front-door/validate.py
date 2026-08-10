@@ -35,6 +35,14 @@ HARDWARE_PATHS = {
     ("exact", "/trs-io"),
     ("prefix", "/trs-io/"),
 }
+PUBLIC_REDIRECT_PATHS = {
+    ("exact", "/community"),
+    ("exact", "/community/"),
+    ("exact", "/rsc"),
+    ("exact", "/rsc/"),
+    ("exact", "/app"),
+    ("exact", "/app/"),
+}
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -152,6 +160,16 @@ def validate_routes(routes: dict[str, Any]) -> None:
         public_website["migration_mode"] == "atomic_route_change"
         and not public_website["canary_steps_percent"],
         "the public website and its JSON dependency must move together",
+    )
+    public_redirects = by_id["public_redirects"]
+    _require(
+        _paths(public_redirects) == PUBLIC_REDIRECT_PATHS,
+        "the six exact legacy public redirects changed unexpectedly",
+    )
+    _require(
+        public_redirects["migration_mode"] == "atomic_route_change"
+        and not public_redirects["canary_steps_percent"],
+        "public redirects require one atomic route change",
     )
 
     production = routes["candidate_maps"]["production_initial"]

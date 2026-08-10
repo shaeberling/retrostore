@@ -1482,7 +1482,12 @@ the rollback. If a gate fails, traffic stays on or returns to App Engine.
 - The public static website bucket's CDN, cache-invalidation, and deployment
   policy. It must remain separate from the private application-assets bucket.
 - The retention period for normalized migration exports and legacy backups.
-- Whether application reports continue through email or become an admin queue.
+- Whether application reports continue through email, become the recommended
+  isolated private admin queue, or are explicitly retired. The current
+  contract, safe live probes, PII boundary, and least-privilege options are in
+  [the public report migration note](public-report-migration.md). A queue also
+  needs an approved retention period; email needs confirmed recipients and
+  sender policy.
 - Approval or revision of the proposed legacy-user policy: preserve all ten as
   non-authorizing historical profiles, retain the one matched administrator,
   and manually review rather than automatically invite the other two legacy
@@ -1601,6 +1606,12 @@ Phase 1:
   without changing the serving revision or traffic.
 - [x] Add a generation- and checksum-validating retained-evidence auditor with a
   revision-bound private zero-diff clock and explicit no-cutover baseline.
+- [x] Audit the anonymous `/reportapp` form and validation contract without
+  triggering email, document its PII and abuse boundary, and keep it on App
+  Engine until queue/email/retirement and retention choices are explicit.
+- [x] Preserve the six exact public website redirects in Flask, compare their
+  empty-body 302 status and destinations without following them, and add them
+  to the fail-closed candidate route plan and retained evidence schema.
 - [ ] Confirm the proposed hostnames and formally name the go/no-go and rollback
   owners before any load-balancer, certificate, public IAM, or DNS resource is
   created. Current DNS, certificates, HTTP behavior, and absence of an existing

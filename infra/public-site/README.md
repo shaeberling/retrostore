@@ -34,3 +34,9 @@ bundle. The checked-in front-door design instead uses a dedicated Cloud Storage
 backend bucket. No bucket, load balancer, Firebase site, DNS record, certificate,
 or public IAM binding is created here; those remain behind the explicit
 hostname/ownership and front-door approval gate.
+
+The legacy `/community[/]`, `/rsc[/]`, and `/app[/]` redirects cannot be served
+by the static bundle itself. Their six exact paths have an empty-body 302
+implementation in the private Flask compatibility candidate and are a separate
+atomic route group. The scheduled comparator checks their status, destination,
+content type, body length, and body digest without following them.

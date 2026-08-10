@@ -18,6 +18,12 @@ from retrostore.observability import register_request_observability
 
 ApiHandler = Callable[[bytes], Response]
 
+LEGACY_PUBLIC_REDIRECTS = {
+    "/community": "https://discord.gg/7sZTgHy",
+    "/rsc": "https://github.com/apuder/RetroStoreCard",
+    "/app": "https://play.google.com/store/apps/details?id=org.puder.trs80",
+}
+
 
 @dataclass(frozen=True, slots=True)
 class PublicScreenshot:
@@ -154,6 +160,22 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
     @app.get("/public/apps.json")
     def public_website_apps() -> Response:
         return jsonify(app.config["RETROSTORE_PUBLIC_WEBSITE_APPS"])
+
+    def legacy_public_redirect(destination: str) -> Response:
+        return Response(
+            status=302,
+            content_type="text/html",
+            headers={"Location": destination},
+        )
+
+    for redirect_path, destination in LEGACY_PUBLIC_REDIRECTS.items():
+        app.add_url_rule(
+            redirect_path,
+            endpoint=f"legacy_redirect_{redirect_path.removeprefix('/')}",
+            view_func=lambda destination=destination: legacy_public_redirect(destination),
+            methods=["GET", "POST"],
+            strict_slashes=False,
+        )
 
     return app
 

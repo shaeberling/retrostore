@@ -79,7 +79,7 @@ def _artifact(
     generated_at: datetime,
     *,
     different: bool = False,
-    schema_version: int = 2,
+    schema_version: int = 3,
 ) -> tuple[str, bytes]:
     results = [
         {
@@ -119,7 +119,7 @@ def _artifact(
         ),
         "report": report,
     }
-    if schema_version == 2:
+    if schema_version in {2, 3}:
         artifact["surface_reports"] = {
             "legacy_downloads": {
                 "schema_version": 1,
@@ -160,6 +160,41 @@ def _artifact(
             "legacy_downloads_passes": True,
             "public_app_list_passes": True,
         }
+        if schema_version == 3:
+            artifact["surface_reports"]["public_redirects"] = {
+                "schema_version": 1,
+                "kind": "retrostore_public_redirect_comparison",
+                "reference_url": "https://retrostore.org",
+                "candidate": (
+                    "https://retrostore-api-compat-candidate-760396810462."
+                    "us-central1.run.app"
+                ),
+                "scope": {"scenario_count": 6},
+                "summary": {
+                    "total": 6,
+                    "matching": 6,
+                    "different": 0,
+                    "passes": True,
+                },
+                "differences": [],
+                "results": [
+                    {
+                        "path": path,
+                        "matches": True,
+                        "reference": {"status": 302},
+                        "candidate": {"status": 302},
+                    }
+                    for path in (
+                        "/community",
+                        "/community/",
+                        "/rsc",
+                        "/rsc/",
+                        "/app",
+                        "/app/",
+                    )
+                ],
+            }
+            artifact["overall_gate"]["public_redirects_passes"] = True
     body = (
         json.dumps(
             artifact,
@@ -239,6 +274,15 @@ def test_legacy_api_only_artifact_no_longer_satisfies_multi_surface_soak() -> No
     assert evidence.approval_gate_passes is True
     assert evidence.additional_surfaces_pass is False
     assert evidence.zero_diff_passes is False
+
+
+def test_schema_two_artifact_remains_valid_historical_evidence() -> None:
+    generated_at = datetime(2026, 8, 10, 1, 17, 1, 123456, tzinfo=UTC)
+    name, body = _artifact(generated_at, schema_version=2)
+
+    evidence = soak_status.parse_comparison_artifact(name, body)
+
+    assert evidence.zero_diff_passes is True
 
 
 def test_soak_streak_restarts_after_failure_and_rejects_staleness() -> None:

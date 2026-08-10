@@ -56,6 +56,12 @@ def test_scheduled_comparison_uses_identity_token_and_retains_report(capsys) -> 
                 "scope": {"reference_app_count": 32, "candidate_app_count": 32},
                 "differences": [],
             },
+            "public_redirects": {
+                "summary": {"total": 6, "matching": 6, "different": 0, "passes": True},
+                "scope": {"scenario_count": 6},
+                "differences": [],
+                "results": [],
+            },
         }
 
     result = run_scheduled_comparison(
@@ -85,9 +91,10 @@ def test_scheduled_comparison_uses_identity_token_and_retains_report(capsys) -> 
     object_name, body = next(iter(store.objects.items()))
     assert object_name.startswith("operations/comparisons/2026/08/10/20260810T030405")
     artifact = json.loads(body)
-    assert artifact["schema_version"] == 2
+    assert artifact["schema_version"] == 3
     assert artifact["overall_gate"]["passes"] is True
     assert artifact["surface_reports"]["legacy_downloads"]["summary"]["passes"] is True
+    assert artifact["surface_reports"]["public_redirects"]["summary"]["passes"] is True
     assert "secret-token" not in body.decode()
     log_event = json.loads(capsys.readouterr().out)
     assert log_event["event"] == "scheduled_comparison"

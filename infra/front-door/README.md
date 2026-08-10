@@ -77,7 +77,10 @@ Run implementation. `/reportapp` and the Polymer RPC/upload/import routes remain
 on App Engine. `/screenshotServe` is part of that login-protected Polymer admin
 surface, not a public asset route; it retires only with the old admin. The
 separately classified read-only `/downloadapp` route now has a tested private
-Cloud Run implementation but no production routing authority.
+Cloud Run implementation but no production routing authority. The six exact
+`/community[/]`, `/rsc[/]`, and `/app[/]` redirects are also implemented by the
+candidate with the legacy empty-body 302 behavior; longer paths remain
+unclassified and fail closed to App Engine.
 
 ## Why active comparison is required
 

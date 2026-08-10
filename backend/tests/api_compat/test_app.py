@@ -9,6 +9,7 @@ from retrostore.api_compat.storage import InMemoryCompatibilityStorage
 from retrostore.generated import ApiProtos_pb2 as api_pb
 from retrostore.mirror import build_catalog_snapshot, import_catalog_mirror
 from services.api_compat.app import (
+    LEGACY_PUBLIC_REDIRECTS,
     create_app,
     create_archive_app,
     create_cloud_app,
@@ -72,6 +73,31 @@ def test_representative_candidate_has_all_handlers() -> None:
 
     assert response.status_code == 200
     assert response.get_json() == {"ready": True, "missing_methods": []}
+
+
+@pytest.mark.parametrize(
+    ("path", "destination"),
+    tuple(LEGACY_PUBLIC_REDIRECTS.items()),
+)
+@pytest.mark.parametrize("suffix", ("", "/"))
+@pytest.mark.parametrize("method", ("get", "post"))
+def test_legacy_public_redirects_are_exact_empty_302_responses(
+    path: str, destination: str, suffix: str, method: str
+) -> None:
+    client = create_app({"TESTING": True}).test_client()
+
+    response = getattr(client, method)(f"{path}{suffix}")
+
+    assert response.status_code == 302
+    assert response.headers["Location"] == destination
+    assert response.content_type == "text/html"
+    assert response.data == b""
+
+
+def test_legacy_public_redirects_do_not_capture_longer_paths() -> None:
+    client = create_app({"TESTING": True}).test_client()
+
+    assert client.get("/community/invite").status_code == 404
 
 
 def test_archive_candidate_loads_only_from_explicit_verified_path(tmp_path: Path) -> None:

@@ -112,6 +112,48 @@
             "value": "/public/apps.json"
           },
           "backend": "cloud_run_api"
+        },
+        {
+          "match": {
+            "kind": "exact",
+            "value": "/community"
+          },
+          "backend": "cloud_run_api"
+        },
+        {
+          "match": {
+            "kind": "exact",
+            "value": "/community/"
+          },
+          "backend": "cloud_run_api"
+        },
+        {
+          "match": {
+            "kind": "exact",
+            "value": "/rsc"
+          },
+          "backend": "cloud_run_api"
+        },
+        {
+          "match": {
+            "kind": "exact",
+            "value": "/rsc/"
+          },
+          "backend": "cloud_run_api"
+        },
+        {
+          "match": {
+            "kind": "exact",
+            "value": "/app"
+          },
+          "backend": "cloud_run_api"
+        },
+        {
+          "match": {
+            "kind": "exact",
+            "value": "/app/"
+          },
+          "backend": "cloud_run_api"
         }
       ]
     },
@@ -268,6 +310,41 @@
       "current_backend": "app_engine_default",
       "future_backend": "cloud_run_api",
       "disposition": "enable_with_static_website_candidate_after_json_parity",
+      "migration_mode": "atomic_route_change",
+      "canary_steps_percent": [],
+      "rollback_backend": "app_engine_default"
+    },
+    {
+      "id": "public_redirects",
+      "paths": [
+        {
+          "kind": "exact",
+          "value": "/community"
+        },
+        {
+          "kind": "exact",
+          "value": "/community/"
+        },
+        {
+          "kind": "exact",
+          "value": "/rsc"
+        },
+        {
+          "kind": "exact",
+          "value": "/rsc/"
+        },
+        {
+          "kind": "exact",
+          "value": "/app"
+        },
+        {
+          "kind": "exact",
+          "value": "/app/"
+        }
+      ],
+      "current_backend": "app_engine_default",
+      "future_backend": "cloud_run_api",
+      "disposition": "migrate_after_exact_status_location_and_body_parity",
       "migration_mode": "atomic_route_change",
       "canary_steps_percent": [],
       "rollback_backend": "app_engine_default"

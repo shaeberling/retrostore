@@ -24,6 +24,7 @@ from retrostore.contract.legacy_downloads import (
     discover_download_scenarios_from_reference,
 )
 from retrostore.contract.public_app_list import compare_public_app_clients
+from retrostore.contract.public_redirects import compare_public_redirect_clients
 from retrostore.observability import emit_structured_event
 
 _SAFE_PREFIX = re.compile(r"[a-z0-9][a-z0-9/_-]{0,199}/")
@@ -144,6 +145,7 @@ def run_scheduled_comparison(
             report["approval_gate"]["passes"]
             and surface_reports["legacy_downloads"]["summary"]["passes"]
             and surface_reports["public_app_list"]["summary"]["passes"]
+            and surface_reports["public_redirects"]["summary"]["passes"]
         ),
         "api_contract_passes": report["approval_gate"]["passes"],
         "legacy_downloads_passes": surface_reports["legacy_downloads"]["summary"][
@@ -152,9 +154,12 @@ def run_scheduled_comparison(
         "public_app_list_passes": surface_reports["public_app_list"]["summary"][
             "passes"
         ],
+        "public_redirects_passes": surface_reports["public_redirects"]["summary"][
+            "passes"
+        ],
     }
     artifact = {
-        "schema_version": 2,
+        "schema_version": 3,
         "generated_at": generated_at.isoformat(),
         "kind": "retrostore_multi_surface_http_comparison",
         "report": report,
@@ -219,7 +224,18 @@ def _compare_additional_surfaces(
             candidate_label=config.candidate_url,
             generated_at=generated_at,
         )
-    return {"legacy_downloads": downloads, "public_app_list": public_apps}
+        public_redirects = compare_public_redirect_clients(
+            reference,
+            candidate,
+            reference_url=config.reference_url,
+            candidate_label=config.candidate_url,
+            generated_at=generated_at,
+        )
+    return {
+        "legacy_downloads": downloads,
+        "public_app_list": public_apps,
+        "public_redirects": public_redirects,
+    }
 
 
 def main() -> int:
