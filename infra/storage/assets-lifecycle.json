@@ -1,0 +1,15 @@
+{
+  "rule": [
+    {
+      "action": {
+        "type": "Delete"
+      },
+      "condition": {
+        "age": 90,
+        "matchesPrefix": [
+          "operations/comparisons/"
+        ]
+      }
+    }
+  ]
+}

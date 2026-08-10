@@ -12,6 +12,7 @@ from flask import Flask, Response, abort, request
 from retrostore.api_compat.service import build_handlers
 from retrostore.api_compat.storage import CompatibilityStorage
 from retrostore.contracts import PUBLIC_API_METHODS
+from retrostore.observability import register_request_observability
 
 ApiHandler = Callable[[bytes], Response]
 
@@ -29,10 +30,14 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
     app.config.from_mapping(
         RETROSTORE_API_HANDLERS=None,
         RETROSTORE_API_STORAGE=None,
+        RETROSTORE_PROJECT=os.environ.get("RETROSTORE_PROJECT"),
+        RETROSTORE_REQUEST_LOGGING=True,
         RETROSTORE_SCREENSHOTS={},
     )
     if config:
         app.config.from_mapping(config)
+
+    register_request_observability(app, service="retrostore-api-compat")
 
     handlers = app.config["RETROSTORE_API_HANDLERS"]
     storage: CompatibilityStorage | None = app.config["RETROSTORE_API_STORAGE"]

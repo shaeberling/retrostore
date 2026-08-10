@@ -49,3 +49,8 @@ explicit replacement-resource environment variables.
 The read-only load-balancer, route-group, monitoring-threshold, and rollback
 preparation is in `front-door/`. Its validator is run in CI and deliberately has
 no cloud apply path.
+
+The privacy-safe request telemetry design is in `monitoring/`, and the
+read-only scheduled full-corpus runner is in `comparator/`. Comparator reports
+use a dedicated prefix in the durable bucket with the prefix-only lifecycle in
+`storage/assets-lifecycle.json`.

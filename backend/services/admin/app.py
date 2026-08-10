@@ -67,6 +67,7 @@ from retrostore.admin.users import (
     FirestoreAdminRoleStore,
     UserRoleChangeError,
 )
+from retrostore.observability import register_request_observability
 
 _SESSION_COOKIE = "retrostore_admin_session"
 _CSRF_COOKIE = "retrostore_admin_csrf"
@@ -91,9 +92,13 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
         ADMIN_USER_DIRECTORY=None,
         ADMIN_USER_ROLE_MANAGER=None,
         MAX_CONTENT_LENGTH=RPK_MAX_BYTES + 1024 * 1024,
+        RETROSTORE_PROJECT=os.environ.get("RETROSTORE_PROJECT"),
+        RETROSTORE_REQUEST_LOGGING=True,
     )
     if config:
         app.config.from_mapping(config)
+
+    register_request_observability(app, service="retrostore-admin")
 
     @app.before_request
     def authenticate_admin() -> Response | None:
