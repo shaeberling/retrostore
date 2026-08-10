@@ -95,9 +95,9 @@ eight-day bucket lifecycle remain asynchronous cleanup mechanisms.
 
 - Service: `retrostore-api-compat-candidate`
 - Region: `us-central1`
-- Revision: `retrostore-api-compat-candidate-website1`
+- Revision: `retrostore-api-compat-candidate-redirects1`
 - Runtime identity: `retrostore-api@trs-80.iam.gserviceaccount.com`
-- Image digest: `sha256:3b6356d1d32d8eb6fbb4238ed682ad87e3684d7fb7dbe09e0f66a889f9b519f9`
+- Image digest: `sha256:22d135c40f50ec10649f9a8480ad9898dbceb52a6c2628cbad1f73ac93bed3d4`
 - Authentication: private; only the runtime identity and migration operator
   have service-scoped `roles/run.invoker`
 - Production URL map: unchanged
@@ -145,6 +145,14 @@ frozen API scenarios, and passed the isolated synthetic state lifecycle. It
 then received 100% of the private candidate traffic. The scheduled and manual
 comparators independently matched 158/158 immediately afterward; production
 routing, IAM, service limits, and the active catalog pointer did not change.
+
+Revision `redirects1` adds the six exact `/community[/]`, `/rsc[/]`, and
+`/app[/]` website redirects with the legacy empty-body 302 responses. At zero
+traffic it denied anonymous invocation and passed API 158/158, downloads 94/94,
+website catalog 32/32, redirects 6/6, and the guarded synthetic state lifecycle.
+It now receives 100% of only the private candidate traffic. The prior tagged
+revisions remain available at zero traffic, the invoker policy is unchanged,
+and no production route or catalog pointer moved.
 
 ## Private staged-snapshot preview
 

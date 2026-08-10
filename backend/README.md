@@ -359,16 +359,17 @@ UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
   --apply \
   --confirm-project trs-80 \
   --confirm-service retrostore-api-compat-candidate \
-  --confirm-revision retrostore-api-compat-candidate-website1 \
+  --confirm-revision retrostore-api-compat-candidate-redirects1 \
   --require-current
 ```
 
 The command impersonates the read-capable migration identity without a key,
 downloads only the comparison prefix, pins every download to its object
 generation, and verifies its path timestamp, content-derived SHA-256, schema,
-URLs, result counts, difference counts, and approval gate. Schema 2 additionally
-requires every dynamically discovered legacy download and the public website
-JSON list to match; older API-only reports cannot extend the current streak. It
+URLs, result counts, difference counts, and approval gate. Schema 3 additionally
+requires every dynamically discovered legacy download, the public website JSON
+list, and all six exact public redirects to match; older API-only and schema-2
+reports cannot extend the current streak. It
 also proves the checked-in revision is currently serving 100% of the private
 candidate. A failure or gap over 90 minutes restarts or stops the calculated
 streak. The summary retains only aggregate evidence and cannot authorize a

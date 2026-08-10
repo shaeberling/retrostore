@@ -77,7 +77,7 @@ does not change application-asset retention.
 
 - Job: `retrostore-hourly-comparator`, `us-central1`
 - Runtime identity: `retrostore-comparator@trs-80.iam.gserviceaccount.com`
-- Image digest: `sha256:2c2cf7f2bf17196ceb3b2b53ca8f33b5e43e1b44f5f5681e5721f94fae95c86c`
+- Image digest: `sha256:22d135c40f50ec10649f9a8480ad9898dbceb52a6c2628cbad1f73ac93bed3d4`
 - Candidate: private `retrostore-api-compat-candidate`
 - Retries: zero; timeout: 15 minutes; one task
 - Schedule: minute 17 hourly, `Etc/UTC`, enabled
@@ -96,27 +96,28 @@ through the authenticated Cloud Run v2 job endpoint. It also matched 158/158
 and retained the 26,470-byte report
 `20260810T003533221691Z-f43d86a7e3f563c9.json`, whose full SHA-256 is
 `f43d86a7e3f563c9063c0762ca2299ca45d01d850864ecd8964fe1c2bc4b3e66`.
-Job generation 3 is pinned to the multi-surface comparator image; changing the
-private service revision alone cannot silently change the comparator runtime.
-Each execution now requires the 158 frozen API scenarios, all dynamically
-discovered legacy ZIP/typed downloads (currently 94), and the full public
-website JSON list (currently 32 entries) to pass in one schema-2 artifact. It
-derives download scenarios from public HTTP responses and needs no catalog
-database or object-reader permission.
+Job generation 3 introduced download and website-list comparison. Generation 4
+is now pinned to the four-surface comparator image; changing the private service
+revision alone cannot silently change the comparator runtime. Each execution
+requires the 158 frozen API scenarios, all dynamically discovered legacy
+ZIP/typed downloads (currently 94), the full public website JSON list (currently
+32 entries), and all six exact public redirects to pass in one schema-3
+artifact. It derives download scenarios from public HTTP responses and needs no
+catalog database or object-reader permission.
 
 The checked-in `../front-door/private-soak-baseline.json` binds the current
-private evidence clock to candidate revision `website1` and schema-2 evidence
-beginning no earlier than 2026-08-10 03:31 UTC. The local
+private evidence clock to candidate revision `redirects1` and schema-3 evidence
+beginning no earlier than 2026-08-10 03:55 UTC. The local
 `retrostore.contract.soak_status` auditor verifies every retained object's
 content digest and internal counts, checks that the expected revision still has
 100% of private service traffic, and calculates continuity using the 90-minute
-stale-evidence limit. Execution `retrostore-hourly-comparator-4bhcc` passed all
-three surfaces and retained artifact
-`20260810T033145397633Z-d5c0ef70423ddfa7.json` with full SHA-256
-`d5c0ef70423ddfa7d763faf2d490e6593856cdf2387fd4a471a029478c6b9a09`.
-The auditor validated eight retained reports total; the seven earlier API-only
-schema-1 reports remain history but cannot satisfy the stronger gate. The
-14-day gate is current but not yet eligible.
+stale-evidence limit. Execution `retrostore-hourly-comparator-8n9n6` passed all
+four surfaces and retained artifact
+`20260810T035501395467Z-3c3d3bb30dec2e14.json` with full SHA-256
+`3c3d3bb30dec2e148c7a635f7d928dc4a4e133238d6e8ba1dc1213b7c85da084`.
+The auditor validated nine retained reports total. The earlier schema-1 and
+schema-2 reports remain valid history but cannot extend this exact revision and
+schema-3 clock. The 14-day gate is current but not yet eligible.
 This private clock is evidence only and does not authorize a hostname,
 load balancer, data activation, or production route change.
 

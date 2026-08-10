@@ -561,10 +561,10 @@ def _load_baseline(path: Path) -> dict[str, str]:
         "production_routing_changed": False,
         "catalog_activation_authorized": False,
         "load_balancer_authorized": False,
-        "evidence_schema_version": 2,
-        "comparator_job_generation": 3,
+        "evidence_schema_version": 3,
+        "comparator_job_generation": 4,
         "comparator_image_digest": (
-            "sha256:2c2cf7f2bf17196ceb3b2b53ca8f33b5e43e1b44f5f5681e5721f94fae95c86c"
+            "sha256:22d135c40f50ec10649f9a8480ad9898dbceb52a6c2628cbad1f73ac93bed3d4"
         ),
     }
     if any(value.get(key) != expected_value for key, expected_value in expected.items()):
@@ -573,6 +573,7 @@ def _load_baseline(path: Path) -> dict[str, str]:
         "frozen_api",
         "legacy_downloads",
         "public_app_list",
+        "public_redirects",
     ]:
         raise ValueError("Private soak baseline does not require all public read surfaces")
     revision = value.get("revision")

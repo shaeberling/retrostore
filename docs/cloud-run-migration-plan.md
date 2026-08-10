@@ -376,7 +376,7 @@ Completed foundation work:
   discovery on 2026-08-10 reconfirmed that no load-balancer resource exists and
   that Certificate Manager is not enabled. No resource was created.
 - Privacy-safe request telemetry is deployed on private API revision
-  `website1` (inheriting the `observability2` hardening) and admin revision
+  `redirects1` (inheriting the `observability2` hardening) and admin revision
   `observability1`. Both were tested at zero
   traffic before promotion; the API
   still matched production 158/158 and the admin passed all readiness and
@@ -437,14 +437,15 @@ Completed foundation work:
   p95/p99 at most 12.1/17.72 ms, plus one 950.6 ms startup. Allocation metrics
   provide raw cost inputs. No service configuration or traffic changed.
 - A checksum-validating private soak auditor now binds evidence to the checked-in
-  `website1` revision and schema-2 multi-surface boundary, verifies the revision
+  `redirects1` revision and schema-3 four-surface boundary, verifies the revision
   still serves 100%
   of private traffic, and independently validates every retained comparison
-  object and internal count. Job generation 3 requires 158 frozen API cases, 94
-  live-discovered downloads, and the 32-entry website list in every artifact.
-  Its first execution passed all three surfaces and seeded a new clock at
-  03:31:45 UTC. The seven earlier API-only artifacts remain valid historical
-  evidence but cannot satisfy this stronger gate.
+  object and internal count. Job generation 4 requires 158 frozen API cases, 94
+  live-discovered downloads, the 32-entry website list, and all six exact public
+  redirects in every artifact. Its first execution passed all four surfaces and
+  seeded the current clock at 03:55:01 UTC. The earlier schema-1 and schema-2
+  artifacts remain valid historical evidence but cannot satisfy this exact
+  revision and schema-3 gate.
   The fourteen-day clock is current but not yet eligible. The baseline explicitly
   denies cutover, load-balancer, and catalog-activation authority.
 - The promoted private `downloads1` revision received two additional guarded
@@ -472,13 +473,21 @@ Completed foundation work:
   (`sha256:3b6356d1d32d8eb6fbb4238ed682ad87e3684d7fb7dbe09e0f66a889f9b519f9`)
   was deployed at zero traffic and passed anonymous-denial, 32-entry website
   JSON, 94-download, 158-scenario API, and synthetic-state gates before private
-  promotion. It now serves 100% of only the private candidate service.
+  promotion. It served 100% of only the private candidate service until the
+  additive `redirects1` revision passed its own zero-traffic gates.
 - The scheduled comparator is upgraded without expanding IAM. It discovers the
   download corpus through public HTTP, is pinned to immutable image
-  `sha256:2c2cf7f2bf17196ceb3b2b53ca8f33b5e43e1b44f5f5681e5721f94fae95c86c`,
-  and emits a schema-2 aggregate whose overall gate drives the existing alert.
-  The checksum auditor rejects API-only artifacts for the new soak while still
-  parsing them as history.
+  `sha256:22d135c40f50ec10649f9a8480ad9898dbceb52a6c2628cbad1f73ac93bed3d4`,
+  and emits a schema-3 aggregate whose overall gate drives the existing alert.
+  It now covers the API, downloads, website list, and public redirects. The
+  checksum auditor still parses older artifacts as history but excludes them
+  from the exact current soak.
+- The immutable `redirects1` image was deployed at zero traffic and passed
+  anonymous denial, API 158/158, downloads 94/94, website catalog 32/32,
+  redirects 6/6, and the guarded synthetic state lifecycle before private
+  promotion. It now serves 100% of only the private candidate. Its image is the
+  same generation-4 comparator digest, IAM and resource limits are unchanged,
+  and production/App Engine routing and the active catalog pointer did not move.
 
 Open foundation work:
 

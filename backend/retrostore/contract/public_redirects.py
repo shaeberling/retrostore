@@ -1,11 +1,20 @@
 """Compare the six exact public website redirects without following them."""
 
+import argparse
 import hashlib
+import json
+from collections.abc import Sequence
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 import httpx
 
+from retrostore.contract.exhaustive import _gcloud_identity_token
+from retrostore.contract.legacy_downloads import (
+    _CANDIDATE_IDENTITY,
+    _candidate_origin,
+)
 from services.api_compat.app import LEGACY_PUBLIC_REDIRECTS
 
 
@@ -62,6 +71,51 @@ def compare_public_redirect_clients(
     }
 
 
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--reference-url", required=True)
+    parser.add_argument("--candidate-url", required=True)
+    parser.add_argument("--candidate-audience")
+    parser.add_argument("--candidate-gcloud-identity-token-service-account", required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--timeout-seconds", type=float, default=30.0)
+    args = parser.parse_args(argv)
+
+    if args.reference_url.rstrip("/") != "https://retrostore.org":
+        raise ValueError("--reference-url must be exactly https://retrostore.org")
+    candidate = _candidate_origin(args.candidate_url)
+    if args.candidate_gcloud_identity_token_service_account != _CANDIDATE_IDENTITY:
+        raise ValueError("The exact private API runtime identity is required")
+    audience = args.candidate_audience or candidate
+    if _candidate_origin(audience) != audience:
+        raise ValueError("Candidate audience must be an approved candidate origin")
+    token = _gcloud_identity_token(
+        audience,
+        args.candidate_gcloud_identity_token_service_account,
+    )
+    with httpx.Client(
+        base_url=args.reference_url,
+        follow_redirects=False,
+        timeout=args.timeout_seconds,
+    ) as reference, httpx.Client(
+        base_url=candidate,
+        headers={"Authorization": f"Bearer {token}"},
+        follow_redirects=False,
+        timeout=args.timeout_seconds,
+    ) as candidate_client:
+        report = compare_public_redirect_clients(
+            reference,
+            candidate_client,
+            reference_url=args.reference_url,
+            candidate_label=candidate,
+        )
+
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+    print(json.dumps({"scope": report["scope"], "summary": report["summary"]}))
+    return 0 if report["summary"]["passes"] else 1
+
+
 def _response_fingerprint(response: httpx.Response) -> dict[str, object]:
     body = response.content
     return {
@@ -73,3 +127,7 @@ def _response_fingerprint(response: httpx.Response) -> dict[str, object]:
         "body_bytes": len(body),
         "body_sha256": hashlib.sha256(body).hexdigest(),
     }
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
