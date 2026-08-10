@@ -297,5 +297,27 @@ def _with_candidate_host_header(
     return result
 
 
+def _public_candidate_origin(value: str) -> str:
+    """Accept only the two reviewed public Worker candidate origins."""
+    candidate = value.rstrip("/")
+    parsed = urlsplit(candidate)
+    hosts = {
+        "next.retrostore.org": {"http", "https"},
+        "retrostore-front-door-preview.retrostore-cloudflare-worker.workers.dev": {"https"},
+    }
+    if (
+        parsed.hostname not in hosts
+        or parsed.scheme not in hosts[parsed.hostname]
+        or parsed.port is not None
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.path not in {"", "/"}
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise ValueError("Public candidate must be an approved Worker origin")
+    return f"{parsed.scheme}://{parsed.hostname}"
+
+
 if __name__ == "__main__":
     main()

@@ -13,6 +13,7 @@ import httpx
 
 from retrostore.contract.exhaustive import (
     _gcloud_identity_token,
+    _public_candidate_origin,
     _with_candidate_host_header,
 )
 from retrostore.contract.legacy_downloads import (
@@ -95,6 +96,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--candidate-audience")
     parser.add_argument("--candidate-gcloud-identity-token-service-account")
     parser.add_argument("--candidate-host-header")
+    parser.add_argument("--public-candidate", action="store_true")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--timeout-seconds", type=float, default=30.0)
     args = parser.parse_args(argv)
@@ -111,10 +113,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         if args.candidate_url is None:
             if (
-                args.candidate_audience is not None
+                args.public_candidate
+                or args.candidate_host_header is not None
+                or args.candidate_audience is not None
                 or args.candidate_gcloud_identity_token_service_account is not None
             ):
-                raise ValueError("Candidate authentication requires --candidate-url")
+                raise ValueError("Candidate options require --candidate-url")
             app = create_archive_app(
                 args.archive,
                 {"TESTING": True, "RETROSTORE_REQUEST_LOGGING": False},
@@ -130,7 +134,19 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
         else:
             headers: Mapping[str, str] | None
-            if args.candidate_host_header is not None:
+            if args.public_candidate:
+                if (
+                    args.candidate_host_header is not None
+                    or args.candidate_audience is not None
+                    or args.candidate_gcloud_identity_token_service_account is not None
+                ):
+                    raise ValueError(
+                        "The public Worker candidate cannot use an override or "
+                        "private authentication"
+                    )
+                candidate_label = _public_candidate_origin(args.candidate_url)
+                headers = None
+            elif args.candidate_host_header is not None:
                 if (
                     args.candidate_audience is not None
                     or args.candidate_gcloud_identity_token_service_account is not None
@@ -145,16 +161,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
             else:
                 candidate_label = _candidate_origin(args.candidate_url)
-                if (
-                    args.candidate_gcloud_identity_token_service_account
-                    != _CANDIDATE_IDENTITY
-                ):
+                if args.candidate_gcloud_identity_token_service_account != _CANDIDATE_IDENTITY:
                     raise ValueError("The exact private API runtime identity is required")
                 audience = args.candidate_audience or candidate_label
                 if _candidate_origin(audience) != audience:
-                    raise ValueError(
-                        "Candidate audience must be an approved candidate origin"
-                    )
+                    raise ValueError("Candidate audience must be an approved candidate origin")
                 token = _gcloud_identity_token(
                     audience,
                     args.candidate_gcloud_identity_token_service_account,

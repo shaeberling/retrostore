@@ -527,7 +527,7 @@ Completed foundation work:
   failed diagnostic artifacts are retained from those harness corrections; the
   final token-free artifact passes all covered methods and synthetic states.
 
-Open foundation work:
+Current public-candidate state:
 
 - The candidate names `next.retrostore.org` and `admin-next.retrostore.org` are
   approved. Sascha Ha is the confirmed go/no-go owner and rollback operator.
@@ -535,13 +535,13 @@ Open foundation work:
   Cloud Run services, public static bucket, fail-closed load-balancer map,
   IPv4/IPv6 frontends, and managed certificate exist. Production routing and
   production data authority remain unchanged.
-- Candidate DNS is intentionally pending. `retrostore.org` now delegates to the
-  Cloudflare `curt` and `rita` nameservers after the provider move.
-  The HTTP front door is nevertheless testable through the reserved IP and an
-  explicit Host header; it passes all 350 scenarios (338 known public reads plus
-  12 App Engine fallbacks). HTTPS, real-client, and authenticated admin tests
-  remain required after the new authoritative provider publishes candidate A
-  and AAAA records and the certificate becomes active.
+- The Cloudflare Worker Custom Domains `next.retrostore.org` and
+  `admin-next.retrostore.org` are active with Cloudflare-managed DNS and
+  certificates. The public candidate passes all 350 scenarios over HTTPS and
+  plain HTTP, the isolated state lifecycle, the pinned JVM/KMP/embedded-C client
+  gate on both transports, and byte/length parity for retained Card/TRS-IO
+  downloads. The admin login page and Firebase redirect allowlist are active;
+  interactive Google sign-in on the custom domain remains the one human gate.
 - Confirm the alert recipient and notification channel, attach it to the two
   installed policies, and explicitly enable them. Until then, the dashboard and
   logs provide evidence but do not page anyone.
@@ -1772,17 +1772,20 @@ Phase 1:
   a custom-domain route. Cloudflare activated the account subdomain, and the
   deployed edge runtime passed 79/79 static plus 12/12 App Engine fallback
   comparisons with zero differences.
-- [ ] Explicitly approve and apply the non-production Cloud Run origin boundary
+- [x] Explicitly approve and apply the non-production Cloud Run origin boundary
   required by Cloudflare: enable default `run.app` URLs and `ingress=all` for
   `retrostore-api-next` and `retrostore-admin-next`. Both services already have
   public invocation through the temporary load balancer; production DNS is
   unchanged, and the admin retains Firebase session authorization.
-- [ ] Deploy only the `next` and `admin-next` Worker Custom Domains and repeat
-  the complete public HTTP/HTTPS and authenticated admin gates before any
-  production change. Cloudflare creates their DNS records and certificates.
+- [x] Deploy only the `next` and `admin-next` Worker Custom Domains and repeat
+  the complete public HTTP/HTTPS, state, and pinned-client gates before any
+  production change. Cloudflare created their DNS records and certificates.
   Candidate fallback explicitly fetches `https://retrostore.org`; the
   production binding later uses the existing App Engine DNS origin for
   immediate route-disable rollback.
+- [ ] Complete interactive Google sign-in and authorized admin navigation on
+  `admin-next.retrostore.org`; the login page, redirect, CSP, Firebase redirect
+  origin, service readiness, and unauthenticated session boundary already pass.
 
 The unfinished Arduino tree in this repository is not the reviewed native
 C/ESP32 consumer and remains outside the compatibility gate; leave it untouched
@@ -1799,8 +1802,9 @@ guarded activation/rollback command, and copy-on-write draft UI are now deployed
 privately without activation. Front-door preparation, request observability, the
 private comparator, its dashboard, the first private capacity gate, the
 stage-only half of repeatable mirror synchronization, and the read-only
-reverse-sync planner are complete. The revision-bound comparison continues to
-run automatically while candidate DNS is coordinated with the domain move.
+reverse-sync planner are complete. The revision-bound private comparison
+continues to run automatically while the active Cloudflare candidate is
+exercised independently.
 The remaining data-policy choice now has a read-only evidence-backed proposal:
 retain all ten historical profiles without granting access and manually review
 the two unmatched legacy administrators. Actual

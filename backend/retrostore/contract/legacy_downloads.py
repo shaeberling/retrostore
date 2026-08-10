@@ -18,6 +18,7 @@ import httpx
 
 from retrostore.contract.exhaustive import (
     _gcloud_identity_token,
+    _public_candidate_origin,
     _with_candidate_host_header,
 )
 from retrostore.mirror import CatalogMirror, load_catalog_mirror_archive
@@ -70,8 +71,7 @@ def discover_download_scenarios(mirror: CatalogMirror) -> tuple[DownloadScenario
             scenarios.append(
                 DownloadScenario(
                     f"app-{app_token}-type-{extension_token}",
-                    "/downloadapp?"
-                    + urlencode({"appId": app.id, "type": extension}),
+                    "/downloadapp?" + urlencode({"appId": app.id, "type": extension}),
                     False,
                 )
             )
@@ -81,8 +81,7 @@ def discover_download_scenarios(mirror: CatalogMirror) -> tuple[DownloadScenario
         scenarios.append(
             DownloadScenario(
                 f"app-{app_token}-unknown-type",
-                "/downloadapp?"
-                + urlencode({"appId": app.id, "type": "not-a-real-type"}),
+                "/downloadapp?" + urlencode({"appId": app.id, "type": "not-a-real-type"}),
                 False,
             )
         )
@@ -151,8 +150,7 @@ def discover_download_scenarios_from_reference(
             scenarios.append(
                 DownloadScenario(
                     f"app-{app_token}-type-{extension_token}",
-                    "/downloadapp?"
-                    + urlencode({"appId": app_id, "type": extension}),
+                    "/downloadapp?" + urlencode({"appId": app_id, "type": extension}),
                     False,
                 )
             )
@@ -162,8 +160,7 @@ def discover_download_scenarios_from_reference(
         scenarios.append(
             DownloadScenario(
                 f"app-{app_token}-unknown-type",
-                "/downloadapp?"
-                + urlencode({"appId": app_id, "type": "not-a-real-type"}),
+                "/downloadapp?" + urlencode({"appId": app_id, "type": "not-a-real-type"}),
                 False,
             )
         )
@@ -215,9 +212,7 @@ def compare_download_clients(
         "scope": {
             "scenario_count": len(scenarios),
             "zip_scenario_count": sum(item.zip_response for item in scenarios),
-            "typed_or_error_scenario_count": sum(
-                not item.zip_response for item in scenarios
-            ),
+            "typed_or_error_scenario_count": sum(not item.zip_response for item in scenarios),
             "reference_response_bytes": response_bytes["reference"],
             "candidate_response_bytes": response_bytes["candidate"],
         },
@@ -239,6 +234,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--candidate-audience")
     parser.add_argument("--candidate-gcloud-identity-token-service-account")
     parser.add_argument("--candidate-host-header")
+    parser.add_argument("--public-candidate", action="store_true")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--timeout-seconds", type=float, default=30.0)
     args = parser.parse_args(argv)
@@ -257,10 +253,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         if args.candidate_url is None:
             if (
-                args.candidate_audience is not None
+                args.public_candidate
+                or args.candidate_host_header is not None
+                or args.candidate_audience is not None
                 or args.candidate_gcloud_identity_token_service_account is not None
             ):
-                raise ValueError("Candidate authentication requires --candidate-url")
+                raise ValueError("Candidate options require --candidate-url")
             candidate_app = create_archive_app(
                 args.archive,
                 {"TESTING": True, "RETROSTORE_REQUEST_LOGGING": False},
@@ -276,7 +274,19 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
         else:
             headers: Mapping[str, str] | None
-            if args.candidate_host_header is not None:
+            if args.public_candidate:
+                if (
+                    args.candidate_host_header is not None
+                    or args.candidate_audience is not None
+                    or args.candidate_gcloud_identity_token_service_account is not None
+                ):
+                    raise ValueError(
+                        "The public Worker candidate cannot use an override or "
+                        "private authentication"
+                    )
+                candidate_label = _public_candidate_origin(args.candidate_url)
+                headers = None
+            elif args.candidate_host_header is not None:
                 if (
                     args.candidate_audience is not None
                     or args.candidate_gcloud_identity_token_service_account is not None
@@ -291,16 +301,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
             else:
                 candidate_label = _candidate_origin(args.candidate_url)
-                if (
-                    args.candidate_gcloud_identity_token_service_account
-                    != _CANDIDATE_IDENTITY
-                ):
+                if args.candidate_gcloud_identity_token_service_account != _CANDIDATE_IDENTITY:
                     raise ValueError("The exact private API runtime identity is required")
                 audience = args.candidate_audience or candidate_label
                 if _candidate_origin(audience) != audience:
-                    raise ValueError(
-                        "Candidate audience must be an approved candidate origin"
-                    )
+                    raise ValueError("Candidate audience must be an approved candidate origin")
                 token = _gcloud_identity_token(
                     audience,
                     args.candidate_gcloud_identity_token_service_account,
@@ -364,9 +369,7 @@ def _normalize_response(response: httpx.Response, zip_response: bool) -> dict[st
         "status": response.status_code,
         "content_type": response.headers.get("content-type"),
         "content_disposition": response.headers.get("content-disposition"),
-        "access_control_allow_origin": response.headers.get(
-            "access-control-allow-origin"
-        ),
+        "access_control_allow_origin": response.headers.get("access-control-allow-origin"),
     }
     if zip_response and response.status_code == 200:
         result["zip_entries"] = _normalize_zip(body)
@@ -416,13 +419,9 @@ def _zip_extensions(body: bytes) -> tuple[str, ...]:
         raise ValueError("Legacy download response is not a valid ZIP archive") from error
 
 
-def _difference_fields(
-    expected: Mapping[str, Any], actual: Mapping[str, Any]
-) -> list[str]:
+def _difference_fields(expected: Mapping[str, Any], actual: Mapping[str, Any]) -> list[str]:
     return sorted(
-        key
-        for key in set(expected) | set(actual)
-        if expected.get(key) != actual.get(key)
+        key for key in set(expected) | set(actual) if expected.get(key) != actual.get(key)
     )
 
 

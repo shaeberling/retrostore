@@ -37,12 +37,12 @@ then activated the account subdomain at
 static contract checks and all 12 App Engine fallback checks against production
 with zero differences.
 
-Before any end-to-end API/admin test, explicitly approve and enable default
-`run.app` URLs plus `ingress=all` on only `retrostore-api-next` and
-`retrostore-admin-next`. The Worker cannot reach load-balancer-only Cloud Run
-ingress. This makes the two non-production origins directly reachable: the API
-is intentionally public, while the admin still enforces Firebase session
-authorization. It does not alter production DNS.
+The operator explicitly approved and enabled default `run.app` URLs plus
+`ingress=all` on only `retrostore-api-next` and `retrostore-admin-next`. The
+Worker cannot reach load-balancer-only Cloud Run ingress. The two
+non-production origins are now directly reachable: the API is intentionally
+public, while the admin still enforces Firebase session authorization. This did
+not alter production DNS.
 
 The `candidate` environment also binds `next.retrostore.org` and
 `admin-next.retrostore.org` as Cloudflare Worker Custom Domains. Cloudflare will
@@ -53,3 +53,13 @@ uses `https://retrostore.org` explicitly because `next.retrostore.org` is not an
 App Engine custom-domain mapping. No production Worker route is checked in;
 adding `retrostore.org` as a route with same-host DNS-origin fallback is an
 explicit cutover operation after the candidate passes.
+
+The candidate was deployed on 2026-08-10 as version
+`86cff09e-7510-498f-98f3-c9f61c4adf7d`. Cloudflare created both Custom Domains
+and their certificates. The complete API, download, catalog, redirect, static,
+fallback, synthetic-state, and pinned-client gates pass on
+`next.retrostore.org` over HTTPS and plain HTTP. The retained Card and TRS-IO
+version/binary probes are byte-identical and preserve `Content-Length`. Firebase
+Auth now includes `admin-next.retrostore.org`; the login page and pre-session
+redirect pass, while a final interactive Google sign-in remains a human gate.
+The sanitized deployed-state record is `candidate-baseline.json`.

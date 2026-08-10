@@ -49,9 +49,10 @@ The candidate-only state was re-audited on 2026-08-10:
   allocated at IPv4 `34.102.211.182` and IPv6 `2600:1901:0:81dc::`, with HTTP
   and HTTPS forwarding rules. It does not serve the production hostname.
 - `retrostore-api-next` and `retrostore-admin-next` are distinct final services
-  with load-balancer-only ingress, disabled default URLs, and public invocation
-  through the load balancer. The earlier private comparison services remain
-  unchanged.
+  with explicitly approved public ingress and default URLs for Cloudflare
+  origin access. Their pre-existing `allUsers` invoker bindings are unchanged;
+  the admin retains Firebase session authorization. The earlier private
+  comparison services remain unchanged.
 - `trs-80-retrostore-public` contains the 78 checksum-verified static objects;
   its backend bucket has CDN disabled and adds the legacy CORS response header.
 - The Google-managed Compute certificate for `next.retrostore.org` and
@@ -64,6 +65,11 @@ The candidate-only state was re-audited on 2026-08-10:
   and was uploaded as `retrostore-front-door-preview` without custom-domain
   routes. Its active `workers.dev` preview passed all 79 static and 12 App
   Engine fallback comparisons with zero differences.
+- `next.retrostore.org` and `admin-next.retrostore.org` are active Cloudflare
+  Worker Custom Domains on candidate version
+  `86cff09e-7510-498f-98f3-c9f61c4adf7d`. The complete 350-case candidate
+  surface and pinned clients pass over HTTPS and plain HTTP; the admin login
+  page passes and its Firebase redirect origin is deployed.
 - No production DNS record, domain mapping, route, or invoker policy changed.
 
 Pre-DNS HTTP probes use the reserved IPv4 address plus an explicit approved
@@ -192,23 +198,12 @@ approved, and the scheduled comparator.
 
 ## Remaining activation sequence
 
-1. Explicitly approve and enable `ingress=all` plus the default `run.app` URL on
-   only `retrostore-api-next` and `retrostore-admin-next`. This makes the
-   non-production origins directly public; the API is intentionally public and
-   the admin still requires Firebase authorization after Cloud Run invocation.
-2. Run the replacement API, download, catalog, redirect, state, and pinned real
-   client gates against the isolated preview URL; the static and fallback
-   surfaces already pass 91/91.
-3. Keep `Always Use HTTPS` off and deploy the two checked-in Worker Custom
-   Domains. Cloudflare creates the candidate DNS records and certificates;
-   candidate fallback explicitly fetches `https://retrostore.org` because
-   `next.retrostore.org` is not an App Engine domain mapping.
-4. Repeat all 350 comparisons over HTTPS and plain HTTP, then repeat the pinned
-   Android/iOS/web KMP, JVM, and ESP32/native clients through
-   `next.retrostore.org`; exercise authenticated administration through
-   `admin-next.retrostore.org`.
-5. Confirm the alert recipient and review a fresh go/no-go packet.
-6. Bind the already-tested Worker to `retrostore.org` once. Disabling that route
+1. Complete the one remaining interactive candidate gate: Google sign-in and
+   authorized admin navigation through `admin-next.retrostore.org`.
+2. Capture a fresh synchronized-catalog/state readiness packet and confirm that
+   App Engine remains the sole catalog writer until the handoff.
+3. Confirm the alert recipient and review the final go/no-go packet.
+4. Bind the already-tested Worker to `retrostore.org` once. Disabling that route
    returns traffic to the App Engine DNS origin immediately; there is no fixed
    waiting period or percentage rollout.
 

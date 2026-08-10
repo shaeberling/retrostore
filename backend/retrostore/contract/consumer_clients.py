@@ -16,7 +16,10 @@ import httpx
 from flask import Flask, Response, request
 from werkzeug.serving import make_server
 
-from retrostore.contract.exhaustive import _with_candidate_host_header
+from retrostore.contract.exhaustive import (
+    _public_candidate_origin,
+    _with_candidate_host_header,
+)
 from retrostore.contracts import PUBLIC_API_METHODS
 from services.api_compat.app import create_representative_app
 
@@ -95,9 +98,7 @@ TRS80_CLIENT_FILES = {
 }
 
 
-def validate_trs80_revision(
-    checkout: Path, expected_revision: str = TRS80_REVISION
-) -> None:
+def validate_trs80_revision(checkout: Path, expected_revision: str = TRS80_REVISION) -> None:
     """Require the exact application revision reviewed for this compatibility gate."""
 
     completed = subprocess.run(
@@ -224,12 +225,16 @@ def validate_loopback_candidate_url(candidate_url: str) -> str:
 
 def create_front_door_proxy_app(
     candidate_url: str,
-    candidate_host_header: str,
+    candidate_host_header: str | None,
     *,
     transport: httpx.BaseTransport | None = None,
 ) -> tuple[Flask, httpx.Client]:
-    """Create a loopback-only bridge to the approved pre-DNS front door."""
-    headers = _with_candidate_host_header(candidate_url, candidate_host_header)
+    """Create a loopback bridge to an approved pre-DNS or public front door."""
+    if candidate_host_header is None:
+        candidate_url = _public_candidate_origin(candidate_url)
+        headers = None
+    else:
+        headers = _with_candidate_host_header(candidate_url, candidate_host_header)
     upstream = httpx.Client(
         base_url=candidate_url.rstrip("/"),
         headers=headers,
@@ -291,8 +296,6 @@ def run(
     server_thread = None
     upstream = None
     if front_door_url is not None:
-        if candidate_host_header is None:
-            raise ValueError("The pre-DNS front door requires its approved Host header")
         proxy_app, upstream = create_front_door_proxy_app(
             front_door_url,
             candidate_host_header,
@@ -365,7 +368,10 @@ def main() -> None:
         raise ValueError("Select either --candidate-url or --candidate-front-door-url")
     if external_front_door:
         front_door_url = args.candidate_front_door_url.rstrip("/")
-        _with_candidate_host_header(front_door_url, args.candidate_host_header)
+        if args.candidate_host_header is None:
+            front_door_url = _public_candidate_origin(front_door_url)
+        else:
+            _with_candidate_host_header(front_door_url, args.candidate_host_header)
         if (
             not args.apply
             or args.confirm_candidate_front_door_url != front_door_url
@@ -413,7 +419,11 @@ def main() -> None:
             ),
             "applied": True,
             "candidate_transport": (
-                "pre_dns_front_door_loopback_bridge"
+                (
+                    "pre_dns_front_door_loopback_bridge"
+                    if args.candidate_host_header is not None
+                    else "public_worker_loopback_bridge"
+                )
                 if external_front_door
                 else "authenticated_loopback_proxy"
             ),
@@ -434,7 +444,8 @@ def main() -> None:
         }
         if external_front_door:
             report["candidate_url"] = args.candidate_front_door_url.rstrip("/")
-            report["candidate_host_header"] = args.candidate_host_header
+            if args.candidate_host_header is not None:
+                report["candidate_host_header"] = args.candidate_host_header
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     raise SystemExit(result)

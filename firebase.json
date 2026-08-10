@@ -9,7 +9,8 @@
         "supportEmail": "saschah@gmail.com",
         "authorizedRedirectUris": [
           "https://retrostore-admin-candidate-zzch7qgr2a-uc.a.run.app",
-          "https://retrostore-admin-candidate-760396810462.us-central1.run.app"
+          "https://retrostore-admin-candidate-760396810462.us-central1.run.app",
+          "https://admin-next.retrostore.org"
         ]
       }
     }

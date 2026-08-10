@@ -218,7 +218,27 @@ UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
 The bridge binds only to loopback and the upstream guard accepts only the exact
 approved Host header plus a numeric global port-80 address. The first run passed
 all nine JVM SDK methods, all five TRS-80 KMP methods, and all three embedded C
-methods. Direct hostname/TLS transport must still be repeated after DNS exists.
+methods.
+
+For the reviewed public Cloudflare candidate, omit the Host override. The guard
+accepts only the isolated Worker preview and `next.retrostore.org` over HTTP or
+HTTPS:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.contract.consumer_clients \
+  --trs80-checkout /path/to/TRS-80 \
+  --candidate-front-door-url https://next.retrostore.org \
+  --output /tmp/retrostore-next-consumers.json \
+  --apply \
+  --confirm-candidate-front-door-url https://next.retrostore.org
+```
+
+The loopback bridge remains necessary because the reviewed embedded fixture
+accepts only a loopback address, but every upstream request reaches the real
+Cloudflare hostname. Repeat with `http://next.retrostore.org` to prove the raw
+port-80 path. Both transports now pass all covered methods and isolated
+synthetic states.
 
 ## Protobuf generation
 
@@ -1036,6 +1056,11 @@ size, and content SHA-256; generated timestamp/compressor envelope differences
 are ignored because App Engine rebuilds that envelope on each request. Reports
 contain no app IDs, filenames, or media bytes.
 
+Add `--candidate-url https://next.retrostore.org --public-candidate` to compare
+the same corpus through the reviewed public Worker. The public guard rejects all
+other hosts and cannot be combined with private authentication or a Host
+override.
+
 The legacy static website's public `/rpc?m=pubapplist` response is reproduced
 at the query-independent candidate path `/public/apps.json`. Compare the full
 JSON list against the same normalized archive with:
@@ -1053,6 +1078,10 @@ field names. It excludes app IDs, names, descriptions, screenshot URLs, and
 credentials. The first complete comparison matched all 32 entries with zero
 differences. A private tag can be tested with the same candidate URL, audience,
 and runtime-identity arguments accepted by the download comparator.
+
+The same `--candidate-url https://next.retrostore.org --public-candidate` pair
+selects the reviewed public Worker for this comparator and the redirect
+comparator.
 
 Build the closed 78-object public website bundle locally with an exact output
 confirmation:

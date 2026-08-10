@@ -98,12 +98,16 @@ door directly:
   exists at `34.102.211.182` and `2600:1901:0:81dc::`, with an exact fail-closed
   route map and a Google-managed Compute certificate for `next.retrostore.org`
   and `admin-next.retrostore.org`.
-- Candidate DNS records are not published. Their A/AAAA records must be
-  coordinated at the now-authoritative Cloudflare zone.
+- The load balancer is now temporary comparison infrastructure. The active
+  parallel front door is Cloudflare Worker
+  `retrostore-front-door-candidate`, version
+  `86cff09e-7510-498f-98f3-c9f61c4adf7d`, with Custom Domains
+  `next.retrostore.org` and `admin-next.retrostore.org`. Cloudflare created
+  their DNS records and certificates.
 
 Production traffic still goes directly to the App Engine domain mapping. The
-candidate load balancer is isolated and cannot receive production traffic until
-a later explicit cutover.
+candidate Worker has no `retrostore.org` route and cannot receive production
+traffic until a later explicit cutover.
 
 ## App Engine runtime and dispatch
 
@@ -335,18 +339,26 @@ delete so its lifecycle does not retain expired payloads for an extra week:
 | `us.artifacts.trs-80.appspot.com` | 92 | About 1.35 GiB | Legacy Container Registry artifacts |
 | `trs-80-retrostore-assets` | 150 baseline objects plus retained operations | 12,738,856 baseline bytes plus retained operations | Private durable mirror; uniform access, public-access prevention, seven-day soft delete; comparison-report prefix deletes after 90 days |
 | `trs-80-retrostore-state` | Synthetic smoke-test objects only | Ephemeral | Private state target; uniform access, public-access prevention, delete after eight days, soft delete disabled |
+| `trs-80-retrostore-public` | 78 static objects | 4,652,747 | Temporary public load-balancer candidate; CDN disabled and `Cache-Control: no-store` |
 
 The three legacy buckets retain their existing ACL configuration. Uniform
-bucket-level access and public-access prevention are enforced on both new
-buckets; object versioning is disabled. Additive database- and bucket-scoped IAM
-grants exist for dedicated migrator, API, and admin service accounts. No
-service-account key was created.
+bucket-level access and public-access prevention are enforced on both private
+migration buckets; object versioning is disabled. Additive database- and
+bucket-scoped IAM grants exist for dedicated migrator, API, and admin service
+accounts. No
+service-account key was created. The same 78-file static bundle is released to
+the separate `retrostore-public` Firebase Hosting site, which is the Worker
+static origin and does not alter the existing TRS-80 KMP Hosting site.
 
 Artifact Registry now contains the dedicated `retrostore` repository and Cloud
 Build is enabled. Three unrouted private Cloud Run services exist in
 `us-central1`: the active-snapshot API candidate, the pinned staged-snapshot API
 preview, and the administration candidate. Each denies anonymous invocation;
-none is connected to `retrostore.org`.
+none is connected to `retrostore.org`. Separate final services
+`retrostore-api-next` and `retrostore-admin-next` have explicitly approved
+`ingress=all`, enabled default URLs, and unchanged `allUsers` invoker bindings
+so the Cloudflare candidate can use them as origins; the admin still enforces
+Firebase session authorization.
 
 A private `retrostore-hourly-comparator` Cloud Run Job uses a fourth dedicated
 keyless identity. It can invoke only the private active-snapshot API candidate
@@ -398,10 +410,13 @@ Separate drift auditors passed the exact API/admin/preview revision, image,
 runtime configuration, traffic, IAM, and anonymous-denial baseline plus all nine
 job/scheduler/report-bucket pipeline checks. A read-only transport audit also
 matched HTTP and HTTPS for all 338 API, download, redirect, static, and public
-listing scenarios. The separate public candidate now also matches 350/350
-pre-DNS HTTP scenarios through its load-balancer IP. Candidate-only resources
-are approved and deployed; production cutover and App Engine retirement remain
-denied until HTTPS, public real-client/admin, alerting, and operator gates pass.
+listing scenarios. The active Cloudflare candidate matches all 350 scenarios
+over HTTPS and plain HTTP, passes the isolated state lifecycle and pinned
+JVM/KMP/embedded-C clients on both transports, and preserves the retained
+Card/TRS-IO download bytes and lengths. Candidate-only resources are approved
+and deployed; production cutover and App Engine retirement remain denied until
+interactive custom-domain admin, alerting, data-handoff, and operator gates
+pass.
 
 The pre-existing App Engine, Compute, and Firebase Admin SDK identities remain.
 The migration adds separate keyless migrator, public API, and administration

@@ -45,8 +45,9 @@ without service-account keys or access to the legacy default database.
 The Cloud Run build and deployment convention is in `cloud-run/`. Private
 comparison services and the separate final candidate services use dedicated
 runtime identities and explicit replacement-resource environment variables.
-The final candidates remain load-balancer-only until their direct Worker-origin
-exposure is explicitly approved.
+The final API/admin candidates have explicitly approved public ingress and
+default URLs so Cloudflare can use them as origins; private comparison services
+remain private.
 
 The route group, deployed candidate baseline, monitoring threshold, and rollback
 records are in `front-door/`. Its validator is run in CI and deliberately has

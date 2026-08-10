@@ -42,6 +42,13 @@ def test_public_hosting_preserves_candidate_static_headers() -> None:
     ]
 
 
+def test_admin_candidate_is_an_authorized_google_redirect_origin() -> None:
+    redirects = _json(FIREBASE_CONFIG)["auth"]["providers"]["googleSignIn"][
+        "authorizedRedirectUris"
+    ]
+    assert "https://admin-next.retrostore.org" in redirects
+
+
 def _public_hosting_config() -> dict[str, object]:
     hosting = _json(FIREBASE_CONFIG)["hosting"]
     return next(item for item in hosting if item["target"] == "retrostore-public")

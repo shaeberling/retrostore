@@ -4,6 +4,7 @@ import pytest
 from retrostore.contract.capture import capture_scenarios_with_client
 from retrostore.contract.exhaustive import (
     _gcloud_identity_token,
+    _public_candidate_origin,
     _with_candidate_host_header,
     discover_exhaustive_corpus,
 )
@@ -116,3 +117,22 @@ def test_pre_dns_host_override_is_limited_to_approved_global_http_front_door() -
             "http://user:password@34.102.211.182",
             "next.retrostore.org",
         )
+
+
+def test_public_candidate_origin_is_limited_to_reviewed_worker_hosts() -> None:
+    preview = "https://retrostore-front-door-preview.retrostore-cloudflare-worker.workers.dev"
+    assert _public_candidate_origin(preview + "/") == preview
+    assert _public_candidate_origin("https://next.retrostore.org") == (
+        "https://next.retrostore.org"
+    )
+    assert _public_candidate_origin("http://next.retrostore.org") == ("http://next.retrostore.org")
+
+    for invalid in (
+        "http://retrostore-front-door-preview.retrostore-cloudflare-worker.workers.dev",
+        "https://retrostore.org",
+        "https://next.retrostore.org/path",
+        "https://next.retrostore.org:443",
+        "https://user:password@next.retrostore.org",
+    ):
+        with pytest.raises(ValueError, match="approved Worker origin"):
+            _public_candidate_origin(invalid)

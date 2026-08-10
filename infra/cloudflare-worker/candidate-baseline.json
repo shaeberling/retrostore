@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "observed_at": "2026-08-10T14:11:50Z",
+  "cloudflare": {
+    "worker": "retrostore-front-door-candidate",
+    "version_id": "86cff09e-7510-498f-98f3-c9f61c4adf7d",
+    "custom_domains": [
+      "next.retrostore.org",
+      "admin-next.retrostore.org"
+    ],
+    "production_route_attached": false
+  },
+  "origins": {
+    "static": "https://retrostore-public.web.app",
+    "api": "https://retrostore-api-next-760396810462.us-central1.run.app",
+    "admin": "https://retrostore-admin-next-760396810462.us-central1.run.app",
+    "app_engine_fallback": "https://retrostore.org"
+  },
+  "cloud_run_boundary": {
+    "services": [
+      "retrostore-api-next",
+      "retrostore-admin-next"
+    ],
+    "ingress": "all",
+    "default_urls_enabled": true,
+    "invoker": "allUsers",
+    "admin_application_authorization": "firebase_session"
+  },
+  "evidence": {
+    "https": {
+      "api": "158/158",
+      "legacy_downloads": "94/94",
+      "public_catalog_entries": "32/32",
+      "public_redirects": "6/6",
+      "static_routes": "79/79",
+      "app_engine_fallbacks": "12/12",
+      "synthetic_state_lifecycle": "passed",
+      "pinned_jvm_kmp_embedded_clients": "passed"
+    },
+    "http": {
+      "api": "158/158",
+      "legacy_downloads": "94/94",
+      "public_catalog_entries": "32/32",
+      "public_redirects": "6/6",
+      "static_routes": "79/79",
+      "app_engine_fallbacks": "12/12",
+      "pinned_jvm_kmp_embedded_clients": "passed"
+    },
+    "retained_routes": {
+      "card_version": "byte-identical_with_content_length",
+      "card_binary": "byte-identical_with_content_length",
+      "trs_io_version": "byte-identical_with_content_length",
+      "trs_io_binary": "byte-identical_with_content_length"
+    }
+  },
+  "production": {
+    "hostname": "retrostore.org",
+    "dns_changed": false,
+    "worker_route_attached": false,
+    "app_engine_authoritative": true
+  }
+}

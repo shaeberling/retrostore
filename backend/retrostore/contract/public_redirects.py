@@ -12,6 +12,7 @@ import httpx
 
 from retrostore.contract.exhaustive import (
     _gcloud_identity_token,
+    _public_candidate_origin,
     _with_candidate_host_header,
 )
 from retrostore.contract.legacy_downloads import (
@@ -46,9 +47,7 @@ def compare_public_redirect_clients(
                     "candidate": actual,
                 }
             )
-    different = [
-        {"path": result["path"]} for result in results if not result["matches"]
-    ]
+    different = [{"path": result["path"]} for result in results if not result["matches"]]
     matching = len(results) - len(different)
     return {
         "schema_version": 1,
@@ -81,6 +80,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--candidate-audience")
     parser.add_argument("--candidate-gcloud-identity-token-service-account")
     parser.add_argument("--candidate-host-header")
+    parser.add_argument("--public-candidate", action="store_true")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--timeout-seconds", type=float, default=30.0)
     args = parser.parse_args(argv)
@@ -88,14 +88,23 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.reference_url.rstrip("/") != "https://retrostore.org":
         raise ValueError("--reference-url must be exactly https://retrostore.org")
     headers: Mapping[str, str] | None
-    if args.candidate_host_header is not None:
+    if args.public_candidate:
+        if (
+            args.candidate_host_header is not None
+            or args.candidate_audience is not None
+            or args.candidate_gcloud_identity_token_service_account is not None
+        ):
+            raise ValueError(
+                "The public Worker candidate cannot use an override or private authentication"
+            )
+        candidate = _public_candidate_origin(args.candidate_url)
+        headers = None
+    elif args.candidate_host_header is not None:
         if (
             args.candidate_audience is not None
             or args.candidate_gcloud_identity_token_service_account is not None
         ):
-            raise ValueError(
-                "The public front-door probe cannot use private authentication"
-            )
+            raise ValueError("The public front-door probe cannot use private authentication")
         candidate = args.candidate_url.rstrip("/")
         headers = _with_candidate_host_header(candidate, args.candidate_host_header)
     else:
@@ -110,16 +119,19 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.candidate_gcloud_identity_token_service_account,
         )
         headers = {"Authorization": f"Bearer {token}"}
-    with httpx.Client(
-        base_url=args.reference_url,
-        follow_redirects=False,
-        timeout=args.timeout_seconds,
-    ) as reference, httpx.Client(
-        base_url=candidate,
-        headers=headers,
-        follow_redirects=False,
-        timeout=args.timeout_seconds,
-    ) as candidate_client:
+    with (
+        httpx.Client(
+            base_url=args.reference_url,
+            follow_redirects=False,
+            timeout=args.timeout_seconds,
+        ) as reference,
+        httpx.Client(
+            base_url=candidate,
+            headers=headers,
+            follow_redirects=False,
+            timeout=args.timeout_seconds,
+        ) as candidate_client,
+    ):
         report = compare_public_redirect_clients(
             reference,
             candidate_client,
@@ -140,9 +152,7 @@ def _response_fingerprint(response: httpx.Response) -> dict[str, object]:
     return {
         "status": response.status_code,
         "location": response.headers.get("location"),
-        "content_type": response.headers.get("content-type", "")
-        .partition(";")[0]
-        .casefold(),
+        "content_type": response.headers.get("content-type", "").partition(";")[0].casefold(),
         "body_bytes": len(body),
         "body_sha256": hashlib.sha256(body).hexdigest(),
     }

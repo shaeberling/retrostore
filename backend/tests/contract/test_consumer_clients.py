@@ -79,9 +79,7 @@ def test_validate_trs80_client_rejects_changed_source(tmp_path: Path) -> None:
 
 
 def test_external_client_gate_accepts_only_an_exact_loopback_origin() -> None:
-    assert validate_loopback_candidate_url("http://127.0.0.1:18082/") == (
-        "http://127.0.0.1:18082"
-    )
+    assert validate_loopback_candidate_url("http://127.0.0.1:18082/") == ("http://127.0.0.1:18082")
 
     for value in (
         "https://127.0.0.1:18082",
@@ -128,5 +126,39 @@ def test_pre_dns_bridge_preserves_method_query_body_and_approved_host() -> None:
         "method": "POST",
         "url": "http://34.102.211.182/api/listApps?page=1",
         "host": "next.retrostore.org",
+        "body": b"request",
+    }
+
+
+def test_public_worker_bridge_preserves_method_query_and_body() -> None:
+    observed: dict[str, object] = {}
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        observed.update(
+            {
+                "method": request.method,
+                "url": str(request.url),
+                "host": request.headers["host"],
+                "body": request.content,
+            }
+        )
+        return httpx.Response(200, content=b"response")
+
+    worker = "https://retrostore-front-door-preview.retrostore-cloudflare-worker.workers.dev"
+    app, upstream = create_front_door_proxy_app(
+        worker,
+        None,
+        transport=httpx.MockTransport(handle),
+    )
+    try:
+        response = app.test_client().post("/api/listApps?page=1", data=b"request")
+    finally:
+        upstream.close()
+
+    assert response.status_code == 200
+    assert observed == {
+        "method": "POST",
+        "url": worker + "/api/listApps?page=1",
+        "host": "retrostore-front-door-preview.retrostore-cloudflare-worker.workers.dev",
         "body": b"request",
     }
