@@ -8,6 +8,7 @@ from retrostore.mirror.catalog import (
     NormalizedMedia,
     NormalizedScreenshot,
     load_catalog_mirror_archive,
+    write_catalog_mirror_archive,
 )
 from retrostore.mirror.persistence import (
     CatalogImportReport,
@@ -40,4 +41,5 @@ __all__ = [
     "stage_catalog_mirror",
     "load_active_catalog_mirror",
     "load_catalog_mirror_archive",
+    "write_catalog_mirror_archive",
 ]

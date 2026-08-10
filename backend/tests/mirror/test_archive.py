@@ -5,7 +5,10 @@ from pathlib import Path
 
 import pytest
 
-from retrostore.mirror import load_catalog_mirror_archive
+from retrostore.mirror import (
+    load_catalog_mirror_archive,
+    write_catalog_mirror_archive,
+)
 from tests.mirror.test_catalog import _manifest, _reader, _reconciliation
 
 
@@ -74,3 +77,21 @@ def test_rejects_unknown_top_level_archive_entry(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="Unsupported catalog mirror archive entry"):
         load_catalog_mirror_archive(path)
+
+
+def test_writer_is_deterministic_round_trippable_and_create_only(tmp_path: Path) -> None:
+    source = tmp_path / "source.zip"
+    first = tmp_path / "first.zip"
+    second = tmp_path / "second.zip"
+    _write_archive(source)
+    mirror = load_catalog_mirror_archive(source)
+
+    write_catalog_mirror_archive(mirror, first)
+    write_catalog_mirror_archive(mirror, second)
+
+    assert first.read_bytes() == second.read_bytes()
+    assert load_catalog_mirror_archive(first).to_dict() == mirror.to_dict()
+    with zipfile.ZipFile(first) as archive:
+        assert all(entry.date_time == (1980, 1, 1, 0, 0, 0) for entry in archive.infolist())
+    with pytest.raises(FileExistsError):
+        write_catalog_mirror_archive(mirror, first)

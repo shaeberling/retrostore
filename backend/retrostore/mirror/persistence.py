@@ -71,6 +71,10 @@ class CatalogSnapshotStore(Protocol):
 
     def load_active_manifest(self) -> Mapping[str, Any]: ...
 
+    def load_snapshot_manifest(
+        self, snapshot_id: str, manifest_sha256: str
+    ) -> Mapping[str, Any]: ...
+
 
 def build_catalog_snapshot(mirror: CatalogMirror) -> CatalogSnapshot:
     """Build deterministic Firestore documents and object writes from a verified mirror."""

@@ -418,6 +418,48 @@ but it has no activation option. It reloads the active mirror after staging and
 fails unless the complete active snapshot is unchanged. Activation remains a
 separate guarded, audited compare-and-swap operation.
 
+## Exact snapshot export and legacy reverse planning
+
+One exact staged or ready cloud snapshot can be read back through the migrator
+identity and written as a create-only normalized archive. The command requires
+both the content-derived snapshot ID and manifest digest, reloads every object
+with checksum verification, and round-trips the completed archive before
+reporting success:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.mirror.export_catalog_snapshot \
+  --project trs-80 \
+  --database retrostore \
+  --bucket trs-80-retrostore-assets \
+  --snapshot-id catalog-CANDIDATE_SHA256 \
+  --manifest-sha256 CANDIDATE_SHA256 \
+  --output-archive /secure/path/candidate.zip \
+  --output-report /tmp/retrostore-candidate-export.json \
+  --impersonate-service-account \
+    retrostore-migrator@trs-80.iam.gserviceaccount.com
+```
+
+Compare that immutable candidate with the last exact legacy export to produce a
+deterministic reverse-sync plan:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.mirror.plan_legacy_reverse_sync \
+  --baseline-archive /secure/path/legacy-baseline.zip \
+  --candidate-archive /secure/path/candidate.zip \
+  --output /tmp/retrostore-legacy-reverse-plan.json
+```
+
+The plan includes archive/snapshot digests, ID-only app/media/screenshot/Search
+operations, numeric legacy ID allocations and absence checks, Blobstore work,
+ordered writer-freeze/reconciliation phases, and a digest of the plan itself.
+It contains no catalog field values, publisher identities, or binary objects.
+This boundary is deliberately read-only and reports `apply_available=false`;
+the App Engine importer must not be enabled until its ID allocation, screenshot
+Blobstore creation, Search updates, exact baseline precondition, and complete
+post-import export/API reconciliation are implemented and tested together.
+
 ## Controlled working-catalog materialization
 
 The initial admin working set is derived deterministically from the same

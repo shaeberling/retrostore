@@ -391,6 +391,29 @@ def load_catalog_mirror_archive(path: Path) -> CatalogMirror:
     return mirror
 
 
+def write_catalog_mirror_archive(mirror: CatalogMirror, path: Path) -> None:
+    """Create a deterministic normalized archive without replacing an existing file."""
+
+    manifest = json.dumps(
+        mirror.to_dict(),
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("xb") as output, zipfile.ZipFile(output, "w") as archive:
+        _write_archive_entry(archive, "manifest.json", manifest)
+        for object_path, body in sorted(mirror.object_bytes.items()):
+            _write_archive_entry(archive, f"objects/{object_path}", body)
+
+
+def _write_archive_entry(archive: zipfile.ZipFile, name: str, body: bytes) -> None:
+    entry = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
+    entry.compress_type = zipfile.ZIP_DEFLATED
+    entry.create_system = 0
+    archive.writestr(entry, body)
+
+
 ScreenshotUrlResolver = Callable[[NormalizedScreenshot], str]
 
 

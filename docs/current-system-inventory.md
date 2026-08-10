@@ -370,3 +370,13 @@ unchanged afterward; the command has no activation path. The first real-cloud
 rehearsal reused all 150 objects from the 32-app baseline, reported zero changes,
 and left `catalog-ec07d9d7c8d47c8a46b745fc82b8d7f231e905dc6b6f7e00f4375547cf303de8`
 active.
+
+The inverse read boundary can export one exact staged/ready cloud snapshot as a
+create-only normalized archive and independently round-trip it. The real staged
+33-app candidate exported with the expected `5b0bbf8b...` identity while
+retaining the same 150 checksum-verified objects and 12,738,856 bytes. A
+read-only legacy reverse planner compared it with the 32-app baseline and found
+exactly one app/Search upsert, no media or screenshot operations, no removals,
+and one required legacy numeric author-ID allocation. The deterministic plan
+has no apply path; no legacy entity, Blobstore object, Search document, route,
+or active cloud pointer changed.

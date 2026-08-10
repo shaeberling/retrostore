@@ -370,6 +370,12 @@ Completed foundation work:
   active pointer did not move, and exposes no activation option. Its first
   real-cloud rehearsal reused all 150 baseline objects with zero differences
   and left the 32-app active snapshot unchanged.
+- An exact read-only cloud-snapshot exporter and deterministic legacy reverse
+  planner are implemented. The 33-app staged candidate round-tripped with all
+  150 objects. Its plan against the 32-app legacy baseline contains one
+  app/Search upsert, one numeric author-ID allocation, no media/screenshots or
+  removals, and no catalog values or identities. Applying that plan remains
+  unavailable until the guarded App Engine writer is implemented and rehearsed.
 
 Open foundation work:
 
@@ -1491,10 +1497,11 @@ also deployed and have passed complete authenticated lifecycle proofs. The
 working-set-to-immutable-snapshot publication boundary, separate pinned preview,
 guarded activation/rollback command, and copy-on-write draft UI are now deployed
 privately without activation. Front-door preparation, request observability, the
-private comparator, its dashboard, and the stage-only half of repeatable mirror
-synchronization are complete. While hostname and owner confirmation remain
-pending, the next safe executable work is the read-only reverse-sync planning
-and rehearsal boundary. Load-balancer provisioning still requires explicit
+private comparator, its dashboard, the stage-only half of repeatable mirror
+synchronization, and the read-only reverse-sync planner are complete. While
+hostname and owner confirmation remain pending, the next safe executable work
+is the disabled App Engine reverse-import validation boundary and state
+reverse-sync planning. Load-balancer provisioning still requires explicit
 approval.
 Synchronized-catalog activation remains disabled.
 The RetroStore Card and TRS-IO hardware update subsystem stays unchanged on App
