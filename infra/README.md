@@ -43,17 +43,27 @@ The additive, database- and bucket-scoped workload IAM configuration is in
 without service-account keys or access to the legacy default database.
 
 The Cloud Run build and deployment convention is in `cloud-run/`. Private
-comparison services and separate load-balancer-only final candidate services
-use dedicated runtime identities and explicit replacement-resource environment
-variables.
+comparison services and the separate final candidate services use dedicated
+runtime identities and explicit replacement-resource environment variables.
+The final candidates remain load-balancer-only until their direct Worker-origin
+exposure is explicitly approved.
 
 The route group, deployed candidate baseline, monitoring threshold, and rollback
 records are in `front-door/`. Its validator is run in CI and deliberately has
 no cloud apply path.
 
+The generated Cloudflare compatibility front door is in `cloudflare-worker/`.
+It routes the exact public website set to Firebase Hosting, the replacement
+surface to Cloud Run, the admin hostname to the admin service, and every
+unclassified public path to App Engine. It accepts both HTTP and HTTPS while
+all origin requests use HTTPS. Candidate and production custom-domain bindings
+remain separately gated.
+
 The create-only local public website bundle and asset-closure check are in
-`public-site/`. The verified bundle is deployed to its own public bucket and
-does not overwrite the existing TRS-80 Firebase Hosting site.
+`public-site/`. The verified bundle is released to the separate
+`retrostore-public` Firebase Hosting site and does not overwrite the existing
+TRS-80 KMP Hosting site. The previously deployed public bucket belongs only to
+the temporary Google load-balancer candidate.
 
 The privacy-safe request telemetry design is in `monitoring/`, and the
 read-only scheduled full-corpus runner is in `comparator/`. Comparator reports

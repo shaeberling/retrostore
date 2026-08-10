@@ -40,10 +40,7 @@ def load_static_expectations(
         raise ValueError("Static website bundle has no index.html object")
     expectations = [
         _expectation("/", by_object["index.html"]),
-        *(
-            _expectation(f"/{name}", item)
-            for name, item in sorted(by_object.items())
-        ),
+        *(_expectation(f"/{name}", item) for name, item in sorted(by_object.items())),
     ]
     if len(expectations) != 79:
         raise ValueError("Static front-door route count changed")
@@ -102,7 +99,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--bundle", type=Path, required=True)
     parser.add_argument("--build-report", type=Path, required=True)
     parser.add_argument("--candidate-url", required=True)
-    parser.add_argument("--candidate-host-header", required=True)
+    parser.add_argument("--candidate-host-header")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--timeout-seconds", type=float, default=30.0)
     args = parser.parse_args(argv)
@@ -111,9 +108,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not isinstance(build_report, dict):
         raise ValueError("Build report must be a JSON object")
     candidate = args.candidate_url.rstrip("/")
-    headers = _with_candidate_host_header(
-        candidate,
-        args.candidate_host_header,
+    headers = (
+        _with_candidate_host_header(candidate, args.candidate_host_header)
+        if args.candidate_host_header
+        else {}
     )
     expectations = load_static_expectations(args.bundle, build_report)
     with httpx.Client(
@@ -127,7 +125,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             expectations,
             candidate_label=candidate,
         )
-        report["candidate_host_header"] = args.candidate_host_header
+        if args.candidate_host_header:
+            report["candidate_host_header"] = args.candidate_host_header
     if args.output.exists():
         raise FileExistsError(f"Static comparison output already exists: {args.output}")
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -153,13 +152,9 @@ def _difference_fields(
         "status": response.status_code,
         "body_bytes": len(response.content),
         "body_sha256": hashlib.sha256(response.content).hexdigest(),
-        "content_type": response.headers.get("content-type", "")
-        .partition(";")[0]
-        .casefold(),
+        "content_type": response.headers.get("content-type", "").partition(";")[0].casefold(),
         "cache_control": response.headers.get("cache-control"),
-        "access_control_allow_origin": response.headers.get(
-            "access-control-allow-origin"
-        ),
+        "access_control_allow_origin": response.headers.get("access-control-allow-origin"),
     }
     wanted = {
         "status": 200,

@@ -13,5 +13,30 @@
         ]
       }
     }
-  }
+  },
+  "hosting": [
+    {
+      "target": "retrostore-public",
+      "public": "infra/public-site/dist",
+      "ignore": [
+        "firebase.json",
+        "**/.*"
+      ],
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-store"
+            },
+            {
+              "key": "Access-Control-Allow-Origin",
+              "value": "*"
+            }
+          ]
+        }
+      ]
+    }
+  ]
 }

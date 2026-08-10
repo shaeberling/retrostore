@@ -10,6 +10,34 @@ permissions:
   contents: read
 
 jobs:
+  cloudflare-worker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: infra/cloudflare-worker/package-lock.json
+
+      - name: Install locked Worker dependencies
+        run: npm ci
+        working-directory: infra/cloudflare-worker
+
+      - name: Test Worker routing and proxy behavior
+        run: npm test
+        working-directory: infra/cloudflare-worker
+
+      - name: Bundle Worker without deploying
+        run: npx wrangler deploy --env="" --dry-run --outdir /tmp/retrostore-worker-dist
+        working-directory: infra/cloudflare-worker
+        env:
+          WRANGLER_LOG_PATH: /tmp/retrostore-worker-wrangler.log
+
   test:
     runs-on: ubuntu-latest
 

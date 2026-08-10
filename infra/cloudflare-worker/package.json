@@ -1,0 +1,18 @@
+{
+  "name": "retrostore-cloudflare-worker",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "generate:routes": "node scripts/generate-routes.mjs",
+    "check:routes": "node scripts/generate-routes.mjs --check",
+    "test": "npm run check:routes && node --test",
+    "deploy:preview": "wrangler deploy --env=\"\"",
+    "deploy:candidate": "wrangler deploy --env candidate"
+  },
+  "devDependencies": {
+    "wrangler": "4.120.0"
+  }
+}

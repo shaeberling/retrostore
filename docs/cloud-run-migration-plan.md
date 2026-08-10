@@ -609,14 +609,15 @@ authorization and business rules server-side.
 - Keep the RetroStore Card and TRS-IO hardware update subsystem unchanged on
   App Engine. `/card`, `/card/*`, `/trs-io`, and `/trs-io/*`, their legacy
   administration, and their Datastore entities are outside this migration.
-  Any load-balancer URL map must keep these paths pinned to App Engine. Moving
-  them requires a new, explicitly approved project; it is not a later phase of
-  this plan.
+  The compatibility front door must keep these paths pinned to App Engine.
+  Reimplementing them requires a new, explicitly approved project; it is not a
+  later phase of this plan.
 - Expose the candidate services on separate hostnames and do not allow both
   admin applications to write production catalog data concurrently.
-- Put a global external Application Load Balancer in front of App Engine and
-  Cloud Run. Validate the complete replacement map on a separate hostname while
-  production remains untouched, then switch production once to that tested map.
+- Put a small Cloudflare Worker in front of Firebase Hosting, Cloud Run, and the
+  retained App Engine route island. Validate the complete replacement map on a
+  separate hostname while production remains untouched, then switch production
+  once to that tested Worker.
 - Require three consecutive fresh reports with zero unexplained contract
   differences over the complete comparison corpus before a public API route can move.
 
@@ -755,7 +756,7 @@ native C client uses plain HTTP on port 80 and labels its JSON as form data.
 Those behaviors are contract inputs, not implementation details to clean up
 during the server migration. The exact client sources and platform transports
 are checksum-gated, and cutover requires end-to-end Android, iOS, and web runs
-against both the candidate route and the production load balancer.
+against both the candidate Worker and the unchanged production App Engine host.
 
 Other SDKs and deployed clients may use all nine methods. Unused methods must not
 be removed without a separately versioned API and an explicit deprecation plan.
@@ -821,34 +822,40 @@ authentication, imports, and other in-scope admin concerns.
 
 | Path or surface | Target |
 | --- | --- |
-| Public static website | Dedicated public Cloud Storage backend bucket, CDN disabled initially |
-| `/api/*` | `retrostore-api-compat` Flask service on Cloud Run |
-| `/admin/*` | `retrostore-admin` Flask service on Cloud Run |
+| Public static website | Independent `retrostore-public` Firebase Hosting site |
+| The nine exact `/api/...` methods | Cloudflare Worker routes to the `retrostore-api-next` Flask service on Cloud Run |
+| `admin.retrostore.org` | Cloudflare Worker routes to `retrostore-admin-next` on Cloud Run |
 | `/assets/screenshots/*` | Stable RetroStore Cloud Run asset handler |
 | `/card`, `/card/*`, `/trs-io`, `/trs-io/*` | Existing App Engine service; permanently excluded from this plan |
 | Legacy public dynamic routes | Compatibility service until migrated |
 
-Use a global external Application Load Balancer as the production front door.
-Serverless network endpoint groups can target both App Engine and Cloud Run, and
-the same tested URL map can preserve explicit App Engine fallback routes without
-another DNS change. Configure both HTTP and HTTPS frontends while legacy clients require
-plain HTTP. Do not introduce an HTTP redirect until the C client behavior has
-been tested.
+The approved front door is a deliberately small Cloudflare Worker. Firebase
+Hosting is the static origin, not the router. The Worker uses an exact generated
+route table: known static files go to Firebase, replacement API and asset routes
+go to Cloud Run, the admin hostname goes to the admin Cloud Run service, and
+every unclassified public path fails closed to App Engine. It follows no origin
+redirects and returns fixed-length byte responses.
+
+Cloudflare accepts both port 80 and 443 while all origin calls use HTTPS. This
+preserves the reviewed native C and ESP32 clients that use raw HTTP on port 80
+and do not follow redirects before decoding protobuf. `Always Use HTTPS` must
+remain disabled for the RetroStore zone. The Worker replaces the Google load
+balancer after the candidate passes; it does not by itself retire App Engine,
+because the explicitly retained route island still uses that origin.
 
 ### Parallel-run topology
 
 The replacement stack is built beside the live stack, not in place of it:
 
 ```text
-retrostore.org
-      │
-      ▼
-External Application Load Balancer
-      ├── after cutover ──► tested replacement route map
-      └── rollback ──────► App Engine route map
+retrostore.org ─────────────► App Engine production (unchanged)
 
-next.retrostore.org ───────► Complete replacement route map
-admin-next.retrostore.org ─► Flask admin candidate
+next.retrostore.org ────────► Cloudflare Worker candidate
+                              ├── exact static routes ──► Firebase Hosting
+                              ├── replacement routes ───► Cloud Run API
+                              └── everything else ──────► App Engine
+
+admin-next.retrostore.org ─► Cloudflare Worker ─────────► Cloud Run admin
 
 App Engine/Objectify ── idempotent sync ──► Firestore/Cloud Storage mirror
          │                                      │
@@ -1330,32 +1337,37 @@ Exit criteria:
 
 ### Phase 4: Complete the parallel system and rehearse rollback
 
-1. Create a global external Application Load Balancer with serverless network
-   endpoint groups for App Engine and the Cloud Run services.
-2. Configure HTTP and HTTPS frontends, certificates, host rules, and the
-   complete replacement URL map on `next.retrostore.org`. Explicit hardware,
-   report, and unclassified routes continue to fall back to App Engine.
-3. Validate the full candidate hostname, including the static site, public API,
+1. Keep the already deployed global external Application Load Balancer only as
+   temporary comparison evidence while the Cloudflare candidate is completed;
+   do not add the production hostname to it.
+2. Serve the released `retrostore-public` Firebase site as a static-only origin.
+   Deploy the generated Worker first to its isolated preview, then create its
+   `next.retrostore.org` and `admin-next.retrostore.org` Custom Domains after
+   the origins are verified. Cloudflare creates their DNS and certificates.
+3. Validate the Worker candidate hostname, including the static site, public API,
    plain HTTP behavior, CORS, large bodies, raw range responses, and client
    libraries. `retrostore.org` remains unchanged on App Engine.
 4. Send the same complete compatibility corpus to `retrostore.org` and
    `next.retrostore.org`, and resolve every unexplained difference.
 5. Run the JVM, KMP Android/iOS/web, native C, and ESP32 consumer smokes against
    the candidate endpoint.
-6. Rehearse returning the candidate map to the App Engine map, and retain both
-   maps as explicit rollback artifacts.
+6. Rehearse disabling the candidate Worker route so its Cloudflare DNS origin
+   returns directly to App Engine, and retain both configurations as explicit
+   rollback artifacts.
 7. Build and test reverse export/import for catalog changes and states created
    on the new stack. The procedure must freeze the new writer, preserve IDs and
    objects, reconcile the legacy store, and restore exactly one legacy writer.
 
 Exit criteria:
 
-- The complete replacement is reachable on its separate hostname over HTTP and
-  HTTPS while production remains on App Engine.
+- The Worker replacement is reachable on its separate hostname over both HTTP
+  and HTTPS while production remains on App Engine.
 - All current clients behave identically against App Engine and the candidate.
 - The complete route map has a tested, timed, and documented App Engine rollback.
 - State rollback preserves states created after a future cutover.
 - App Engine is still the sole production backend and data authority.
+- The Cloudflare zone keeps `Always Use HTTPS` disabled and retains App Engine
+  as the rollback origin until production cutover is approved.
 
 ### Phase 5: Verified production cutover
 
@@ -1366,8 +1378,11 @@ Exit criteria:
    administration unchanged.
 3. Migrate and verify every active state, briefly quiesce state writes if needed,
    and complete the catalog/state single-writer handoff.
-4. Switch `retrostore.org` once to the exact route map already tested at
-   `next.retrostore.org`. Do not split production traffic by percentage.
+4. Switch `retrostore.org` once to the exact front door already tested at
+   `next.retrostore.org`. Do not split production traffic by percentage. Add
+   the production Worker route only after the final approval; keep the
+   Cloudflare DNS origin on App Engine so disabling the route is an immediate
+   routing rollback.
 5. Enable the new admin as the sole catalog writer and keep legacy catalog
    mutations disabled while the replacement is authoritative.
 6. Continue the comparator and real-client smoke tests after cutover; any gate
@@ -1377,11 +1392,12 @@ Exit criteria:
 8. Preserve HTTP, HTTPS, CORS-simple POST, custom-domain behavior, legacy data,
    and reverse-sync capability while rollback remains useful.
 
-Routing rollback consists of returning the affected route group to App Engine in
-the URL map. Data rollback must also restore a single writer: freeze the new
-admin before re-enabling the legacy admin, reverse-sync any post-cutover catalog
-changes, and reverse-sync new active states before returning the atomic state
-group. No rollback relies on a destructive reverse migration.
+Routing rollback consists of returning production DNS/front-door ownership to
+App Engine or the last verified route map. Data rollback must also restore a
+single writer: freeze the new admin before re-enabling the legacy admin,
+reverse-sync any post-cutover catalog changes, and reverse-sync new active
+states before returning the atomic state group. No rollback relies on a
+destructive reverse migration.
 
 Exit criteria:
 
@@ -1465,7 +1481,7 @@ the production hostname switches from App Engine to the replacement map, require
 - At least three consecutive fresh scheduled comparison reports have zero
   unexplained differences. Any material fix restarts this short evidence streak.
 - JVM, KMP Android/iOS/web, C, and embedded legacy JSON consumers pass against
-  the candidate host and through the production load balancer.
+  the candidate host and the unchanged production App Engine host.
 - Browser-origin CORS, headerless POST, optional preflight, and plain port-80
   behavior pass from representative production environments.
 - Synthetic upload/download/region state lifecycles, expiry, overlap, boundary,
@@ -1476,7 +1492,7 @@ the production hostname switches from App Engine to the replacement map, require
   are within agreed thresholds.
 - Dashboards and alerts cover sync lag, comparison failures, errors, latency,
   state allocation, and storage/data-integrity failures.
-- URL-map rollback has been rehearsed for every route group, and both catalog
+- Worker-route rollback has been rehearsed for every route group, and both catalog
   writer rollback and state reverse synchronization have been rehearsed before
   their corresponding authority changes.
 - There are no unresolved severity-one or severity-two defects, security
@@ -1538,11 +1554,13 @@ stays on or returns to App Engine.
 
 The comparison and static-site policies are now settled: three consecutive
 fresh zero-difference reports are sufficient, and the small public site uses
-one dedicated public `us-central1` bucket with CDN disabled initially and
-`Cache-Control: no-store`. CDN remains an optional future optimization if
-measurements justify it. The private application-assets and state buckets
-remain separate. Bucket creation and IAM still wait for the public-resource
-ownership gate; the architecture itself no longer needs a policy decision.
+the independent `retrostore-public` Firebase Hosting site with
+`Cache-Control: no-store`. Cloudflare caching and CDN behavior remain disabled
+initially and are optional future optimizations only if measurements justify
+them. The private application-assets and state buckets remain separate. The
+already-created public Cloud Storage bucket belongs only to the temporary
+Google load-balancer candidate and can be retired with that candidate after
+cutover.
 
 - The retention period for normalized migration exports and legacy backups. A
   validated no-delete proposal recommends 365 days after final App Engine
@@ -1561,8 +1579,6 @@ ownership gate; the architecture itself no longer needs a policy decision.
   non-authorizing historical profiles, retain the one matched administrator,
   and manually review rather than automatically invite the other two legacy
   administrators.
-- Who has go/no-go authority for each route group and who operates rollback.
-
 These decisions do not block contract capture, the Python project skeleton, or
 the read-only infrastructure inventory. They are consolidated in the
 [machine-validated decision register](../infra/readiness/README.md), which
@@ -1745,10 +1761,28 @@ Phase 1:
 - [x] Run the revision- and checksum-pinned JVM SDK, TRS-80 KMP client, and
   embedded C client unchanged through a guarded loopback bridge to the candidate
   load balancer; all covered methods and isolated synthetic state calls pass.
-- [ ] After the domain move, publish only the `next` and `admin-next` A/AAAA
-  records, wait for the certificate, then repeat direct public-hostname
-  HTTP/HTTPS client transport and authenticated admin gates before any
-  production change.
+- [x] Create the independent `retrostore-public` Firebase Hosting site without
+  altering the existing `trs-80` KMP site; check in a named deploy target,
+  static-only headers, and route-closure tests, then release all 78 files.
+- [x] Implement and locally test the generated Cloudflare compatibility Worker:
+  79 exact static paths, 17 exact and two prefix replacement paths, admin-host
+  routing, App Engine fail-closed fallback, fixed lengths, request-byte
+  preservation, redirect pass-through, and legacy static MIME normalization.
+- [x] Upload the Worker to the isolated `workers.dev` preview without attaching
+  a custom-domain route. Cloudflare activated the account subdomain, and the
+  deployed edge runtime passed 79/79 static plus 12/12 App Engine fallback
+  comparisons with zero differences.
+- [ ] Explicitly approve and apply the non-production Cloud Run origin boundary
+  required by Cloudflare: enable default `run.app` URLs and `ingress=all` for
+  `retrostore-api-next` and `retrostore-admin-next`. Both services already have
+  public invocation through the temporary load balancer; production DNS is
+  unchanged, and the admin retains Firebase session authorization.
+- [ ] Deploy only the `next` and `admin-next` Worker Custom Domains and repeat
+  the complete public HTTP/HTTPS and authenticated admin gates before any
+  production change. Cloudflare creates their DNS records and certificates.
+  Candidate fallback explicitly fetches `https://retrostore.org`; the
+  production binding later uses the existing App Engine DNS origin for
+  immediate route-disable rollback.
 
 The unfinished Arduino tree in this repository is not the reviewed native
 C/ESP32 consumer and remains outside the compatibility gate; leave it untouched

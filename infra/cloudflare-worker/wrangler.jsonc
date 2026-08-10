@@ -1,0 +1,41 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "retrostore-front-door-preview",
+  "main": "src/worker.mjs",
+  "compatibility_date": "2026-08-08",
+  "workers_dev": true,
+  "preview_urls": true,
+  "vars": {
+    "STATIC_ORIGIN": "https://retrostore-public.web.app",
+    "API_ORIGIN": "https://retrostore-api-next-760396810462.us-central1.run.app",
+    "APP_ENGINE_ORIGIN": "https://retrostore.org",
+    "APP_ENGINE_MODE": "origin-url",
+    "ADMIN_ORIGIN": "https://retrostore-admin-next-760396810462.us-central1.run.app",
+    "ADMIN_HOSTS": "admin-next.retrostore.org,admin.retrostore.org"
+  },
+  "env": {
+    "candidate": {
+      "name": "retrostore-front-door-candidate",
+      "workers_dev": true,
+      "preview_urls": true,
+      "routes": [
+        {
+          "pattern": "next.retrostore.org",
+          "custom_domain": true
+        },
+        {
+          "pattern": "admin-next.retrostore.org",
+          "custom_domain": true
+        }
+      ],
+      "vars": {
+        "STATIC_ORIGIN": "https://retrostore-public.web.app",
+        "API_ORIGIN": "https://retrostore-api-next-760396810462.us-central1.run.app",
+        "APP_ENGINE_ORIGIN": "https://retrostore.org",
+        "APP_ENGINE_MODE": "origin-url",
+        "ADMIN_ORIGIN": "https://retrostore-admin-next-760396810462.us-central1.run.app",
+        "ADMIN_HOSTS": "admin-next.retrostore.org,admin.retrostore.org"
+      }
+    }
+  }
+}

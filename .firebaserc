@@ -1,5 +1,14 @@
 {
   "projects": {
     "default": "trs-80"
+  },
+  "targets": {
+    "trs-80": {
+      "hosting": {
+        "retrostore-public": [
+          "retrostore-public"
+        ]
+      }
+    }
   }
 }

@@ -14,9 +14,14 @@ The compatibility API image is built from `backend/` with
 `services/api_compat/cloudbuild.yaml` and stored in the dedicated
 `us-central1-docker.pkg.dev/trs-80/retrostore` repository. The private comparison
 service remains as documented below. The separately deployed final service is
-`retrostore-api-next`; it has load-balancer-only ingress, a disabled default
-URL, and is reachable only through the `retrostore-next` load balancer. Both
-deployments set all replacement resource names explicitly:
+`retrostore-api-next`. It currently has load-balancer-only ingress and a
+disabled default URL. The approved Cloudflare front door needs this
+non-production origin, and `retrostore-admin-next`, to use `ingress=all` with
+their default `run.app` URLs enabled. That persistent public-boundary change is
+still explicitly gated. The public API is intentionally unauthenticated; the
+admin continues to require Firebase session authorization after Cloud Run
+invocation. Production DNS remains on App Engine while the candidate is tested.
+Both deployments set all replacement resource names explicitly:
 
 ```shell
 gcloud run deploy retrostore-api-compat-candidate \

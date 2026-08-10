@@ -16,6 +16,12 @@ python3 infra/front-door/validate.py
 The validators in this directory are offline and never provision, update, or
 delete a Google Cloud or DNS resource.
 
+The approved final front door is the generated Worker in
+`infra/cloudflare-worker/`. Its route arrays are derived from
+`route-groups.json`; the existing Google URL-map fields and backend-bucket entry
+remain an accurate record of the already-deployed temporary comparison stack.
+They are not the intended production topology.
+
 The current private evidence boundary is 2026-08-10 03:55 UTC, after revision
 `retrostore-api-compat-candidate-redirects1` became ready at 100% private traffic
 and comparator generation 4 was pinned to schema-3 four-surface evidence. Any
@@ -53,6 +59,11 @@ The candidate-only state was re-audited on 2026-08-10:
 - The domain now delegates to Cloudflare nameservers `curt` and `rita`. No
   candidate or production DNS record was changed by this work; record
   publication must be coordinated in that authoritative zone.
+- The static-only `retrostore-public` Firebase Hosting origin is released. The
+  generated Worker passed 11 local routing/proxy tests, bundled successfully,
+  and was uploaded as `retrostore-front-door-preview` without custom-domain
+  routes. Its active `workers.dev` preview passed all 79 static and 12 App
+  Engine fallback comparisons with zero differences.
 - No production DNS record, domain mapping, route, or invoker policy changed.
 
 Pre-DNS HTTP probes use the reserved IPv4 address plus an explicit approved
@@ -65,10 +76,11 @@ The revision- and checksum-pinned JVM SDK, TRS-80 KMP client, and embedded C
 client also pass through a guarded loopback bridge to the actual load balancer;
 only direct public DNS/TLS transport remains to repeat after activation.
 
-The production URL map remains untouched until the complete replacement has
-passed side-by-side testing. The candidate URL map is exercised on its own
-hostname first; the production change is then one reversible switch to that
-already-tested map.
+Production remains untouched until the complete replacement has passed
+side-by-side testing. The Worker is exercised on its own candidate hostname
+first; the production change is then one reversible route binding to that
+already-tested script. The Cloudflare DNS origin remains App Engine during the
+rollback window, so disabling the route restores the legacy front door.
 
 ## Approved candidate hostnames
 
@@ -116,9 +128,11 @@ unclassified and fail closed to App Engine.
 The static route group enumerates `/` plus every one of the 78 verified object
 paths, including the legacy `/public/` aliases. It intentionally uses no broad
 asset prefix: missing paths have inconsistent legacy fall-through behavior and
-must continue to reach App Engine. It targets the deployed backend bucket.
+must continue to reach App Engine. The Worker targets the static-only
+`retrostore-public.web.app` origin; the temporary Google URL map still targets
+the deployed backend bucket.
 It shares one `public_website` handoff group with `/public/apps.json` and the six
-redirects, so those three backends change or roll back in one URL-map update.
+redirects, so those three backends change or roll back in one Worker deployment.
 Because the dynamic `/public/apps.json` path is not a static object, there is no
 static/dynamic route overlap to resolve. Validation rejects every undeclared
 exact/prefix overlap, all duplicate exact routes, and all overlapping prefixes.
@@ -166,10 +180,9 @@ Primary reference: [Cloud Storage static website configuration](https://cloud.go
 
 ## Why active comparison is required
 
-Global external Application Load Balancers support host/path routing and
-weighted backend services, but request mirroring is not supported for serverless
-NEGs. Therefore the complete corpus remains an explicit scheduled comparator;
-the load balancer is not used to shadow state-changing traffic. No real state
+The Worker deliberately routes one request to one origin. It does not shadow or
+replay traffic, because state uploads and legacy handlers can have side effects.
+Therefore the complete corpus remains an explicit comparator and no real state
 upload is ever replayed.
 
 Serverless NEG backend services do not accept load-balancer health checks.
@@ -179,19 +192,24 @@ approved, and the scheduled comparator.
 
 ## Remaining activation sequence
 
-Candidate services, storage, URL map, IPv4/IPv6 addresses, certificate, and all
-four forwarding rules now exist. The remaining sequence is:
-
-1. After the domain move stabilizes, publish A and AAAA records for both
-   candidate hostnames at the new authoritative DNS provider.
-2. Wait for `retrostore-next-cert` to become `ACTIVE` for both names.
-3. Repeat all 350 comparisons over HTTPS and test plain HTTP explicitly.
-4. Repeat the pinned Android/iOS/web KMP, JVM, and ESP32/native clients directly
-   through `next.retrostore.org` over public DNS/HTTP/HTTPS, then exercise
-   authenticated administration through `admin-next.retrostore.org`.
+1. Explicitly approve and enable `ingress=all` plus the default `run.app` URL on
+   only `retrostore-api-next` and `retrostore-admin-next`. This makes the
+   non-production origins directly public; the API is intentionally public and
+   the admin still requires Firebase authorization after Cloud Run invocation.
+2. Run the replacement API, download, catalog, redirect, state, and pinned real
+   client gates against the isolated preview URL; the static and fallback
+   surfaces already pass 91/91.
+3. Keep `Always Use HTTPS` off and deploy the two checked-in Worker Custom
+   Domains. Cloudflare creates the candidate DNS records and certificates;
+   candidate fallback explicitly fetches `https://retrostore.org` because
+   `next.retrostore.org` is not an App Engine domain mapping.
+4. Repeat all 350 comparisons over HTTPS and plain HTTP, then repeat the pinned
+   Android/iOS/web KMP, JVM, and ESP32/native clients through
+   `next.retrostore.org`; exercise authenticated administration through
+   `admin-next.retrostore.org`.
 5. Confirm the alert recipient and review a fresh go/no-go packet.
-6. Switch `retrostore.org` once to the already-tested replacement map. Keep the
-   App Engine default backend ready for immediate rollback; there is no fixed
+6. Bind the already-tested Worker to `retrostore.org` once. Disabling that route
+   returns traffic to the App Engine DNS origin immediately; there is no fixed
    waiting period or percentage rollout.
 
 ## Monitoring and rollback defaults
@@ -223,8 +241,8 @@ go/no-go decision is still required before production traffic moves.
 Plain HTTP on port 80 is a migration requirement, not a cutover-time option.
 The pinned TRS-80 native client connects to `retrostore.org:80` with a raw
 socket, and this repository's ESP32 client also has `DEFAULT_PORT = 80` with an
-open HTTPS TODO. The replacement front door therefore routes HTTP through the
-same URL map and must not redirect it to HTTPS. A future HTTP deprecation may
+open HTTPS TODO. Cloudflare therefore runs the same Worker on HTTP and HTTPS;
+zone-level `Always Use HTTPS` and redirect rules must remain disabled. A future HTTP deprecation may
 only happen as a separate client migration after a complete deployed-consumer
 inventory proves no remaining dependency. A safe production probe on 2026-08-10
 also confirmed that `POST http://retrostore.org/api/listApps` returns HTTP 200,

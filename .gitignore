@@ -50,6 +50,8 @@ backend/.ruff_cache/
 backend/.coverage
 backend/htmlcov/
 backend/node_modules/
+infra/cloudflare-worker/node_modules/
+infra/cloudflare-worker/.wrangler/
 __pycache__/
 *.py[cod]
 

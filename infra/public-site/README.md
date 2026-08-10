@@ -1,4 +1,4 @@
-# Public static website candidate
+# Public Firebase Hosting candidate
 
 The current public pages are static, but `apps.html` has one dynamic dependency:
 the public legacy JSON call `/rpc?m=pubapplist`. The Flask compatibility service
@@ -43,10 +43,38 @@ are byte-identical to their deployed legacy source.
 
 The existing default Firebase Hosting site `trs-80` is the separately deployed
 TRS-80 KMP web application. It must not be reused or overwritten by this
-bundle. The checked-in front-door design instead uses a dedicated Cloud Storage
-backend bucket. No bucket, load balancer, Firebase site, DNS record, certificate,
-or public IAM binding is created here; those remain behind the explicit
-hostname/ownership and front-door approval gate.
+bundle. The independent `retrostore-public` Hosting site was created on
+2026-08-10 and has the default URL `https://retrostore-public.web.app`. The
+checked-in `retrostore-public` deploy target prevents a public-site deployment
+from selecting the KMP site accidentally.
+
+`firebase.json` serves these 78 files as a static-only origin. It contains no
+rewrites, redirects, or broad fallback route. The Cloudflare Worker owns path
+classification and sends only the 79 enumerated static requests here. In
+particular, the dynamic `/public/apps.json` request never reaches Firebase.
+The Python and Worker test suites enforce that boundary.
+
+Generate the ignored deployment directory, then deploy only this site:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run --directory backend python \
+  -m retrostore.public_site \
+  --output ../infra/public-site/dist \
+  --report /tmp/retrostore-public-site-build.json \
+  --apply \
+  --confirm-output ../infra/public-site/dist
+firebase deploy --project trs-80 --only hosting:retrostore-public
+```
+
+The static-only version was released successfully on 2026-08-10. A direct
+79-route comparison matched status, bytes, cache policy, and CORS. Firebase
+varies several legacy MIME types depending on content negotiation; the Worker
+therefore requests the identity representation and normalizes each static
+`Content-Type` to the captured App Engine contract before responding.
+
+The already deployed `trs-80-retrostore-public` bucket remains part of the
+temporary load-balancer candidate until that candidate is retired. It is not
+the intended final website host.
 
 The legacy `/community[/]`, `/rsc[/]`, and `/app[/]` redirects cannot be served
 by the static bundle itself. Their six exact paths have an empty-body 302
@@ -58,3 +86,10 @@ Static objects, the exact dynamic `/public/apps.json` route, and the six
 redirects share the `public_website` atomic handoff group. The exact JSON route
 is deliberately absent from the exact static-object set. A partial move would
 strand either the catalog page or one of its legacy entry points.
+
+Firebase Hosting always redirects plain HTTP to HTTPS, so it is intentionally
+an origin rather than the public front door. Cloudflare accepts both HTTP and
+HTTPS at `retrostore.org`, proxies origin requests over HTTPS, and preserves the
+raw port-80 contract for the native clients. Production remains on App Engine
+until the Worker candidate passes the complete comparison and real-client
+gates.
