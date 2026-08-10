@@ -51,6 +51,8 @@ class StateTokenStore(Protocol):
 
     def get(self, token: int, *, now: datetime) -> StateTokenRecord | None: ...
 
+    def list_live(self, *, now: datetime) -> tuple[StateTokenRecord, ...]: ...
+
 
 class PersistentStateStorage:
     """Store immutable protobuf payloads separately from expiring token metadata."""

@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import os
 import re
 import struct
 import zipfile
@@ -401,7 +402,8 @@ def write_catalog_mirror_archive(mirror: CatalogMirror, path: Path) -> None:
         sort_keys=True,
     ).encode()
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("xb") as output, zipfile.ZipFile(output, "w") as archive:
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(descriptor, "wb") as output, zipfile.ZipFile(output, "w") as archive:
         _write_archive_entry(archive, "manifest.json", manifest)
         for object_path, body in sorted(mirror.object_bytes.items()):
             _write_archive_entry(archive, f"objects/{object_path}", body)

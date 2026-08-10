@@ -85,6 +85,12 @@ class FakeCollection:
     def document(self, document_id: str) -> FakeDocument:
         return FakeDocument(self._client, document_id)
 
+    def stream(self) -> list[FakeSnapshot]:
+        return [
+            FakeSnapshot(document_id, value)
+            for document_id, value in self._client.documents.items()
+        ]
+
 
 class FakeTransaction:
     def __init__(self, client: FakeClient) -> None:
@@ -231,6 +237,28 @@ def test_state_tokens_enforce_logical_expiry_and_candidate_range(
             created_at=now,
             expires_at=now + timedelta(days=7),
         )
+
+
+def test_state_token_inventory_is_sorted_live_and_validated() -> None:
+    now = datetime(2026, 8, 7, 13, tzinfo=UTC)
+    client = FakeClient()
+    client.documents["201"] = _document(
+        _payload("second", 2),
+        created_at=now - timedelta(days=1),
+        expires_at=now + timedelta(days=1),
+    )
+    client.documents["123"] = _document(
+        _payload("first", 1),
+        created_at=now - timedelta(days=8),
+        expires_at=now,
+    )
+    store = FirestoreStateTokenStore(client)  # type: ignore[arg-type]
+
+    assert [record.token for record in store.list_live(now=now)] == [201]
+
+    client.documents["0201"] = client.documents.pop("201")
+    with pytest.raises(ValueError, match="document ID"):
+        store.list_live(now=now)
 
 
 def test_state_targets_are_exact_and_cannot_fall_back_to_legacy_resources() -> None:

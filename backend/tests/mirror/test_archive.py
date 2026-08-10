@@ -1,4 +1,5 @@
 import json
+import stat
 import warnings
 import zipfile
 from pathlib import Path
@@ -90,6 +91,7 @@ def test_writer_is_deterministic_round_trippable_and_create_only(tmp_path: Path)
     write_catalog_mirror_archive(mirror, second)
 
     assert first.read_bytes() == second.read_bytes()
+    assert stat.S_IMODE(first.stat().st_mode) == 0o600
     assert load_catalog_mirror_archive(first).to_dict() == mirror.to_dict()
     with zipfile.ZipFile(first) as archive:
         assert all(entry.date_time == (1980, 1, 1, 0, 0, 0) for entry in archive.infolist())

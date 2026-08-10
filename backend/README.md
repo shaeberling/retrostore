@@ -614,6 +614,46 @@ object write, transactional legacy-range token claim, checksum-verified
 read-back, and exact protobuf round trip. The test record expires after seven
 days and the bucket lifecycle deletes its object after eight days.
 
+## Live state export and rollback planning
+
+The state route group cannot be rolled back safely unless every still-live state
+created after a future writer handoff can be restored under its exact 100-999
+token. Export all logically live records through the private API runtime
+identity into a create-only mode-`0600` archive:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.api_compat.export_state_snapshot \
+  --project trs-80 \
+  --database retrostore-state \
+  --bucket trs-80-retrostore-state \
+  --output-archive /secure/path/live-states.zip \
+  --output-report /tmp/retrostore-live-states.json \
+  --impersonate-service-account \
+    retrostore-api@trs-80.iam.gserviceaccount.com
+```
+
+The exporter validates every Firestore token document, Cloud Storage generation,
+size, SHA-256, timestamp window, and `SystemState` protobuf. The archive contains
+the exact tokens and memory data and must remain private; the console/report
+contains only counts, byte totals, expiry bounds, and aggregate digests.
+
+Build a token-free rollback plan with:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.api_compat.plan_legacy_state_reverse_sync \
+  --state-archive /secure/path/live-states.zip \
+  --output /tmp/retrostore-state-reverse-plan.json
+```
+
+The plan requires freezing replacement writes, rejecting every legacy token
+collision unless its full state is identical, preserving the original token and
+creation timestamp, verifying full/metadata-only/region downloads, switching
+all three state RPC routes atomically, and restoring exactly one writer. It has
+no apply path. No Blobstore or Search operation is involved because legacy
+states are Objectify entities with embedded memory bytes.
+
 ## Read-only production inventory
 
 The inventory command reads the legacy Datastore-mode database and emits a

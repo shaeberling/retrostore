@@ -75,6 +75,13 @@ class MemoryTokenStore:
             return None
         return record
 
+    def list_live(self, *, now: datetime) -> tuple[StateTokenRecord, ...]:
+        return tuple(
+            record
+            for _, record in sorted(self.records.items())
+            if record.expires_at > now
+        )
+
 
 def _state() -> api_pb.SystemState:
     state = api_pb.SystemState(model=api_pb.MODEL_III)

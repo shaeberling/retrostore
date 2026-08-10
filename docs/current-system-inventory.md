@@ -380,3 +380,12 @@ exactly one app/Search upsert, no media or screenshot operations, no removals,
 and one required legacy numeric author-ID allocation. The deterministic plan
 has no apply path; no legacy entity, Blobstore object, Search document, route,
 or active cloud pointer changed.
+
+State continuity now has a separate private archive format and token-free
+rollback plan. A read-only real-cloud export found five logically live isolated
+states totaling 170 protobuf bytes, validated their Firestore records and exact
+Cloud Storage generations/checksums, and wrote the token-bearing payload archive
+with mode `0600`. The public report contains no tokens or payloads. The legacy
+plan maps those records directly to embedded Objectify `SystemState` entities,
+requires absent-or-identical token preflight and atomic routing of all three
+state RPCs, and has no apply path. No legacy state was written.

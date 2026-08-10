@@ -150,6 +150,21 @@ class FirestoreStateTokenStore:
         record = _token_record(snapshot, token)
         return record if record.expires_at > now else None
 
+    def list_live(self, *, now: datetime) -> tuple[StateTokenRecord, ...]:
+        """Return every logically live token after validating the complete collection."""
+
+        records: list[StateTokenRecord] = []
+        seen: set[int] = set()
+        for snapshot in self._client.collection("states").stream():
+            token = _token_document_id(snapshot.id)
+            if token in seen:
+                raise ValueError("State token collection contains a duplicate token")
+            seen.add(token)
+            record = _token_record(snapshot, token)
+            if record.expires_at > now:
+                records.append(record)
+        return tuple(sorted(records, key=lambda value: value.token))
+
 
 def google_state_storage(
     *,
@@ -159,6 +174,26 @@ def google_state_storage(
     impersonate_service_account: str | None = None,
     credentials: Credentials | None = None,
 ) -> PersistentStateStorage:
+    payloads, tokens = google_state_stores(
+        project=project,
+        database=database,
+        bucket=bucket,
+        impersonate_service_account=impersonate_service_account,
+        credentials=credentials,
+    )
+    return PersistentStateStorage(payloads, tokens)
+
+
+def google_state_stores(
+    *,
+    project: str,
+    database: str,
+    bucket: str,
+    impersonate_service_account: str | None = None,
+    credentials: Credentials | None = None,
+) -> tuple[CloudStatePayloadStore, FirestoreStateTokenStore]:
+    """Construct the independently usable state payload and token stores."""
+
     validate_state_target(project=project, database=database, bucket=bucket)
     if impersonate_service_account is not None:
         if credentials is not None:
@@ -174,7 +209,7 @@ def google_state_storage(
         credentials=credentials,
     )
     storage_bucket = storage.Client(project=project, credentials=credentials).bucket(bucket)
-    return PersistentStateStorage(
+    return (
         CloudStatePayloadStore(storage_bucket),
         FirestoreStateTokenStore(firestore_client),
     )
@@ -195,7 +230,7 @@ def state_service_account(project: str) -> str:
 
 def validate_state_identity(project: str, service_account: str) -> None:
     if service_account != state_service_account(project):
-        raise ValueError("State smoke apply must impersonate the project API runtime identity")
+        raise ValueError("State access must impersonate the project API runtime identity")
 
 
 def _random_token_order() -> tuple[int, ...]:
@@ -250,6 +285,15 @@ def _integer(value: object, name: str, *, minimum: int) -> int:
     if not isinstance(value, int) or isinstance(value, bool) or value < minimum:
         raise ValueError(f"State token {name} is malformed")
     return value
+
+
+def _token_document_id(value: object) -> int:
+    if not isinstance(value, str) or not value.isascii() or not value.isdecimal():
+        raise ValueError("State token document ID is malformed")
+    token = int(value)
+    if str(token) != value or not _MIN_TOKEN <= token <= _MAX_TOKEN:
+        raise ValueError("State token document ID is malformed")
+    return token
 
 
 def _validate_timestamps(created_at: datetime, expires_at: datetime) -> None:
