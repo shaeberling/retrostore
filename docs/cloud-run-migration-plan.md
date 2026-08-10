@@ -1540,7 +1540,10 @@ the rollback. If a gate fails, traffic stays on or returns to App Engine.
 - Who has go/no-go authority for each route group and who operates rollback.
 
 These decisions do not block contract capture, the Python project skeleton, or
-the read-only infrastructure inventory.
+the read-only infrastructure inventory. They are consolidated in the
+[machine-validated decision register](../infra/readiness/README.md), which
+cross-checks the route, threshold, and retention sources and cannot authorize a
+public resource, traffic change, retirement, or deletion.
 
 Plain HTTP is no longer a migration decision: the reviewed native clients use
 raw port 80, so the in-place replacement must preserve it without an HTTPS
@@ -1687,6 +1690,9 @@ Phase 1:
 - [x] Prove all 338 API/download/redirect/static/listing scenarios are identical
   over production HTTP and HTTPS, then require that complete transport gate and
   native port-80 smoke at every future front-door and read-canary step.
+- [x] Consolidate every remaining operator choice into a CI-validated decision
+  register that cross-checks hostnames, owners, soak/canary status, retention,
+  and the no-public-authority boundary.
 - [x] Run the revision- and checksum-pinned JVM, TRS-80 KMP, and embedded-C
   clients through an authenticated loopback proxy to the current private
   revision, including isolated synthetic state lifecycles and native pagination.

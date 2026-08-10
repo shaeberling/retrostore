@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "status": "operator_decisions_pending_no_public_authority",
+  "last_verified": "2026-08-10",
+  "resolved": [
+    {
+      "id": "backend_architecture",
+      "decision": "Python 3.14 Flask services on Cloud Run with Firestore and Cloud Storage"
+    },
+    {
+      "id": "parallel_migration",
+      "decision": "Run App Engine and private candidates in parallel until evidence gates pass"
+    },
+    {
+      "id": "public_api_contract",
+      "decision": "Preserve all nine protobuf RPCs and observed HTTP behavior in place"
+    },
+    {
+      "id": "hardware_update_island",
+      "decision": "Keep Card and TRS-IO routes permanently on App Engine"
+    },
+    {
+      "id": "plain_http",
+      "decision": "Preserve port 80 without redirect for reviewed native clients"
+    },
+    {
+      "id": "catalog_activation",
+      "decision": "Keep synchronized candidate snapshots inactive until a separate guarded handoff"
+    }
+  ],
+  "pending": [
+    {
+      "id": "candidate_hostnames",
+      "status": "confirmation_required",
+      "proposal": [
+        "lb-next.retrostore.org",
+        "next.retrostore.org",
+        "admin-next.retrostore.org"
+      ],
+      "required_before": ["load_balancer", "certificate", "dns"]
+    },
+    {
+      "id": "go_no_go_owner",
+      "status": "confirmation_required",
+      "proposal": "Sascha Ha",
+      "required_before": ["public_resource_creation", "traffic_change"]
+    },
+    {
+      "id": "rollback_operator",
+      "status": "confirmation_required",
+      "proposal": "Sascha Ha",
+      "required_before": ["public_resource_creation", "traffic_change"]
+    },
+    {
+      "id": "alert_destination",
+      "status": "confirmation_required",
+      "proposal": null,
+      "required_before": ["enable_alert_policies", "traffic_change"]
+    },
+    {
+      "id": "soak_policy",
+      "status": "confirmation_required",
+      "proposal": "14 continuous days of hourly zero-diff schema-3 evidence",
+      "required_before": ["read_canary"]
+    },
+    {
+      "id": "canary_policy",
+      "status": "confirmation_required",
+      "proposal": "1%, 5%, 25%, 50%, 100% with at least 24 hours per step",
+      "required_before": ["read_canary"]
+    },
+    {
+      "id": "static_site_policy",
+      "status": "confirmation_required",
+      "proposal": "Fresh bucket per release, atomic backend switch, CDN disabled, Cache-Control no-store initially",
+      "required_before": ["public_bucket", "public_bucket_iam", "static_route_handoff"]
+    },
+    {
+      "id": "migration_backup_retention",
+      "status": "confirmation_required",
+      "proposal": "365 days after final App Engine retirement with manual deletion review",
+      "required_before": ["private_backup_bucket", "legacy_data_retirement"]
+    },
+    {
+      "id": "public_report_workflow",
+      "status": "confirmation_required",
+      "proposal": "Isolated private admin queue; alternatives are confirmed email or explicit retirement",
+      "required_before": ["reportapp_migration", "app_engine_retirement"]
+    },
+    {
+      "id": "legacy_user_policy",
+      "status": "confirmation_required",
+      "proposal": "Keep ten historical non-authorizing profiles, retain the matched administrator, manually review two unmatched legacy administrators",
+      "required_before": ["identity_handoff", "legacy_admin_retirement"]
+    }
+  ],
+  "readiness": {
+    "private_engineering_may_continue": true,
+    "public_resource_creation_ready": false,
+    "production_traffic_change_ready": false,
+    "app_engine_retirement_ready": false
+  },
+  "safety": {
+    "creates_or_changes_resources": false,
+    "assigns_unconfirmed_owner": false,
+    "selects_alert_recipient": false,
+    "authorizes_public_iam_or_dns": false,
+    "authorizes_production_cutover": false,
+    "authorizes_legacy_data_deletion": false
+  }
+}

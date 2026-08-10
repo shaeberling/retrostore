@@ -45,6 +45,10 @@ jobs:
         run: python ../infra/data-retention/validate.py
         working-directory: backend
 
+      - name: Validate migration decision register
+        run: python ../infra/readiness/validate.py
+        working-directory: backend
+
       - name: Run tests
         run: uv run pytest
         working-directory: backend
