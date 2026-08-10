@@ -73,3 +73,15 @@ def test_named_database_is_passed_through(monkeypatch: Any) -> None:
     )
 
     assert captured["database"] == "retrostore"
+
+
+def test_gcloud_credentials_include_requested_quota_project(monkeypatch: Any) -> None:
+    class Completed:
+        stdout = "access-token\n"
+
+    monkeypatch.setattr(datastore_source.subprocess, "run", lambda *args, **kwargs: Completed())
+
+    credentials = datastore_source.gcloud_credentials(quota_project="test-project")
+
+    assert credentials.token == "access-token"
+    assert credentials.quota_project_id == "test-project"

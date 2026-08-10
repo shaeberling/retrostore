@@ -363,8 +363,9 @@ A separate read-only soak auditor now verifies the retained comparison object
 paths, generations, content digests, schemas, counts, URLs, and approval gates,
 then confirms the expected Cloud Run revision still serves 100% of private
 traffic. The checked-in boundary starts after `observability2` became ready.
-Its first run validated all three retained zero-diff reports and found one after
-the boundary, so the private 14-day clock is current but not yet eligible.
+The latest run validated four retained zero-diff reports and found two after the
+boundary, separated by 3,589.55 seconds. Both match 158/158 with no approvals,
+so the private 14-day clock is current but not yet eligible.
 
 The pre-existing App Engine, Compute, and Firebase Admin SDK identities remain.
 The migration adds separate keyless migrator, public API, and administration
@@ -395,6 +396,17 @@ and verified all eight byte sequences are present there. The archive remains
 No additional content copy is needed to preserve them, although the protected
 key-to-screenshot mapping is retained for audit. No legacy object was changed,
 fetched again, or deleted.
+
+The remaining user decision now has protected read-only evidence. The 10 legacy
+records are 3 `ADMIN` and 7 `NO_ACCOUNT`; all seven `NO_ACCOUNT` records provide
+attribution for current apps and grant no legacy access. One legacy administrator
+matches the only Firebase identity and its verified `administrator` role. The
+two other legacy administrators have no Firebase identity and publish no current
+app. The proposed policy preserves all 10 as non-authorizing historical profiles,
+keeps the existing administrator unchanged, never creates accounts for
+attribution-only records, and sends the other two administrators to manual
+review. The identity-free planner has no Firebase, Firestore, or role mutation
+path. See `docs/legacy-user-migration.md`; no policy has been applied.
 
 The approved target locations are `nam5` for both named Firestore databases,
 `US` for the two private buckets, and `us-central1` for Cloud Run. The immutable

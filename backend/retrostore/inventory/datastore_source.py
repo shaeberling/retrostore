@@ -26,7 +26,7 @@ def create_datastore_source(
 ) -> DatastoreSource:
     credentials = None
     if auth == "gcloud":
-        credentials = _gcloud_credentials()
+        credentials = gcloud_credentials(quota_project=project)
     elif auth != "adc":
         raise ValueError(f"Unsupported authentication mode: {auth}")
 
@@ -35,7 +35,9 @@ def create_datastore_source(
     return DatastoreSource(client)
 
 
-def _gcloud_credentials() -> Credentials:
+def gcloud_credentials(*, quota_project: str | None = None) -> Credentials:
+    """Return the current gcloud user's short-lived token without logging it."""
+
     completed = subprocess.run(
         ["gcloud", "auth", "print-access-token"],
         check=True,
@@ -45,4 +47,4 @@ def _gcloud_credentials() -> Credentials:
     token = completed.stdout.strip()
     if not token:
         raise RuntimeError("gcloud returned an empty access token")
-    return Credentials(token=token)
+    return Credentials(token=token, quota_project_id=quota_project)

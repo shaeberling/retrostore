@@ -828,3 +828,33 @@ mapping to normalized screenshot IDs, and must stay in the gitignored restricted
 artifact directory. The command has no mutation adapter. It fails on missing or
 duplicate metadata, unverified content evidence, or an archive that does not
 contain byte-identical preservation sources.
+
+Reconcile the sensitive legacy user records against app attribution, Firebase
+Auth, and the isolated admin role store without creating accounts or roles:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.inventory.classify_legacy_users \
+  --project trs-80 \
+  --confirm-project trs-80 \
+  --legacy-database '(default)' \
+  --admin-database retrostore \
+  --auth gcloud \
+  --output ../.migration-artifacts/legacy-user-reconciliation.json
+```
+
+The mode-`0600` output contains email addresses and Firebase UIDs. Reduce it to
+an identity-free, no-write policy plan with:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.inventory.plan_legacy_user_migration \
+  --source ../.migration-artifacts/legacy-user-reconciliation.json \
+  --project trs-80 \
+  --confirm-project trs-80 \
+  --output ../.migration-artifacts/legacy-user-migration-plan.json
+```
+
+Neither command has an identity-creation, role-mutation, or Firestore-write
+path. The proposed policy and approval boundary are documented in
+`docs/legacy-user-migration.md`.

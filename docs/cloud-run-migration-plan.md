@@ -43,6 +43,13 @@ Completed foundation work:
   archive check proves all eight corresponding byte sequences are already in
   the retained normalized catalog export. No additional object copy or legacy
   content fetch is required; no Blobstore object was changed or deleted.
+- A protected read-only user reconciliation now compares all 10 legacy user
+  records, all 32 publisher references, Firebase Auth, and the isolated admin
+  role profiles. One verified Firebase administrator already matches; seven
+  `NO_ACCOUNT` records are catalog attribution only; two unmatched historical
+  administrators require manual review. An identity-free planner proposes no
+  automatic account creation and has no write path. The proposed historical
+  profile policy is recorded in `docs/legacy-user-migration.md` for approval.
 - The legacy Java build is reproducible again: Java 21.0.12+8 builds Java 11
   bytecode for the supported App Engine Java 25 runtime in EE 8 compatibility
   mode, with checksum-pinned Gradle 8.14.5, the current App Engine plugin and
@@ -417,10 +424,11 @@ Completed foundation work:
 - A checksum-validating private soak auditor now binds evidence to the checked-in
   `observability2` readiness boundary, verifies the revision still serves 100%
   of private traffic, and independently validates every retained comparison
-  object and result count. Its first run accepted all three existing zero-diff
-  reports; the one after the boundary starts a current but not-yet-eligible
-  fourteen-day clock. The baseline explicitly denies cutover, load-balancer,
-  and catalog-activation authority.
+  object and result count. It now accepts four zero-diff reports, including two
+  after the boundary at a 3,589.55-second gap; both match 158/158 with no
+  approvals. The fourteen-day clock is current but not yet eligible. The
+  baseline explicitly denies cutover, load-balancer, and catalog-activation
+  authority.
 
 Open foundation work:
 
@@ -1427,6 +1435,10 @@ the rollback. If a gate fails, traffic stays on or returns to App Engine.
 - Whether application reports continue through email or become an admin queue.
 - Whether stable screenshot URLs are initially served by Flask or routed through
   a CDN from the first release.
+- Approval or revision of the proposed legacy-user policy: preserve all ten as
+  non-authorizing historical profiles, retain the one matched administrator,
+  and manually review rather than automatically invite the other two legacy
+  administrators.
 - Confirmation of the proposed `lb-next.retrostore.org`,
   `next.retrostore.org`, and `admin-next.retrostore.org` hostnames.
 - Confirmation or revision of the checked-in fourteen-day zero-diff soak.
@@ -1468,6 +1480,9 @@ Phase 1:
 - [x] Classify the eight unreferenced Blobstore objects in a protected artifact,
   bind their metadata to the complete byte-verification report, and prove each
   duplicate byte sequence is preserved in the normalized catalog archive.
+- [x] Reconcile legacy users, app attribution, Firebase identities, and modern
+  roles in a protected read-only artifact; emit an identity-free no-write policy
+  plan for explicit approval.
 - [x] Add the strict approved-difference format with exact fingerprints, named
   ownership, expiry, and stale-approval rejection.
 - [x] Define and validate the normalized catalog/media/screenshot mirror format
@@ -1557,8 +1572,9 @@ private comparator, its dashboard, the first private capacity gate, the
 stage-only half of repeatable mirror synchronization, and the read-only
 reverse-sync planner are complete. While hostname and owner confirmation remain
 pending, the revision-bound private soak continues to accumulate automatically.
-The remaining data-policy choice is how to retain or invite the ten legacy user
-records. Actual
+The remaining data-policy choice now has a read-only evidence-backed proposal:
+retain all ten historical profiles without granting access and manually review
+the two unmatched legacy administrators. Actual
 legacy reverse writes and load-balancer provisioning still require explicit
 operator gates and remain unavailable.
 Synchronized-catalog activation remains disabled.

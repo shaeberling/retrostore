@@ -105,9 +105,10 @@ earlier than 2026-08-10 00:40 UTC. The local
 `retrostore.contract.soak_status` auditor verifies every retained object's
 content digest and internal counts, checks that the expected revision still has
 100% of private service traffic, and calculates continuity using the 90-minute
-stale-evidence limit. Its first run validated three reports; one was after the
-revision boundary and passed 158/158. The 14-day gate is current but not yet
-eligible. This private clock is evidence only and does not authorize a hostname,
+stale-evidence limit. The 2026-08-10 02:20 UTC run validated four reports; two
+were after the revision boundary, both passed 158/158 with no approvals, and
+their gap was 3,589.55 seconds. The 14-day gate is current but not yet eligible.
+This private clock is evidence only and does not authorize a hostname,
 load balancer, data activation, or production route change.
 
 References:
