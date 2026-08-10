@@ -16,7 +16,10 @@ from urllib.parse import parse_qs, urlencode, urlsplit
 
 import httpx
 
-from retrostore.contract.exhaustive import _gcloud_identity_token
+from retrostore.contract.exhaustive import (
+    _gcloud_identity_token,
+    _with_candidate_host_header,
+)
 from retrostore.mirror import CatalogMirror, load_catalog_mirror_archive
 from services.api_compat.app import create_archive_app
 
@@ -235,6 +238,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--candidate-url")
     parser.add_argument("--candidate-audience")
     parser.add_argument("--candidate-gcloud-identity-token-service-account")
+    parser.add_argument("--candidate-host-header")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--timeout-seconds", type=float, default=30.0)
     args = parser.parse_args(argv)
@@ -271,20 +275,41 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
             )
         else:
-            candidate_label = _candidate_origin(args.candidate_url)
-            if args.candidate_gcloud_identity_token_service_account != _CANDIDATE_IDENTITY:
-                raise ValueError("The exact private API runtime identity is required")
-            audience = args.candidate_audience or candidate_label
-            if _candidate_origin(audience) != audience:
-                raise ValueError("Candidate audience must be an approved candidate origin")
-            token = _gcloud_identity_token(
-                audience,
-                args.candidate_gcloud_identity_token_service_account,
-            )
+            headers: Mapping[str, str] | None
+            if args.candidate_host_header is not None:
+                if (
+                    args.candidate_audience is not None
+                    or args.candidate_gcloud_identity_token_service_account is not None
+                ):
+                    raise ValueError(
+                        "The public front-door probe cannot use private authentication"
+                    )
+                candidate_label = args.candidate_url.rstrip("/")
+                headers = _with_candidate_host_header(
+                    candidate_label,
+                    args.candidate_host_header,
+                )
+            else:
+                candidate_label = _candidate_origin(args.candidate_url)
+                if (
+                    args.candidate_gcloud_identity_token_service_account
+                    != _CANDIDATE_IDENTITY
+                ):
+                    raise ValueError("The exact private API runtime identity is required")
+                audience = args.candidate_audience or candidate_label
+                if _candidate_origin(audience) != audience:
+                    raise ValueError(
+                        "Candidate audience must be an approved candidate origin"
+                    )
+                token = _gcloud_identity_token(
+                    audience,
+                    args.candidate_gcloud_identity_token_service_account,
+                )
+                headers = {"Authorization": f"Bearer {token}"}
             candidate = stack.enter_context(
                 httpx.Client(
                     base_url=candidate_label,
-                    headers={"Authorization": f"Bearer {token}"},
+                    headers=headers,
                     follow_redirects=False,
                     timeout=args.timeout_seconds,
                 )
@@ -296,6 +321,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             reference_url=args.reference_url,
             candidate_label=candidate_label,
         )
+        if args.candidate_host_header is not None:
+            report["candidate_host_header"] = args.candidate_host_header
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     print(json.dumps({"scope": report["scope"], "summary": report["summary"]}))

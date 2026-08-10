@@ -58,7 +58,7 @@ jsonPayload.approval_gate.passes=false
 
 ## Alerts
 
-Page or immediately stop a canary for any unexplained comparison difference,
+Page or immediately roll production back for any unexplained comparison difference,
 integrity error, possible data loss, state collision, writer-invariant failure,
 or confirmed client compatibility failure. Availability and latency use the
 checked-in rate, delta, volume, and observation windows. A stale comparator is a
@@ -140,7 +140,7 @@ sample; exact-revision native telemetry passed the evidence/resource gate. A
 fresh 2,000-request confirmation passed every method gate at 38.08 requests per
 second with zero semantic differences, transport errors, or 5xx responses.
 
-The checksum-validating soak auditor currently sees eleven retained comparison
+The checksum-validating evidence auditor currently sees eleven retained comparison
 reports. All eleven API comparisons matched 158/158; the first seven predate
 multi-surface evidence and are retained as API-only history. The schema-2 report
 after the `website1` boundary also passed all 94 downloads and all 32 website
@@ -149,6 +149,6 @@ all six exact public redirects, starting the current private evidence clock at
 2026-08-10 03:55:01 UTC. Three schema-3 reports now extend that streak,
 including two automatic generation-4 executions. A gap over 90 minutes, a
 failed/changed report, or a different serving revision makes the clock
-non-current. Reaching fourteen days
-will satisfy only this private evidence gate; it cannot substitute for the
+non-current. The three current reports satisfy the approved evidence gate; no
+fixed multi-day delay remains. This cannot substitute for the
 separate hostname, ownership, front-door, consumer, or writer-handoff gates.

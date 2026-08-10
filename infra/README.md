@@ -42,17 +42,18 @@ The additive, database- and bucket-scoped workload IAM configuration is in
 `iam/`. It creates separate migrator, public API, and administration identities
 without service-account keys or access to the legacy default database.
 
-The non-routed Cloud Run candidate build and deployment convention is in
-`cloud-run/`. Candidate containers use the dedicated runtime identities and
-explicit replacement-resource environment variables.
+The Cloud Run build and deployment convention is in `cloud-run/`. Private
+comparison services and separate load-balancer-only final candidate services
+use dedicated runtime identities and explicit replacement-resource environment
+variables.
 
-The read-only load-balancer, route-group, monitoring-threshold, and rollback
-preparation is in `front-door/`. Its validator is run in CI and deliberately has
+The route group, deployed candidate baseline, monitoring threshold, and rollback
+records are in `front-door/`. Its validator is run in CI and deliberately has
 no cloud apply path.
 
-The create-only, local public website bundle and asset-closure check are in
-`public-site/`. They deliberately have no deploy command and cannot overwrite
-the existing TRS-80 Firebase Hosting site.
+The create-only local public website bundle and asset-closure check are in
+`public-site/`. The verified bundle is deployed to its own public bucket and
+does not overwrite the existing TRS-80 Firebase Hosting site.
 
 The privacy-safe request telemetry design is in `monitoring/`, and the
 read-only scheduled full-corpus runner is in `comparator/`. Comparator reports

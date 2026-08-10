@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "proposed_no_resources",
+  "status": "parallel_candidate_deployed_dns_pending",
   "last_verified": "2026-08-10",
   "project": "trs-80",
   "region": "us-central1",
@@ -32,17 +32,13 @@
       "value": "www.retrostore.org",
       "status": "existing"
     },
-    "front_door_rehearsal": {
-      "value": "lb-next.retrostore.org",
-      "status": "confirmation_required"
-    },
-    "candidate_api": {
+    "parallel_candidate": {
       "value": "next.retrostore.org",
-      "status": "confirmation_required"
+      "status": "approved"
     },
     "candidate_admin": {
       "value": "admin-next.retrostore.org",
-      "status": "confirmation_required"
+      "status": "approved"
     }
   },
   "backends": {
@@ -54,130 +50,58 @@
     },
     "cloud_run_api": {
       "kind": "cloud_run",
-      "service": "retrostore-api-compat-candidate",
-      "status": "private_candidate"
+      "service": "retrostore-api-next",
+      "status": "public_candidate_ready"
     },
     "cloud_run_admin": {
       "kind": "cloud_run",
-      "service": "retrostore-admin-candidate",
-      "status": "private_candidate"
+      "service": "retrostore-admin-next",
+      "status": "public_candidate_ready"
     },
     "static_backend_bucket": {
       "kind": "cloud_storage_backend_bucket",
-      "status": "not_created"
+      "bucket": "trs-80-retrostore-public",
+      "cdn_enabled": false,
+      "status": "public_candidate_ready"
     }
   },
   "ownership": {
     "go_no_go": {
-      "confirmed_owner": null,
+      "confirmed_owner": "Sascha Ha",
       "suggested_owner": "Sascha Ha",
-      "status": "confirmation_required"
+      "status": "approved"
     },
     "rollback_operator": {
-      "confirmed_owner": null,
+      "confirmed_owner": "Sascha Ha",
       "suggested_owner": "Sascha Ha",
-      "status": "confirmation_required"
+      "status": "approved"
     }
   },
   "path_precedence": [],
   "candidate_maps": {
-    "front_door_rehearsal": {
-      "hostname": "lb-next.retrostore.org",
-      "default_backend": "app_engine_default",
-      "route_overrides": []
-    },
-    "api_candidate": {
+    "parallel_candidate": {
       "hostname": "next.retrostore.org",
       "default_backend": "app_engine_default",
-      "route_overrides": [
-        {
-          "match": {
-            "kind": "prefix",
-            "value": "/api/"
-          },
-          "backend": "cloud_run_api"
-        },
-        {
-          "match": {
-            "kind": "prefix",
-            "value": "/s/"
-          },
-          "backend": "cloud_run_api"
-        },
-        {
-          "match": {
-            "kind": "prefix",
-            "value": "/assets/screenshots/"
-          },
-          "backend": "cloud_run_api"
-        },
-        {
-          "match": {
-            "kind": "exact",
-            "value": "/downloadapp"
-          },
-          "backend": "cloud_run_api"
-        },
-        {
-          "match": {
-            "kind": "exact",
-            "value": "/public/apps.json"
-          },
-          "backend": "cloud_run_api"
-        },
-        {
-          "match": {
-            "kind": "exact",
-            "value": "/community"
-          },
-          "backend": "cloud_run_api"
-        },
-        {
-          "match": {
-            "kind": "exact",
-            "value": "/community/"
-          },
-          "backend": "cloud_run_api"
-        },
-        {
-          "match": {
-            "kind": "exact",
-            "value": "/rsc"
-          },
-          "backend": "cloud_run_api"
-        },
-        {
-          "match": {
-            "kind": "exact",
-            "value": "/rsc/"
-          },
-          "backend": "cloud_run_api"
-        },
-        {
-          "match": {
-            "kind": "exact",
-            "value": "/app"
-          },
-          "backend": "cloud_run_api"
-        },
-        {
-          "match": {
-            "kind": "exact",
-            "value": "/app/"
-          },
-          "backend": "cloud_run_api"
-        }
+      "route_group_ids": [
+        "catalog_api_reads",
+        "media_api_reads",
+        "state_api",
+        "new_screenshot_assets",
+        "legacy_media_download",
+        "public_static_site",
+        "public_website_catalog",
+        "public_redirects"
       ]
     },
     "admin_candidate": {
       "hostname": "admin-next.retrostore.org",
       "default_backend": "cloud_run_admin",
-      "route_overrides": []
+      "route_group_ids": ["new_admin"]
     },
     "production_initial": {
       "hostname": "retrostore.org",
       "default_backend": "app_engine_default",
-      "route_overrides": []
+      "route_group_ids": []
     }
   },
   "route_groups": [
@@ -205,7 +129,7 @@
       "future_backend": "app_engine_default",
       "disposition": "permanent_app_engine_exclusion",
       "migration_mode": "never_cut_over",
-      "canary_steps_percent": [],
+      "traffic_split_steps_percent": [],
       "rollback_backend": "app_engine_default"
     },
     {
@@ -226,9 +150,9 @@
       ],
       "current_backend": "app_engine_default",
       "future_backend": "cloud_run_api",
-      "disposition": "migrate_after_zero_diff_soak",
-      "migration_mode": "weighted_read_canary",
-      "canary_steps_percent": [1, 5, 25, 50, 100],
+      "disposition": "migrate_after_three_report_zero_diff_evidence",
+      "migration_mode": "atomic_route_change",
+      "traffic_split_steps_percent": [],
       "rollback_backend": "app_engine_default"
     },
     {
@@ -250,8 +174,8 @@
       "current_backend": "app_engine_default",
       "future_backend": "cloud_run_api",
       "disposition": "migrate_after_checksum_and_range_parity",
-      "migration_mode": "weighted_read_canary",
-      "canary_steps_percent": [1, 5, 25, 50, 100],
+      "migration_mode": "atomic_route_change",
+      "traffic_split_steps_percent": [],
       "rollback_backend": "app_engine_default"
     },
     {
@@ -274,7 +198,7 @@
       "future_backend": "cloud_run_api",
       "disposition": "migrate_only_after_active_state_sync_and_reverse_sync_rehearsal",
       "migration_mode": "atomic_single_writer_handoff",
-      "canary_steps_percent": [],
+      "traffic_split_steps_percent": [],
       "rollback_backend": "app_engine_default"
     },
     {
@@ -293,7 +217,7 @@
       "future_backend": "cloud_run_api",
       "disposition": "enable_before_first_new_snapshot_is_activated",
       "migration_mode": "atomic_route_change",
-      "canary_steps_percent": [],
+      "traffic_split_steps_percent": [],
       "rollback_backend": "app_engine_default"
     },
     {
@@ -307,8 +231,8 @@
       "current_backend": "app_engine_default",
       "future_backend": "cloud_run_api",
       "disposition": "migrate_after_semantic_zip_and_typed_media_parity",
-      "migration_mode": "weighted_read_canary",
-      "canary_steps_percent": [1, 5, 25, 50, 100],
+      "migration_mode": "atomic_route_change",
+      "traffic_split_steps_percent": [],
       "rollback_backend": "app_engine_default"
     },
     {
@@ -399,7 +323,7 @@
       "disposition": "migrate_atomically_with_catalog_json_and_public_redirects",
       "migration_mode": "atomic_route_change",
       "handoff_group": "public_website",
-      "canary_steps_percent": [],
+      "traffic_split_steps_percent": [],
       "rollback_backend": "app_engine_default"
     },
     {
@@ -415,7 +339,7 @@
       "disposition": "enable_with_static_website_candidate_after_json_parity",
       "migration_mode": "atomic_route_change",
       "handoff_group": "public_website",
-      "canary_steps_percent": [],
+      "traffic_split_steps_percent": [],
       "rollback_backend": "app_engine_default"
     },
     {
@@ -451,7 +375,7 @@
       "disposition": "migrate_after_exact_status_location_and_body_parity",
       "migration_mode": "atomic_route_change",
       "handoff_group": "public_website",
-      "canary_steps_percent": [],
+      "traffic_split_steps_percent": [],
       "rollback_backend": "app_engine_default"
     },
     {
@@ -466,7 +390,7 @@
       "future_backend": "app_engine_default",
       "disposition": "decision_required_rebuild_or_retire",
       "migration_mode": "not_scheduled",
-      "canary_steps_percent": [],
+      "traffic_split_steps_percent": [],
       "rollback_backend": "app_engine_default"
     },
     {
@@ -513,7 +437,7 @@
       "future_backend": "app_engine_default",
       "disposition": "disable_only_after_new_admin_is_sole_catalog_writer",
       "migration_mode": "atomic_single_writer_handoff",
-      "canary_steps_percent": [],
+      "traffic_split_steps_percent": [],
       "rollback_backend": "app_engine_default"
     },
     {
@@ -529,7 +453,7 @@
       "future_backend": "cloud_run_admin",
       "disposition": "candidate_then_sole_catalog_writer_after_freeze_and_final_sync",
       "migration_mode": "atomic_single_writer_handoff",
-      "canary_steps_percent": [],
+      "traffic_split_steps_percent": [],
       "rollback_backend": "app_engine_default"
     },
     {
@@ -544,7 +468,7 @@
       "future_backend": "app_engine_default",
       "disposition": "app_engine_default_until_every_path_is_classified",
       "migration_mode": "explicit_routes_only",
-      "canary_steps_percent": [],
+      "traffic_split_steps_percent": [],
       "rollback_backend": "app_engine_default"
     }
   ]

@@ -2,6 +2,7 @@ import hashlib
 import subprocess
 from pathlib import Path
 
+import httpx
 import pytest
 
 from retrostore.contract.consumer_clients import (
@@ -9,6 +10,7 @@ from retrostore.contract.consumer_clients import (
     TRS80_EMBEDDED_C_METHODS,
     TRS80_KMP_METHODS,
     TRS80_REVISION,
+    create_front_door_proxy_app,
     validate_loopback_candidate_url,
     validate_trs80_client,
     validate_trs80_revision,
@@ -89,3 +91,42 @@ def test_external_client_gate_accepts_only_an_exact_loopback_origin() -> None:
     ):
         with pytest.raises(ValueError, match="127.0.0.1"):
             validate_loopback_candidate_url(value)
+
+
+def test_pre_dns_bridge_preserves_method_query_body_and_approved_host() -> None:
+    observed: dict[str, object] = {}
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        observed.update(
+            {
+                "method": request.method,
+                "url": str(request.url),
+                "host": request.headers["host"],
+                "body": request.content,
+            }
+        )
+        return httpx.Response(
+            200,
+            headers={"Content-Type": "application/octet-stream"},
+            content=b"response",
+        )
+
+    app, upstream = create_front_door_proxy_app(
+        "http://34.102.211.182",
+        "next.retrostore.org",
+        transport=httpx.MockTransport(handle),
+    )
+    try:
+        response = app.test_client().post("/api/listApps?page=1", data=b"request")
+    finally:
+        upstream.close()
+
+    assert response.status_code == 200
+    assert response.data == b"response"
+    assert response.content_type == "application/octet-stream"
+    assert observed == {
+        "method": "POST",
+        "url": "http://34.102.211.182/api/listApps?page=1",
+        "host": "next.retrostore.org",
+        "body": b"request",
+    }

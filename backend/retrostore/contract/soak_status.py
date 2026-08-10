@@ -1,4 +1,4 @@
-"""Validate retained comparator evidence and calculate the private zero-diff soak."""
+"""Validate retained comparator evidence and calculate its zero-diff streak."""
 
 import argparse
 import hashlib
@@ -104,7 +104,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             not_before=not_before,
             as_of=now,
             schedule_seconds=policy["schedule_seconds"],
-            required_days=policy["required_days"],
+            required_reports=policy["required_reports"],
         )
         report = {
             "schema_version": 1,
@@ -449,7 +449,7 @@ def evaluate_soak(
     not_before: datetime,
     as_of: datetime,
     schedule_seconds: int,
-    required_days: int,
+    required_reports: int,
 ) -> dict[str, Any]:
     not_before = not_before.astimezone(UTC)
     as_of = as_of.astimezone(UTC)
@@ -480,9 +480,8 @@ def evaluate_soak(
     duration_seconds = (
         (as_of - streak[0].generated_at).total_seconds() if streak else 0.0
     )
-    required_seconds = required_days * 24 * 60 * 60
     current = bool(streak)
-    eligible = current and duration_seconds >= required_seconds
+    eligible = current and len(streak) >= required_reports
     reasons = []
     if not relevant:
         reasons.append("no_reports_at_or_after_boundary")
@@ -491,12 +490,11 @@ def evaluate_soak(
     elif latest_age_seconds is not None and latest_age_seconds > maximum_gap_seconds:
         reasons.append("latest_report_is_stale")
     if current and not eligible:
-        reasons.append("required_duration_not_reached")
+        reasons.append("required_report_count_not_reached")
     return {
         "current": current,
         "eligible": eligible,
-        "required_days": required_days,
-        "required_seconds": required_seconds,
+        "required_reports": required_reports,
         "schedule_seconds": schedule_seconds,
         "maximum_gap_seconds": maximum_gap_seconds,
         "report_count": len(streak),
@@ -532,20 +530,22 @@ def _load_policy(path: Path) -> dict[str, int]:
     if value.get("schema_version") != 1 or not isinstance(comparison, dict):
         raise ValueError("Monitoring thresholds have an unsupported schema")
     schedule = comparison.get("schedule_seconds")
-    days = comparison.get("continuous_zero_diff_soak_days")
+    reports = comparison.get("minimum_consecutive_zero_diff_reports")
     maximum_differences = comparison.get("maximum_unexplained_differences")
     maximum_unapproved = comparison.get("maximum_unapproved_differences")
     if (
         not isinstance(schedule, int)
         or schedule != 3600
-        or not isinstance(days, int)
-        or days < 14
+        or not isinstance(reports, int)
+        or reports < 3
         or maximum_differences != 0
         or maximum_unapproved != 0
-        or comparison.get("material_fix_restarts_soak") is not True
+        or comparison.get("material_fix_restarts_evidence_streak") is not True
     ):
-        raise ValueError("Monitoring thresholds do not enforce the approved soak policy")
-    return {"schedule_seconds": schedule, "required_days": days}
+        raise ValueError(
+            "Monitoring thresholds do not enforce the approved evidence policy"
+        )
+    return {"schedule_seconds": schedule, "required_reports": reports}
 
 
 def _load_baseline(path: Path) -> dict[str, str]:

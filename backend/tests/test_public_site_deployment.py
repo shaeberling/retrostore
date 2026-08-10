@@ -24,7 +24,7 @@ def test_static_deployment_plan_is_closed_create_only_and_not_executable(
     plan = plan_public_site_deployment(
         bundle,
         report,
-        target_bucket="trs-80-retrostore-public-example-release",
+        target_bucket="trs-80-retrostore-public",
         generated_at=datetime(2026, 8, 10, tzinfo=UTC),
     )
 
@@ -40,7 +40,7 @@ def test_static_deployment_plan_is_closed_create_only_and_not_executable(
     assert len(plan["operations"]["uploads"]) == 78
     assert all(
         item["if_generation_match"] == 0
-        and item["cache_control"] == "confirmation_required"
+        and item["cache_control"] == "no-store"
         and "body" not in item
         for item in plan["operations"]["uploads"]
     )
@@ -48,8 +48,7 @@ def test_static_deployment_plan_is_closed_create_only_and_not_executable(
         "main_page_suffix": "index.html",
         "not_found_page": None,
     }
-    assert plan["target"]["required_location"] == "confirmation_required"
-    assert plan["target"]["proposed_location"] == "US"
+    assert plan["target"]["required_location"] == "us-central1"
     routes = plan["front_door"]["static_matches"]
     assert routes["kind"] == "exact_only"
     assert routes["prefixes"] == []
@@ -59,18 +58,21 @@ def test_static_deployment_plan_is_closed_create_only_and_not_executable(
     assert "/public/apps.json" not in routes["paths"]
     assert plan["front_door"]["unknown_path_disposition"] == "app_engine_default"
     assert plan["safety"]["apply_capability_present"] is False
-    assert plan["proposed_initial_policy"]["status"] == "confirmation_required"
+    assert plan["proposed_initial_policy"]["status"] == (
+        "approved_simple_hobby_project_policy"
+    )
     assert plan["proposed_initial_policy"]["root_request_resolution"] == (
         "cloud_storage_main_page_suffix"
     )
-    private, public = plan["proposed_initial_policy"]["options"]
-    assert private["id"] == "private_bucket_with_cdn"
-    assert private["recommended"] is True
-    assert private["cdn_enabled"] is True
-    assert private["public_access_prevention"] == "enforced"
-    assert public["id"] == "public_bucket_without_cdn"
-    assert public["cdn_enabled"] is False
-    assert public["cache_control"] == "no-store"
+    assert plan["proposed_initial_policy"]["deployment_strategy"] == (
+        "single_dedicated_bucket"
+    )
+    assert plan["proposed_initial_policy"]["cdn_enabled"] is False
+    assert plan["proposed_initial_policy"]["cache_control"] == "no-store"
+    assert "Cloud CDN later" in plan["proposed_initial_policy"][
+        "future_optional_optimization"
+    ]
+    assert plan["required_external_approvals"] == []
 
 
 @pytest.mark.parametrize(
@@ -97,7 +99,7 @@ def test_static_deployment_plan_rejects_non_public_bucket_namespace(
 ) -> None:
     bundle, report = _bundle(tmp_path)
 
-    with pytest.raises(ValueError, match="must start"):
+    with pytest.raises(ValueError, match="must be exactly"):
         plan_public_site_deployment(
             bundle,
             report,
@@ -113,7 +115,7 @@ def test_static_deployment_plan_rejects_tampered_file(tmp_path: Path) -> None:
         plan_public_site_deployment(
             bundle,
             report,
-            target_bucket="trs-80-retrostore-public-example-release",
+            target_bucket="trs-80-retrostore-public",
         )
 
 
@@ -125,5 +127,5 @@ def test_static_deployment_plan_rejects_extra_file(tmp_path: Path) -> None:
         plan_public_site_deployment(
             bundle,
             report,
-            target_bucket="trs-80-retrostore-public-example-release",
+            target_bucket="trs-80-retrostore-public",
         )

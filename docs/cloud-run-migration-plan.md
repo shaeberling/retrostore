@@ -4,6 +4,17 @@ Status: In progress
 
 Last updated: 2026-08-10
 
+## Migration rule
+
+Build one complete replacement at `next.retrostore.org` while the original
+App Engine system remains live and unchanged at `retrostore.org`. Run the same
+compatibility corpus and all real clients against both endpoints until every
+in-scope function matches. Then, after an explicit operator go/no-go, switch
+production once to the already-tested replacement map. Keep the original map
+and synchronized legacy data available for immediate rollback. CDN is disabled
+initially but remains a possible measured future optimization; there is no
+percentage rollout or fixed-duration soak requirement.
+
 ## Implementation status
 
 Phase 0 and Phase 1 have started on branch `codex/cloud-run-migration-plan`.
@@ -370,9 +381,9 @@ Completed foundation work:
   machine-readable plan keeps an App Engine-only production baseline, assigns
   every frozen API method to a route group, permanently pins the Card and
   TRS-IO route island to App Engine, and fails unclassified paths closed to App
-  Engine. A separate threshold file requires hourly comparisons, fourteen
-  continuous zero-diff days, zero integrity errors, staged read canaries, and
-  atomic state/admin handoffs. Its safety validator runs in CI. Read-only cloud
+  Engine. A separate threshold file requires three consecutive fresh hourly
+  zero-difference reports, zero integrity errors, one operator-approved atomic
+  cutover, and atomic state/admin handoffs. Its safety validator runs in CI. Read-only cloud
   discovery on 2026-08-10 reconfirmed that no load-balancer resource exists and
   that Certificate Manager is not enabled. No resource was created.
 - Privacy-safe request telemetry is deployed on private API revision
@@ -436,14 +447,14 @@ Completed foundation work:
   one instance with CPU p95 at most 26%, memory p95 at most 45%, and in-container
   p95/p99 at most 12.1/17.72 ms, plus one 950.6 ms startup. Allocation metrics
   provide raw cost inputs. No service configuration or traffic changed.
-- A checksum-validating private soak auditor now binds evidence to the checked-in
+- A checksum-validating private evidence auditor now binds evidence to the checked-in
   `redirects1` revision and schema-3 four-surface boundary, verifies the revision
   still serves 100%
   of private traffic, and independently validates every retained comparison
   object and internal count. Job generation 4 requires 158 frozen API cases, 94
   live-discovered downloads, the 32-entry website list, and all six exact public
   redirects in every artifact. Its first execution passed all four surfaces and
-  seeded the current clock at 03:55:01 UTC. The earlier schema-1 and schema-2
+  seeded the current report streak at 03:55:01 UTC. The earlier schema-1 and schema-2
   artifacts remain valid historical evidence but cannot satisfy this exact
   revision and schema-3 gate.
   Independently scheduled generation-4 executions then completed under the
@@ -451,9 +462,9 @@ Completed foundation work:
   cases and all three additional surfaces matching. The auditor
   checksum-validated all eleven retained artifacts; three schema-3 reports now
   extend the current streak with a maximum observed gap of 3,659.18 seconds.
-  The fourteen-day clock is current
-  but not yet eligible. The baseline explicitly denies cutover, load-balancer,
-  and catalog-activation authority.
+  This satisfies the approved three-report evidence gate; there is no fixed
+  multi-day wait. The baseline still denies cutover, load-balancer, and
+  catalog-activation authority.
 - The promoted private `downloads1` revision received two additional guarded
   concurrency-8 API runs. Both matched 2,000/2,000 responses. The first retained
   a provisional `listAppsNano` latency non-pass caused by two client-path stalls
@@ -481,8 +492,9 @@ Completed foundation work:
   Static files, `/public/apps.json`, and the redirects are one validated
   `public_website` handoff group. The
   existing default Firebase Hosting site was confirmed to contain the separate
-  TRS-80 KMP web application and is explicitly excluded; no new site or bucket
-  was created.
+  TRS-80 KMP web application and is explicitly excluded. The approved dedicated
+  `trs-80-retrostore-public` bucket was later created for this bundle without
+  altering Firebase Hosting.
 - The immutable `website1` image
   (`sha256:3b6356d1d32d8eb6fbb4238ed682ad87e3684d7fb7dbe09e0f66a889f9b519f9`)
   was deployed at zero traffic and passed anonymous-denial, 32-entry website
@@ -495,7 +507,7 @@ Completed foundation work:
   and emits a schema-3 aggregate whose overall gate drives the existing alert.
   It now covers the API, downloads, website list, and public redirects. The
   checksum auditor still parses older artifacts as history but excludes them
-  from the exact current soak.
+  from the exact current revision-bound evidence streak.
 - The immutable `redirects1` image was deployed at zero traffic and passed
   anonymous denial, API 158/158, downloads 94/94, website catalog 32/32,
   redirects 6/6, and the guarded synthetic state lifecycle before private
@@ -517,12 +529,19 @@ Completed foundation work:
 
 Open foundation work:
 
-- Confirm the proposed `lb-next.retrostore.org`, `next.retrostore.org`, and
-  `admin-next.retrostore.org` names and formally name the go/no-go owner and
-  rollback operator. Sascha Ha is recorded only as the suggested owner pending
-  confirmation. Provisioning the load balancer, DNS authorizations,
-  certificates, public candidate services, or DNS records remains a separate
-  explicitly approved action.
+- The candidate names `next.retrostore.org` and `admin-next.retrostore.org` are
+  approved. Sascha Ha is the confirmed go/no-go owner and rollback operator.
+  Candidate-only resource creation was approved and completed: separate final
+  Cloud Run services, public static bucket, fail-closed load-balancer map,
+  IPv4/IPv6 frontends, and managed certificate exist. Production routing and
+  production data authority remain unchanged.
+- Candidate DNS is intentionally pending. `retrostore.org` now delegates to the
+  Cloudflare `curt` and `rita` nameservers after the provider move.
+  The HTTP front door is nevertheless testable through the reserved IP and an
+  explicit Host header; it passes all 350 scenarios (338 known public reads plus
+  12 App Engine fallbacks). HTTPS, real-client, and authenticated admin tests
+  remain required after the new authoritative provider publishes candidate A
+  and AAAA records and the certificate becomes active.
 - Confirm the alert recipient and notification channel, attach it to the two
   installed policies, and explicitly enable them. Until then, the dashboard and
   logs provide evidence but do not page anyone.
@@ -585,8 +604,8 @@ authorization and business rules server-side.
   new schema into the existing Objectify/Datastore database.
 - Keep binary data in Cloud Storage, not Firestore.
 - Keep Firestore and Storage inaccessible to browser clients by default.
-- Keep App Engine authoritative throughout implementation and the comparison
-  soak; the existing production URLs are the last thing to move.
+- Keep App Engine authoritative throughout implementation and comparison; the
+  existing production URLs are the last thing to move.
 - Keep the RetroStore Card and TRS-IO hardware update subsystem unchanged on
   App Engine. `/card`, `/card/*`, `/trs-io`, and `/trs-io/*`, their legacy
   administration, and their Datastore entities are outside this migration.
@@ -596,10 +615,10 @@ authorization and business rules server-side.
 - Expose the candidate services on separate hostnames and do not allow both
   admin applications to write production catalog data concurrently.
 - Put a global external Application Load Balancer in front of App Engine and
-  Cloud Run. Initially route production traffic 100% to App Engine, then move
-  verified route groups through URL-map changes rather than further DNS changes.
-- Require zero unexplained contract differences over the complete comparison
-  corpus and the agreed soak period before a public API route can move.
+  Cloud Run. Validate the complete replacement map on a separate hostname while
+  production remains untouched, then switch production once to that tested map.
+- Require three consecutive fresh reports with zero unexplained contract
+  differences over the complete comparison corpus before a public API route can move.
 
 ## Goals
 
@@ -802,17 +821,17 @@ authentication, imports, and other in-scope admin concerns.
 
 | Path or surface | Target |
 | --- | --- |
-| Public static website | Dedicated Cloud Storage backend bucket, optionally CDN-cached |
+| Public static website | Dedicated public Cloud Storage backend bucket, CDN disabled initially |
 | `/api/*` | `retrostore-api-compat` Flask service on Cloud Run |
 | `/admin/*` | `retrostore-admin` Flask service on Cloud Run |
-| `/assets/screenshots/*` | Stable RetroStore asset handler, optionally CDN-cached |
+| `/assets/screenshots/*` | Stable RetroStore Cloud Run asset handler |
 | `/card`, `/card/*`, `/trs-io`, `/trs-io/*` | Existing App Engine service; permanently excluded from this plan |
 | Legacy public dynamic routes | Compatibility service until migrated |
 
 Use a global external Application Load Balancer as the production front door.
 Serverless network endpoint groups can target both App Engine and Cloud Run, and
-the load balancer's URL map can move individual path groups without another DNS
-change. Configure both HTTP and HTTPS frontends while legacy clients require
+the same tested URL map can preserve explicit App Engine fallback routes without
+another DNS change. Configure both HTTP and HTTPS frontends while legacy clients require
 plain HTTP. Do not introduce an HTTP redirect until the C client behavior has
 been tested.
 
@@ -825,10 +844,10 @@ retrostore.org
       │
       ▼
 External Application Load Balancer
-      ├── initially 100% ──► App Engine (authoritative)
-      └── after approval ──► Cloud Run route groups
+      ├── after cutover ──► tested replacement route map
+      └── rollback ──────► App Engine route map
 
-next.retrostore.org ───────► Flask compatibility API candidate
+next.retrostore.org ───────► Complete replacement route map
 admin-next.retrostore.org ─► Flask admin candidate
 
 App Engine/Objectify ── idempotent sync ──► Firestore/Cloud Storage mirror
@@ -836,8 +855,8 @@ App Engine/Objectify ── idempotent sync ──► Firestore/Cloud Storage mi
          └──────── differential comparator ─────┘
 ```
 
-The exact candidate hostnames remain configurable, but they must be distinct
-from production. Existing clients remain on `retrostore.org`. The legacy admin
+The approved candidate hostnames are distinct from production. Existing clients
+remain on `retrostore.org`. The legacy admin
 is the only production catalog writer while App Engine is authoritative. The
 new admin uses isolated staging data for mutation tests and may expose a
 read-only view of the synchronized production mirror before cutover.
@@ -879,27 +898,28 @@ states created on the new stack can survive a rollback.
 
 ### Production route groups
 
-Test the load balancer on a separate hostname first. Then point
-`retrostore.org` at it while its URL map still routes 100% of production traffic
-to App Engine. Soak and validate that front-door change independently from any
-backend migration. Subsequent cutover and rollback operations are URL-map
-changes, not DNS changes.
+Test the complete replacement route map on `next.retrostore.org` while
+`retrostore.org` continues to use App Engine. Send the full comparison corpus
+and every pinned real client to both systems. Once all in-scope functionality
+matches and the operator gives the go/no-go, make one atomic production switch
+to the already-tested route map. Keep the App Engine map intact for immediate
+rollback. There is no percentage rollout or fixed waiting period.
 
 Use these route groups and dependency rules:
 
-| Order | Route group | Cutover rule |
-| --- | --- | --- |
-| 1 | Static website, its JSON dependency, and public redirects | Atomic after complete object/status/routing checks |
-| 2 | Catalog reads | Canary gradually after zero-diff gates pass |
-| 3 | Media reads and assets | Canary gradually after checksum/range parity |
-| 4 | Admin and catalog writes | Atomic writer handoff; never dual-write |
-| 5 | All three state endpoints | Move atomically after active-state migration |
-| 6 | Other legacy routes | Keep on App Engine until each has a replacement and route-specific parity |
+| Route group | Requirement before the one production switch |
+| --- | --- |
+| Static website, its JSON dependency, and public redirects | Complete object/status/routing parity |
+| Catalog reads | Complete zero-difference API corpus |
+| Media reads and assets | Checksum and range parity |
+| Admin and catalog writes | Atomic writer handoff; never dual-write |
+| All three state endpoints | Active-state migration and atomic authority handoff |
+| Other legacy routes | Explicitly remain on App Engine until replaced and matched |
 
-Catalog and media reads can use controlled traffic increments once their gates
-pass. Admin writes cannot canary across two writers: freeze the old admin, run a
-final sync, verify it, and enable the new admin as the sole writer. The three
-state endpoints form one atomic route group so token allocation, upload, and
+Catalog and media reads move with the tested replacement map in the one
+production switch. Before that switch, freeze the old admin, run a final sync,
+verify it, and enable the new admin as the sole writer. The three state
+endpoints remain one atomic route group so token allocation, upload, and
 download never split across authorities.
 
 The Card and TRS-IO paths are not in this sequence. They stay on App Engine
@@ -1157,9 +1177,9 @@ Public screenshot URLs should use a RetroStore-owned stable URL:
 https://retrostore.org/assets/screenshots/{screenshotId}
 ```
 
-The asset handler can stream or redirect to the private object and set long
-cache headers. A CDN can be added later without changing the API-visible URL. Do
-not make Firebase download-token URLs the permanent public contract.
+The asset handler can stream or redirect to the private object and set suitable
+cache headers. Do not make Firebase download-token URLs the permanent public
+contract.
 
 ### Authorization and IAM
 
@@ -1231,7 +1251,7 @@ Exit criteria:
    application skeletons for both services.
 8. Run tests against local Firestore and Storage emulators or isolated test
    resources without using production data.
-9. Add a read-only production canary for safe catalog and media-reference calls.
+9. Add a side-by-side comparator for safe catalog and media-reference calls.
 10. Build the comparator harness, semantic protobuf normalizer, approved-diff
     format, and machine-readable comparison report.
 
@@ -1296,8 +1316,8 @@ Exit criteria:
 10. Run synthetic state lifecycle comparisons without duplicating real writes.
 11. Add dashboards for synchronization lag, comparison failures, per-method
     traffic, latency, response sizes, and errors.
-12. Resolve every unexplained difference and restart the agreed zero-diff soak
-    after any material compatibility fix.
+12. Resolve every unexplained difference and restart the three-report evidence
+    streak after any material compatibility fix.
 
 Exit criteria:
 
@@ -1308,29 +1328,32 @@ Exit criteria:
 - Synchronization lag and failures are visible and within agreed thresholds.
 - App Engine remains authoritative and no production URL has moved.
 
-### Phase 4: Introduce the production front door and rehearse rollback
+### Phase 4: Complete the parallel system and rehearse rollback
 
 1. Create a global external Application Load Balancer with serverless network
    endpoint groups for App Engine and the Cloud Run services.
-2. Configure HTTP and HTTPS frontends, certificates, host rules, and an initial
-   URL map that sends every production route to App Engine.
-3. Validate the load balancer through a separate test hostname, including plain
-   HTTP behavior, CORS, large bodies, raw range responses, and client libraries.
-4. Point `retrostore.org` at the load balancer while it still routes 100% of
-   production traffic to App Engine.
-5. Soak the front-door change independently and verify logs, monitoring,
-   certificates, cache behavior, latency, and rollback.
-6. Rehearse URL-map rollback for every route group without changing data
-   authority.
+2. Configure HTTP and HTTPS frontends, certificates, host rules, and the
+   complete replacement URL map on `next.retrostore.org`. Explicit hardware,
+   report, and unclassified routes continue to fall back to App Engine.
+3. Validate the full candidate hostname, including the static site, public API,
+   plain HTTP behavior, CORS, large bodies, raw range responses, and client
+   libraries. `retrostore.org` remains unchanged on App Engine.
+4. Send the same complete compatibility corpus to `retrostore.org` and
+   `next.retrostore.org`, and resolve every unexplained difference.
+5. Run the JVM, KMP Android/iOS/web, native C, and ESP32 consumer smokes against
+   the candidate endpoint.
+6. Rehearse returning the candidate map to the App Engine map, and retain both
+   maps as explicit rollback artifacts.
 7. Build and test reverse export/import for catalog changes and states created
    on the new stack. The procedure must freeze the new writer, preserve IDs and
    objects, reconcile the legacy store, and restore exactly one legacy writer.
 
 Exit criteria:
 
-- The production hostname has completed its App Engine-only load-balancer soak.
-- All current clients behave identically through the new front door.
-- Every route group has a tested, timed, and documented routing rollback.
+- The complete replacement is reachable on its separate hostname over HTTP and
+  HTTPS while production remains on App Engine.
+- All current clients behave identically against App Engine and the candidate.
+- The complete route map has a tested, timed, and documented App Engine rollback.
 - State rollback preserves states created after a future cutover.
 - App Engine is still the sole production backend and data authority.
 
@@ -1341,19 +1364,18 @@ Exit criteria:
 2. Put the legacy catalog admin into read-only mode and run a final incremental
    sync, checksum reconciliation, and API comparison. Leave the hardware update
    administration unchanged.
-3. Move the static website, `/public/apps.json`, and the six public redirects in
-   one URL-map update; then move API catalog reads, then media reads/assets. Use
-   controlled traffic increments where the load balancer supports safe canaries.
-4. After those read groups are stable, enable the new admin as the sole catalog
-   writer and permanently disable legacy catalog mutations.
-5. Continue comparison against a frozen or safely refreshed legacy reference and
-   monitor new catalog writes through the Flask API.
-6. Migrate and verify every active state, briefly quiesce state writes if needed,
-   and switch upload, download, and region endpoints atomically.
+3. Migrate and verify every active state, briefly quiesce state writes if needed,
+   and complete the catalog/state single-writer handoff.
+4. Switch `retrostore.org` once to the exact route map already tested at
+   `next.retrostore.org`. Do not split production traffic by percentage.
+5. Enable the new admin as the sole catalog writer and keep legacy catalog
+   mutations disabled while the replacement is authoritative.
+6. Continue the comparator and real-client smoke tests after cutover; any gate
+   failure triggers immediate rollback rather than waiting for a timer.
 7. Keep `/card`, `/card/*`, `/trs-io`, and `/trs-io/*` routed to App Engine;
    they are not cutover candidates.
 8. Preserve HTTP, HTTPS, CORS-simple POST, custom-domain behavior, legacy data,
-   and reverse-sync capability throughout the observation window.
+   and reverse-sync capability while rollback remains useful.
 
 Routing rollback consists of returning the affected route group to App Engine in
 the URL map. Data rollback must also restore a single writer: freeze the new
@@ -1363,13 +1385,14 @@ group. No rollback relies on a destructive reverse migration.
 
 Exit criteria:
 
-- All in-scope public traffic is served by Cloud Run for the agreed observation
-  period; the excluded hardware update routes remain on App Engine.
+- All in-scope public traffic is served by the replacement; the excluded
+  hardware update routes remain on App Engine.
 - Error rates and latency remain within agreed thresholds.
 - Current KMP/JVM, web, C, and embedded JSON clients pass end-to-end production
   smoke tests.
 - No unexpected writes occur in the legacy database.
-- Routing and data rollback remain available until the observation window ends.
+- Routing and data rollback remain available until the operator explicitly
+  retires them.
 
 ### Phase 6: Retire migrated App Engine surfaces
 
@@ -1431,17 +1454,16 @@ The server-rendered admin requires tests for:
 ## Production go/no-go gates
 
 "100% sure" means that all agreed evidence is green and no known high-severity
-issue remains; it does not mean relying on an uneventful small canary. Before
-the first production backend route moves from App Engine, require:
+issue remains; it does not mean waiting an arbitrary number of days. Before
+the production hostname switches from App Engine to the replacement map, require:
 
 - 100% of expected in-scope durable entities and active states are accounted
   for.
 - Every in-scope referenced object exists with matching size and checksum, with
   zero broken or orphaned references outside a reviewed cleanup list.
 - The complete comparison corpus has zero unexplained API differences.
-- Scheduled comparisons have zero unexplained differences for an agreed
-  continuous soak, provisionally two to four weeks. Any material fix restarts
-  the relevant soak clock.
+- At least three consecutive fresh scheduled comparison reports have zero
+  unexplained differences. Any material fix restarts this short evidence streak.
 - JVM, KMP Android/iOS/web, C, and embedded legacy JSON consumers pass against
   the candidate host and through the production load balancer.
 - Browser-origin CORS, headerless POST, optional preflight, and plain port-80
@@ -1460,9 +1482,10 @@ the first production backend route moves from App Engine, require:
 - There are no unresolved severity-one or severity-two defects, security
   blockers, data-loss risks, or unapproved differences.
 
-Each cutover group also needs a signed comparison report, a named decision owner,
-an observation window, rollback thresholds, and an operator available to execute
-the rollback. If a gate fails, traffic stays on or returns to App Engine.
+The production cutover also needs signed comparison evidence, a named decision
+owner, rollback thresholds, and an operator available to execute rollback. It
+does not need a fixed-duration observation window. If a gate fails, traffic
+stays on or returns to App Engine.
 
 ## Security and operational requirements
 
@@ -1507,22 +1530,20 @@ the rollback. If a gate fails, traffic stays on or returns to App Engine.
 | New database migration loses data | Idempotent export/import, checksums, parity tests, and untouched legacy store |
 | Mirror lag hides a recent admin change | Keep App Engine authoritative, track high-water marks, freeze the old writer, and run a final reconciliation |
 | Comparator reports harmless protobuf or URL differences | Normalize decoded semantics and use a narrow, reviewed allowlist with content-hash checks |
-| Load-balancer or DNS migration is confused with backend cutover | Test on a candidate hostname, then soak production while still routing 100% to App Engine |
+| Load-balancer or DNS migration is confused with backend cutover | Exercise the complete replacement map on the candidate hostname before the one production switch |
 | Routing rollback loses writes made after authority changed | Freeze writers and rehearse reverse catalog/state synchronization before cutover |
 | Two admin services create conflicting writes | Keep the candidate read-only on production data and perform an atomic single-writer handoff |
 
 ## Decisions still to make
 
-- The public static website bucket's CDN, cache-invalidation, and deployment
-  policy. It must remain separate from the private application-assets bucket.
-  A non-executable proposal uses a fresh empty bucket per release, atomic
-  backend switching, the proposed `US` multi-region location, and the required
-  `index.html` website main-page suffix.
-  The recommended access option keeps the bucket private and enables CDN with
-  `FORCE_CACHE_ALL`, an approved maximum TTL, and only the load-balancer
-  cache-fill service account as object viewer. The alternative disables CDN
-  but must make objects public and can begin with `Cache-Control: no-store`.
-  This still needs confirmation before bucket or IAM creation.
+The comparison and static-site policies are now settled: three consecutive
+fresh zero-difference reports are sufficient, and the small public site uses
+one dedicated public `us-central1` bucket with CDN disabled initially and
+`Cache-Control: no-store`. CDN remains an optional future optimization if
+measurements justify it. The private application-assets and state buckets
+remain separate. Bucket creation and IAM still wait for the public-resource
+ownership gate; the architecture itself no longer needs a policy decision.
+
 - The retention period for normalized migration exports and legacy backups. A
   validated no-delete proposal recommends 365 days after final App Engine
   retirement, separate private backup storage, and manual review afterward.
@@ -1540,12 +1561,6 @@ the rollback. If a gate fails, traffic stays on or returns to App Engine.
   non-authorizing historical profiles, retain the one matched administrator,
   and manually review rather than automatically invite the other two legacy
   administrators.
-- Confirmation of the proposed `lb-next.retrostore.org`,
-  `next.retrostore.org`, and `admin-next.retrostore.org` hostnames.
-- Confirmation or revision of the checked-in fourteen-day zero-diff soak.
-- Confirmation or revision of the checked-in 1%, 5%, 25%, 50%, and 100% read
-  canaries, 24-hour minimum step observation, and automatic rollback
-  thresholds.
 - Who has go/no-go authority for each route group and who operates rollback.
 
 These decisions do not block contract capture, the Python project skeleton, or
@@ -1562,9 +1577,9 @@ probe also confirmed the current port-80 `listApps` request returns HTTP 200 and
 716 protobuf bytes with no redirect.
 The complete public-read transport audit subsequently matched HTTP and HTTPS
 for 338/338 scenarios: 158 API cases, 94 legacy downloads, six redirects, 79
-static routes, and the public listing. Every future front-door and canary step
-now requires that full gate and a pinned native port-80 smoke; this does not
-alter or restart the private schema-3 soak.
+static routes, and the public listing. The one production cutover requires that
+full gate and a pinned native port-80 smoke; this does not
+alter or restart the schema-3 evidence streak.
 
 ## Immediate next milestone
 
@@ -1655,9 +1670,10 @@ Phase 1:
 - [x] Add copy-on-write published app metadata and asset drafts with guarded
   publication merging, separate draft collections, object ownership, optimistic
   revisions, audit events, and a private server-rendered admin deployment.
-- [x] Freeze the proposed candidate hostnames, App Engine-only initial URL map,
+- [x] Freeze the approved candidate hostnames, complete parallel candidate map,
+  App Engine rollback map,
   exact API route groups, permanent hardware route exclusion, monitoring
-  thresholds, soak policy, and rollback invariants in a CI-validated
+  thresholds, comparison-evidence policy, and rollback invariants in a CI-validated
   machine-readable front-door plan.
 - [x] Deploy privacy-safe structured request events and a least-privilege,
   read-only hourly comparator job that retains immutable full-corpus reports.
@@ -1668,7 +1684,7 @@ Phase 1:
   non-passing latency step, including startup and raw allocation/cost metrics,
   without changing the serving revision or traffic.
 - [x] Add a generation- and checksum-validating retained-evidence auditor with a
-  revision-bound private zero-diff clock and explicit no-cutover baseline.
+  revision-bound private zero-diff report streak and explicit no-cutover baseline.
 - [x] Audit the anonymous `/reportapp` form and validation contract without
   triggering email, document its PII and abuse boundary, and keep it on App
   Engine until queue/email/retirement and retention choices are explicit.
@@ -1683,7 +1699,7 @@ Phase 1:
   on App Engine, and retain all three website backends in one atomic handoff.
 - [x] Add a sanitized 12-path App Engine fallback corpus for missing assets and
   route near-misses, prove HTTP/HTTPS equivalence, prove no migrating group
-  claims a fallback path, and require it at every future canary step.
+  claims a fallback path, and require it before production cutover.
 - [x] Add a local-only static deployment planner that checksum-verifies all 78
   objects, rejects every known existing project bucket, emits only
   create-if-absent uploads and zero deletes, and deliberately has no apply path.
@@ -1701,23 +1717,38 @@ Phase 1:
   latest execution, report-prefix writer, private bucket, and lifecycle.
 - [x] Prove all 338 API/download/redirect/static/listing scenarios are identical
   over production HTTP and HTTPS, then require that complete transport gate and
-  native port-80 smoke at every future front-door and read-canary step.
+  native port-80 smoke before the single production cutover.
 - [x] Consolidate every remaining operator choice into a CI-validated decision
-  register that cross-checks hostnames, owners, soak/canary status, retention,
+  register that cross-checks hostnames, owners, comparison/cutover status, retention,
   and the no-public-authority boundary.
 - [x] Reconcile the live migration dashboard and disabled alert policies,
   update only stale gate text for the four-surface/338-transport coverage, and
   add CI checks that prohibit silent alert enablement or channel attachment.
-- [x] Add and run a local-only readiness evaluator over the actual soak, service
+- [x] Add and run a local-only readiness evaluator over the comparison streak, service
   drift, comparator drift, pinned-client, 338-transport, and decision artifacts;
-  all engineering checks pass while authority/time gates remain fail-closed.
+  all engineering checks pass while authority gates remain fail-closed.
 - [x] Run the revision- and checksum-pinned JVM, TRS-80 KMP, and embedded-C
   clients through an authenticated loopback proxy to the current private
   revision, including isolated synthetic state lifecycles and native pagination.
-- [ ] Confirm the proposed hostnames and formally name the go/no-go and rollback
-  owners before any load-balancer, certificate, public IAM, or DNS resource is
-  created. Current DNS, certificates, HTTP behavior, and absence of an existing
-  load balancer are documented and reverified.
+- [x] Confirm `next.retrostore.org` and `admin-next.retrostore.org` as the
+  candidate hostnames.
+- [x] Formally name Sascha Ha as the go/no-go owner and rollback operator.
+- [x] Create the candidate-only public services, static bucket, exact fail-closed
+  URL map, managed certificate, IPv4/IPv6 addresses, and HTTP/HTTPS frontends
+  without changing `retrostore.org`.
+- [x] Run the full pre-DNS HTTP comparison through the load-balancer IP and
+  approved Host header: API 158/158, downloads 94/94, listing 1/1 with 32/32
+  entries, redirects 6/6, static routes 79/79, and fallbacks 12/12.
+- [x] Run one guarded expiring 34-byte synthetic state through the public
+  candidate and verify upload, full download, data-excluded download, and
+  overlapping memory-region behavior without retaining its token or payload.
+- [x] Run the revision- and checksum-pinned JVM SDK, TRS-80 KMP client, and
+  embedded C client unchanged through a guarded loopback bridge to the candidate
+  load balancer; all covered methods and isolated synthetic state calls pass.
+- [ ] After the domain move, publish only the `next` and `admin-next` A/AAAA
+  records, wait for the certificate, then repeat direct public-hostname
+  HTTP/HTTPS client transport and authenticated admin gates before any
+  production change.
 
 The unfinished Arduino tree in this repository is not the reviewed native
 C/ESP32 consumer and remains outside the compatibility gate; leave it untouched
@@ -1734,13 +1765,13 @@ guarded activation/rollback command, and copy-on-write draft UI are now deployed
 privately without activation. Front-door preparation, request observability, the
 private comparator, its dashboard, the first private capacity gate, the
 stage-only half of repeatable mirror synchronization, and the read-only
-reverse-sync planner are complete. While hostname and owner confirmation remain
-pending, the revision-bound private soak continues to accumulate automatically.
+reverse-sync planner are complete. The revision-bound comparison continues to
+run automatically while candidate DNS is coordinated with the domain move.
 The remaining data-policy choice now has a read-only evidence-backed proposal:
 retain all ten historical profiles without granting access and manually review
 the two unmatched legacy administrators. Actual
-legacy reverse writes and load-balancer provisioning still require explicit
-operator gates and remain unavailable.
+legacy reverse writes remain unavailable. The candidate-only load balancer is
+deployed, while production routing still requires the full cutover gate.
 Synchronized-catalog activation remains disabled.
 The RetroStore Card and TRS-IO hardware update subsystem stays unchanged on App
 Engine and is not part of that work queue.

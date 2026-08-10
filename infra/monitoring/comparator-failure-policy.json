@@ -19,7 +19,7 @@
   "documentation": {
     "mimeType": "text/markdown",
     "subject": "RetroStore compatibility comparison failed",
-    "content": "Stop any migration soak or canary. Open the `artifact_uri` from the matching structured log, verify its SHA-256, and classify every difference. Production stays on or returns to App Engine."
+    "content": "Stop the migration evidence streak. Open the `artifact_uri` from the matching structured log, verify its SHA-256, and classify every difference. Production stays on or returns to App Engine."
   },
   "userLabels": {
     "service": "retrostore",

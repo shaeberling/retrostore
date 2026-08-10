@@ -22,11 +22,11 @@ def _soak(*, eligible: bool = False) -> dict[str, object]:
         "soak": {
             "current": True,
             "eligible": eligible,
-            "report_count": 2,
-            "required_days": 14,
+            "report_count": 3 if eligible else 2,
+            "required_reports": 3,
             "started_at": "2026-08-10T03:55:01+00:00",
             "latest_at": "2026-08-10T04:18:28+00:00",
-            "reasons": [] if eligible else ["required_duration_not_reached"],
+            "reasons": [] if eligible else ["required_report_count_not_reached"],
         },
         "safety": {
             "contains_catalog_field_values": False,
@@ -157,10 +157,10 @@ def test_readiness_distinguishes_passing_evidence_from_pending_authority() -> No
         "passes": True,
         "blockers": [],
     }
-    assert report["decisions"]["pending_count"] == 10
-    assert report["gates"]["public_resource_creation"]["passes"] is False
-    assert report["gates"]["read_canary"]["passes"] is False
-    assert "private_zero_diff_soak_not_eligible" in report["gates"]["read_canary"][
+    assert report["decisions"]["pending_count"] == 4
+    assert report["gates"]["public_resource_creation"]["passes"] is True
+    assert report["gates"]["production_cutover"]["passes"] is False
+    assert "private_zero_diff_evidence_not_ready" in report["gates"]["production_cutover"][
         "blockers"
     ]
     assert report["gates"]["app_engine_retirement"]["passes"] is False
@@ -174,7 +174,7 @@ def test_readiness_reports_failed_real_client_evidence() -> None:
     assert "pinned_consumers_pass" in report["gates"]["private_engineering_evidence"][
         "blockers"
     ]
-    assert "evidence:pinned_consumers_pass" in report["gates"]["read_canary"][
+    assert "evidence:pinned_consumers_pass" in report["gates"]["production_cutover"][
         "blockers"
     ]
 
@@ -187,14 +187,14 @@ def test_readiness_rejects_evidence_for_a_different_revision() -> None:
         _evaluate(soak=soak)
 
 
-def test_eligible_soak_removes_only_the_time_blocker() -> None:
+def test_three_report_streak_removes_only_the_evidence_blocker() -> None:
     report = _evaluate(soak=_soak(eligible=True))
 
-    assert "private_zero_diff_soak_not_eligible" not in report["gates"]["read_canary"][
+    assert "private_zero_diff_evidence_not_ready" not in report["gates"]["production_cutover"][
         "blockers"
     ]
-    assert report["gates"]["read_canary"]["passes"] is False
-    assert "candidate_hostnames" in report["gates"]["read_canary"]["blockers"]
+    assert report["gates"]["production_cutover"]["passes"] is False
+    assert "alert_destination" in report["gates"]["production_cutover"]["blockers"]
 
 
 def test_readiness_rejects_green_evidence_with_unsafe_privacy_flags() -> None:

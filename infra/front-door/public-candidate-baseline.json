@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "status": "deployed_pre_dns_domain_move_pending",
+  "last_verified": "2026-08-10",
+  "project": "trs-80",
+  "region": "us-central1",
+  "production_changed": false,
+  "dns": {
+    "records_created": false,
+    "authoritative_nameservers": [
+      "curt.ns.cloudflare.com",
+      "rita.ns.cloudflare.com"
+    ],
+    "operator_note": "retrostore.org now resolves through Cloudflare; coordinate candidate records there",
+    "required_records": {
+      "next.retrostore.org": {
+        "A": "34.102.211.182",
+        "AAAA": "2600:1901:0:81dc::"
+      },
+      "admin-next.retrostore.org": {
+        "A": "34.102.211.182",
+        "AAAA": "2600:1901:0:81dc::"
+      }
+    }
+  },
+  "cloud_run": {
+    "api": {
+      "service": "retrostore-api-next",
+      "revision": "retrostore-api-next-initial1",
+      "image": "us-central1-docker.pkg.dev/trs-80/retrostore/api@sha256:22d135c40f50ec10649f9a8480ad9898dbceb52a6c2628cbad1f73ac93bed3d4",
+      "service_account": "retrostore-api@trs-80.iam.gserviceaccount.com",
+      "ingress": "internal-and-cloud-load-balancing",
+      "default_url_disabled": true,
+      "public_invoker": true
+    },
+    "admin": {
+      "service": "retrostore-admin-next",
+      "revision": "retrostore-admin-next-initial1",
+      "image": "us-central1-docker.pkg.dev/trs-80/retrostore/admin@sha256:5ea9ffe42bad43e374c3cc38e12e4d9716a6d1870e83320cde59bb337e150c84",
+      "service_account": "retrostore-admin@trs-80.iam.gserviceaccount.com",
+      "ingress": "internal-and-cloud-load-balancing",
+      "default_url_disabled": true,
+      "public_invoker": true
+    }
+  },
+  "static_site": {
+    "bucket": "trs-80-retrostore-public",
+    "backend_bucket": "retrostore-public-static",
+    "location": "us-central1",
+    "object_count": 78,
+    "total_bytes": 4652747,
+    "content_aggregate_sha256": "991c3fabcc2b3fa359c34ad7b57a90510a54ce8de8cbbed1ff96b3b4a5aabf0b",
+    "uniform_bucket_level_access": true,
+    "public_object_viewer": true,
+    "cache_control": "no-store",
+    "access_control_allow_origin": "*",
+    "cdn_enabled": false
+  },
+  "load_balancer": {
+    "url_map": "retrostore-next",
+    "ipv4": {
+      "resource": "retrostore-next-ipv4",
+      "address": "34.102.211.182"
+    },
+    "ipv6": {
+      "resource": "retrostore-next-ipv6",
+      "address": "2600:1901:0:81dc::"
+    },
+    "certificate": {
+      "resource": "retrostore-next-cert",
+      "type": "compute_managed",
+      "status": "PROVISIONING",
+      "domains": [
+        "next.retrostore.org",
+        "admin-next.retrostore.org"
+      ]
+    },
+    "forwarding_rules": [
+      "retrostore-next-http-ipv4",
+      "retrostore-next-http-ipv6",
+      "retrostore-next-https-ipv4",
+      "retrostore-next-https-ipv6"
+    ],
+    "default_backend": "retrostore-appengine-default"
+  },
+  "pre_dns_http_parity": {
+    "api": {"total": 158, "matching": 158},
+    "downloads": {"total": 94, "matching": 94},
+    "public_catalog": {"response_count": 1, "matching_entries": 32},
+    "redirects": {"total": 6, "matching": 6},
+    "static": {"total": 79, "matching": 79},
+    "app_engine_fallbacks": {"total": 12, "matching": 12},
+    "total_scenarios": 350,
+    "matching_scenarios": 350,
+    "passes": true
+  },
+  "pre_dns_synthetic_state_lifecycle": {
+    "protobuf_bytes": 34,
+    "upload_success": true,
+    "download_round_trip_match": true,
+    "exclude_memory_data_match": true,
+    "overlap_region_match": true,
+    "contains_state_token": false,
+    "passes": true
+  },
+  "pre_dns_real_clients": {
+    "reviewed_trs80_revision": "aecbddcc7f5515fb844bb7a1fc350d8ffaaf5ce5",
+    "published_jvm_sdk_method_count": 9,
+    "trs80_kmp_method_count": 5,
+    "trs80_embedded_c_method_count": 3,
+    "transport": "loopback_bridge_to_candidate_load_balancer",
+    "contains_state_tokens_or_payloads": false,
+    "passes": true
+  },
+  "remaining_before_production_cutover": [
+    "publish candidate A and AAAA records at the new authoritative DNS provider",
+    "wait for the candidate managed certificate to become ACTIVE",
+    "repeat the complete comparator over HTTPS",
+    "repeat the pinned KMP, JVM, and embedded clients directly through the public DNS names over HTTP and HTTPS",
+    "exercise authenticated admin workflows on admin-next.retrostore.org",
+    "confirm the alert destination and make an explicit go/no-go decision"
+  ]
+}

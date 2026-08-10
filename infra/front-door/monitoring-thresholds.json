@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
-  "status": "provisional_defaults_owner_confirmation_required",
+  "status": "cutover_policy_approved_monitoring_defaults_provisional",
   "last_verified": "2026-08-10",
   "comparison": {
     "schedule_seconds": 3600,
-    "continuous_zero_diff_soak_days": 14,
+    "minimum_consecutive_zero_diff_reports": 3,
     "maximum_unexplained_differences": 0,
     "maximum_unapproved_differences": 0,
-    "material_fix_restarts_soak": true,
+    "material_fix_restarts_evidence_streak": true,
     "report_retention_days": 90
   },
   "integrity": {
@@ -34,16 +34,17 @@
     "p99_maximum_baseline_multiplier": 2.0,
     "p99_maximum_baseline_delta_ms": 500
   },
-  "canary": {
-    "read_steps_percent": [1, 5, 25, 50, 100],
-    "minimum_observation_hours_per_step": 24,
-    "require_complete_comparator_at_each_step": true,
-    "require_full_public_transport_parity_at_each_step": true,
-    "require_app_engine_fallback_parity_at_each_step": true,
-    "require_native_port_80_smoke_at_each_step": true,
-    "require_all_consumer_smokes_at_100_percent": true,
-    "state_canary_allowed": false,
-    "admin_writer_canary_allowed": false
+  "cutover": {
+    "mode": "single_atomic_switch_after_parallel_parity_and_operator_approval",
+    "percentage_canaries_enabled": false,
+    "minimum_observation_hours": 0,
+    "require_complete_comparator_before_cutover": true,
+    "require_full_public_transport_parity_before_cutover": true,
+    "require_app_engine_fallback_parity_before_cutover": true,
+    "require_native_port_80_smoke_before_cutover": true,
+    "require_all_consumer_smokes_before_cutover": true,
+    "state_split_traffic_allowed": false,
+    "admin_writer_split_traffic_allowed": false
   },
   "rollback": {
     "target_route_recovery_minutes": 5,
@@ -61,12 +62,9 @@
       "state_token_allocation_collision"
     ]
   },
-  "observation_windows": {
-    "app_engine_only_front_door_hours": 48,
-    "static_after_100_percent_hours": 24,
-    "catalog_reads_after_100_percent_hours": 48,
-    "media_reads_after_100_percent_hours": 48,
-    "admin_writer_after_handoff_days": 7,
-    "state_after_handoff_days": 7
+  "post_cutover": {
+    "fixed_minimum_wait_required": false,
+    "continue_comparator": true,
+    "immediate_rollback_on_gate_failure": true
   }
 }

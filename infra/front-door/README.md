@@ -1,25 +1,28 @@
 # RetroStore front-door preparation
 
-This directory freezes the proposed routing and operational gates without
-creating cloud resources. `route-groups.json` is the machine-readable source of
-truth and `monitoring-thresholds.json` contains conservative provisional
-defaults. `private-soak-baseline.json` binds the current private comparison
-clock to one exact revision and deliberately denies cutover authority. Run the
+This directory freezes the routing, deployed parallel-candidate baseline, and
+operational gates. `route-groups.json` is the machine-readable source of truth,
+`public-candidate-baseline.json` records the candidate-only resources that now
+exist, and `monitoring-thresholds.json` contains conservative provisional
+defaults. `private-soak-baseline.json` is retained as the historical filename;
+it binds comparison evidence to one exact revision and deliberately denies
+cutover authority. Run the
 local, read-only check with:
 
 ```shell
 python3 infra/front-door/validate.py
 ```
 
-No script in this directory provisions, updates, or deletes a Google Cloud or
-DNS resource.
+The validators in this directory are offline and never provision, update, or
+delete a Google Cloud or DNS resource.
 
-The current private soak boundary is 2026-08-10 03:55 UTC, after revision
+The current private evidence boundary is 2026-08-10 03:55 UTC, after revision
 `retrostore-api-compat-candidate-redirects1` became ready at 100% private traffic
 and comparator generation 4 was pinned to schema-3 four-surface evidence. Any
 material service revision requires a reviewed baseline update and starts a new
-clock. The baseline explicitly records that production routing, catalog
-activation, and load-balancer provisioning remain unauthorized.
+three-report evidence streak. That historical private baseline explicitly
+records the authority boundary that existed before candidate-only provisioning;
+production routing and catalog activation remain unauthorized.
 
 The first automatic generation-4 schedule fired at 04:17 UTC under the
 comparator service account and retained a second eligible schema-3 artifact at
@@ -27,38 +30,57 @@ comparator service account and retained a second eligible schema-3 artifact at
 (32/32), and redirects (6/6). The next hourly execution retained a third
 eligible artifact at 05:19:27 UTC with the same zero-difference result. The
 checksum auditor validated all eleven historical artifacts and reports three
-current-boundary artifacts with no continuity gap.
+current-boundary artifacts with no continuity gap. The separately deployed
+public candidate is recorded in `public-candidate-baseline.json`.
 
 ## Verified current state
 
-The read-only inventory was refreshed on 2026-08-10:
+The candidate-only state was re-audited on 2026-08-10:
 
 - `retrostore.org` and `www.retrostore.org` are direct App Engine domain
   mappings with App Engine-managed certificates.
-- The project has no Compute URL maps, backend services, network endpoint
-  groups, global forwarding rules, or load-balancer IP addresses.
-- The Certificate Manager API is disabled and has no project resources.
-- All three replacement Cloud Run services remain private and use `ingress=all`
-  only so authenticated `run.app` proxy testing works.
+- The separate `retrostore-next` global external Application Load Balancer is
+  allocated at IPv4 `34.102.211.182` and IPv6 `2600:1901:0:81dc::`, with HTTP
+  and HTTPS forwarding rules. It does not serve the production hostname.
+- `retrostore-api-next` and `retrostore-admin-next` are distinct final services
+  with load-balancer-only ingress, disabled default URLs, and public invocation
+  through the load balancer. The earlier private comparison services remain
+  unchanged.
+- `trs-80-retrostore-public` contains the 78 checksum-verified static objects;
+  its backend bucket has CDN disabled and adds the legacy CORS response header.
+- The Google-managed Compute certificate for `next.retrostore.org` and
+  `admin-next.retrostore.org` is `PROVISIONING` until their A/AAAA records exist.
+- The domain now delegates to Cloudflare nameservers `curt` and `rita`. No
+  candidate or production DNS record was changed by this work; record
+  publication must be coordinated in that authoritative zone.
 - No production DNS record, domain mapping, route, or invoker policy changed.
 
-The initial production URL map is deliberately trivial: every request goes to
-the App Engine backend. The load-balancer front-door move and backend cutover
-are separate changes with separate soak clocks.
+Pre-DNS HTTP probes use the reserved IPv4 address plus an explicit approved
+Host header, so they are independent of public DNS. That front door passes
+350/350 scenarios: API 158, downloads 94, public listing 1 (32 entries),
+redirects 6, static routes 79, and App Engine fallbacks 12. HTTPS and real-client
+candidate testing remain blocked until DNS and the certificate are ready. A
+separate guarded 34-byte synthetic lifecycle also passed all three state RPCs.
+The revision- and checksum-pinned JVM SDK, TRS-80 KMP client, and embedded C
+client also pass through a guarded loopback bridge to the actual load balancer;
+only direct public DNS/TLS transport remains to repeat after activation.
 
-## Proposed hostnames
+The production URL map remains untouched until the complete replacement has
+passed side-by-side testing. The candidate URL map is exercised on its own
+hostname first; the production change is then one reversible switch to that
+already-tested map.
 
-| Purpose | Proposed hostname | Initial target |
+## Approved candidate hostnames
+
+| Purpose | Hostname | Initial target |
 | --- | --- | --- |
-| Full front-door rehearsal | `lb-next.retrostore.org` | App Engine only |
-| API and screenshot candidate | `next.retrostore.org` | Cloud Run only for `/api/*`, `/s/*`, and `/assets/screenshots/*`; App Engine default |
+| Complete parallel replacement | `next.retrostore.org` | New static site and Cloud Run routes, with explicitly retained App Engine fallback routes |
 | Administration candidate | `admin-next.retrostore.org` | Cloud Run administration service |
-| Production | `retrostore.org` | App Engine only until each route gate passes |
+| Production | `retrostore.org` | App Engine until the single cutover gate passes |
 
-These names are proposals, not DNS records. They and the named go/no-go and
-rollback owners remain explicit confirmation items. The suggested owner for
-both roles is Sascha Ha; the machine-readable plan does not record that as a
-confirmed assignment.
+The two candidate names and both owners are approved. Sascha Ha is the confirmed
+go/no-go owner and rollback operator. DNS records are deliberately still absent
+while the domain move is coordinated.
 
 ## Route safety model
 
@@ -70,9 +92,10 @@ The frozen nine-method `/api` contract is split into three routing units:
 - State: `uploadState`, `downloadState`, and
   `downloadStateMemoryRegion` as one atomic group.
 
-Only the two read-only groups may use weighted backend services. State cannot
-be split because token allocation and retrieval must share one authority. The
-new and legacy catalog admins also cannot run as concurrent writers.
+All migrating groups use one atomic production route change; percentage splits
+are disabled. State cannot be split because token allocation and retrieval must
+share one authority. The new and legacy catalog admins also cannot run as
+concurrent writers.
 
 `/card`, `/card/*`, `/trs-io`, and `/trs-io/*` form a permanent App Engine
 island. This includes both their public hardware update bytes and their
@@ -93,7 +116,7 @@ unclassified and fail closed to App Engine.
 The static route group enumerates `/` plus every one of the 78 verified object
 paths, including the legacy `/public/` aliases. It intentionally uses no broad
 asset prefix: missing paths have inconsistent legacy fall-through behavior and
-must continue to reach App Engine. It targets only the not-yet-created backend bucket.
+must continue to reach App Engine. It targets the deployed backend bucket.
 It shares one `public_website` handoff group with `/public/apps.json` and the six
 redirects, so those three backends change or roll back in one URL-map update.
 Because the dynamic `/public/apps.json` path is not a static object, there is no
@@ -105,7 +128,7 @@ object in each legacy asset family, `/public/`, a redirect near-miss, a download
 near-miss, and an unknown API method. Tests prove none is claimed by a migrating
 route group. The live HTTP-versus-HTTPS baseline passed 12/12 while retaining no
 response body: the observed behaviors include legacy login fall-through, empty
-and body-bearing 404s, and bounded 400s. Every future canary step must compare
+and body-bearing 404s, and bounded 400s. The final pre-cutover gate must compare
 this corpus through the candidate front door and App Engine reference, in
 addition to the 338 known public reads.
 
@@ -128,25 +151,18 @@ full-path URL-map rewrite. It deliberately leaves `notFoundPage` unset until
 missing-path behavior is compared, so the public `/404.html` object does not
 silently become a different response for every missing object.
 
-The remaining bucket/IAM/cache choice is explicit. The recommended option is a
-private bucket with public access prevention enforced, Cloud CDN enabled,
-`FORCE_CACHE_ALL`, a bounded maximum TTL, and only
-`service-${PROJECT_NUMBER}@https-lb.iam.gserviceaccount.com` granted
-`roles/storage.objectViewer`. Google's private backend-bucket access requires
-that cache-fill identity and CDN configuration. The simpler no-CDN alternative
-needs `allUsers` object-viewer access and public access prevention disabled; it
-can start with `Cache-Control: no-store`. Both use a new empty bucket per
-release and an atomic backend switch. Neither is authorized yet.
+The approved small-project policy uses the single dedicated
+`trs-80-retrostore-public` bucket in `us-central1`. Its static objects are
+publicly readable, public access prevention is disabled only on that bucket,
+Cloud CDN is disabled initially, and objects begin with `Cache-Control:
+no-store`. CDN remains a future opt-in optimization if measured traffic or
+latency ever justifies it.
+Application assets and state stay in their existing private buckets. The
+emitted front-door section carries all 79 exact paths, zero prefixes, App Engine
+as the unknown-path default, and the JSON/redirect companion routes that must
+move atomically. The planner still cannot create the bucket or IAM binding.
 
-The plan now proposes the `US` multi-region location, following Google's
-availability recommendation for production backend buckets and matching the
-current assets bucket's broad geography. Location remains part of the static
-site policy decision rather than an apply default. The emitted front-door
-section carries all 79 exact paths, zero prefixes, App Engine as the unknown-path
-default, and the JSON/redirect companion routes that must move atomically.
-
-Primary references: [Cloud Storage static website configuration](https://cloud.google.com/storage/docs/hosting-static-website)
-and [private backend-bucket access](https://cloud.google.com/cdn/docs/setting-up-cdn-with-bucket).
+Primary reference: [Cloud Storage static website configuration](https://cloud.google.com/storage/docs/hosting-static-website).
 
 ## Why active comparison is required
 
@@ -161,45 +177,33 @@ Readiness must instead be verified with direct authenticated candidate probes,
 Cloud Run revision health, synthetic uptime checks after a public candidate is
 approved, and the scheduled comparator.
 
-## Provisioning sequence requiring explicit approval
+## Remaining activation sequence
 
-The following steps intentionally have no executable apply script yet:
+Candidate services, storage, URL map, IPv4/IPv6 addresses, certificate, and all
+four forwarding rules now exist. The remaining sequence is:
 
-1. Confirm the three proposed hostnames and the decision and rollback owners.
-2. Enable Compute, Certificate Manager, and required load-balancing APIs.
-3. Reserve global IPv4 and IPv6 addresses.
-4. Create App Engine and Cloud Run serverless NEGs and one backend service per
-   independently routed backend.
-5. Create the App Engine-only URL map and both port-80 and port-443 frontends.
-   Plain HTTP must not redirect while reviewed embedded clients still use it.
-6. Create Certificate Manager DNS authorizations and add only their CNAME
-   records. This lets certificates become active before any A or AAAA change.
-7. Attach an active certificate map, then test with `curl --resolve` and all
-   real consumers before publishing candidate A and AAAA records.
-8. Expose separately deployed final Cloud Run services through the load
-   balancer. Their application-facing paths need unauthenticated invocation;
-   use `internal-and-cloud-load-balancing` ingress and disable their default
-   URLs so the load balancer is the only public path. Do not loosen the current
-   private candidate services in place.
-9. Soak `lb-next.retrostore.org` with the App Engine-only map, then update
-   `retrostore.org` only after certificates, IPv4, IPv6, HTTP, HTTPS, and the
-   complete client matrix pass.
-10. Keep the production URL map App Engine-only for at least 48 hours. Later
-    backend moves are independent, reversible URL-map changes.
-
-The existing App Engine-managed certificates cannot be attached to the new load
-balancer. DNS authorization is selected because it permits the replacement
-certificate to be provisioned before the production apex points at the load
-balancer.
+1. After the domain move stabilizes, publish A and AAAA records for both
+   candidate hostnames at the new authoritative DNS provider.
+2. Wait for `retrostore-next-cert` to become `ACTIVE` for both names.
+3. Repeat all 350 comparisons over HTTPS and test plain HTTP explicitly.
+4. Repeat the pinned Android/iOS/web KMP, JVM, and ESP32/native clients directly
+   through `next.retrostore.org` over public DNS/HTTP/HTTPS, then exercise
+   authenticated administration through `admin-next.retrostore.org`.
+5. Confirm the alert recipient and review a fresh go/no-go packet.
+6. Switch `retrostore.org` once to the already-tested replacement map. Keep the
+   App Engine default backend ready for immediate rollback; there is no fixed
+   waiting period or percentage rollout.
 
 ## Monitoring and rollback defaults
 
-The checked-in thresholds require hourly full comparisons and fourteen
-continuous zero-diff days. Integrity tolerances are all zero. Read canaries use
-1%, 5%, 25%, 50%, and 100% steps with at least 24 hours at each step. Each step
-must pass a fresh complete corpus. State and admin handoffs are atomic.
+The checked-in thresholds require three consecutive fresh full comparisons
+with zero differences; the existing streak already satisfies that gate.
+Integrity tolerances are all zero. Percentage canaries and fixed observation
+windows are disabled. The one production switch requires the complete corpus,
+HTTP/HTTPS and native port-80 parity, and every pinned real-client smoke. State
+and admin authority still move atomically so writes never split between stacks.
 
-The same weighted read-canary sequence now covers `/downloadapp`. Its normalized
+The same pre-cutover parity gate covers `/downloadapp`. Its normalized
 mirror handler passed all 94 current ZIP, typed-media, and error scenarios
 against App Engine before any route was created. ZIP comparison is semantic
 because the legacy endpoint embeds request-time ZIP metadata.
@@ -211,8 +215,8 @@ the recorded relative and absolute guardrails. Any compatibility, integrity,
 security, data-loss, state-allocation, or single-writer failure stops the change
 immediately. The route recovery objective is five minutes.
 
-These are conservative defaults that keep the work executable; owner
-confirmation is still required before production traffic moves.
+These are conservative defaults that keep the work executable. A fresh explicit
+go/no-go decision is still required before production traffic moves.
 
 ## Plain HTTP compatibility
 
@@ -229,10 +233,10 @@ today's observable contract.
 
 The complete public-read transport gate also matched HTTPS and plain HTTP across
 338/338 scenarios: 158 API cases, 94 legacy downloads, six redirects, 79 static
-routes, and the public listing. The machine-readable canary policy now requires
-that full parity run plus the pinned native port-80 smoke at every read step.
-This transport gate is separate from the current schema-3 private Cloud Run
-soak, so adding it did not reset that revision-bound clock.
+routes, and the public listing. The machine-readable cutover policy requires
+that full parity run plus the pinned native port-80 smoke before the single
+production switch. This transport gate is separate from the schema-3 private
+Cloud Run evidence streak.
 
 ## Google Cloud references
 

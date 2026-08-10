@@ -1,11 +1,14 @@
 """Discover and compare every public catalog and media record without mutations."""
 
 import argparse
+import ipaddress
 import json
 import subprocess
 from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import httpx
 
@@ -197,6 +200,7 @@ def main() -> None:
     parser.add_argument("--timeout-seconds", type=float, default=30.0)
     parser.add_argument("--candidate-gcloud-identity-token-service-account")
     parser.add_argument("--candidate-audience")
+    parser.add_argument("--candidate-host-header")
     args = parser.parse_args()
 
     candidate_headers = None
@@ -210,6 +214,11 @@ def main() -> None:
                 args.candidate_gcloud_identity_token_service_account,
             )
         }
+    candidate_headers = _with_candidate_host_header(
+        args.candidate_url,
+        args.candidate_host_header,
+        candidate_headers,
+    )
 
     report = evaluate_approvals(
         compare_exhaustive(
@@ -220,6 +229,9 @@ def main() -> None:
         ),
         load_approvals(args.approvals) if args.approvals else (),
     )
+    report["generated_at"] = datetime.now(UTC).isoformat()
+    if args.candidate_host_header is not None:
+        report["candidate_host_header"] = args.candidate_host_header
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     if not report["approval_gate"]["passes"]:
@@ -249,6 +261,40 @@ def _gcloud_identity_token(audience: str, service_account: str) -> str:
     if not token:
         raise RuntimeError("gcloud returned an empty identity token")
     return token
+
+
+def _with_candidate_host_header(
+    candidate_url: str,
+    host_header: str | None,
+    headers: Mapping[str, str] | None = None,
+) -> Mapping[str, str] | None:
+    """Allow an approved pre-DNS HTTP load-balancer probe by numeric address."""
+    if host_header is None:
+        return headers
+    parsed = urlsplit(candidate_url)
+    if (
+        host_header != "next.retrostore.org"
+        or parsed.scheme != "http"
+        or parsed.port not in {None, 80}
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.path not in {"", "/"}
+        or parsed.query
+        or parsed.fragment
+        or parsed.hostname is None
+    ):
+        raise ValueError("Candidate host override is limited to the approved HTTP front door")
+    try:
+        address = ipaddress.ip_address(parsed.hostname)
+    except ValueError as error:
+        raise ValueError(
+            "Candidate host override requires a numeric load-balancer address"
+        ) from error
+    if not address.is_global:
+        raise ValueError("Candidate host override requires a global load-balancer address")
+    result = dict(headers or {})
+    result["Host"] = host_header
+    return result
 
 
 if __name__ == "__main__":

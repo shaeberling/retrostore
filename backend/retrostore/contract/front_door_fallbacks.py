@@ -11,6 +11,8 @@ from urllib.parse import urlsplit
 
 import httpx
 
+from retrostore.contract.exhaustive import _with_candidate_host_header
+
 FALLBACK_SCENARIOS = (
     ("unknown-root", "/__retrostore_front_door_fallback__"),
     ("missing-css", "/css/__retrostore_front_door_fallback__.css"),
@@ -91,6 +93,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--reference-url", required=True)
     parser.add_argument("--candidate-url", required=True)
+    parser.add_argument("--candidate-host-header")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--timeout-seconds", type=float, default=30.0)
     args = parser.parse_args(argv)
@@ -105,6 +108,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         timeout=args.timeout_seconds,
     ) as reference, httpx.Client(
         base_url=candidate_url,
+        headers=_with_candidate_host_header(
+            candidate_url,
+            args.candidate_host_header,
+        ),
         follow_redirects=False,
         timeout=args.timeout_seconds,
     ) as candidate:
@@ -114,6 +121,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             reference_url=reference_url,
             candidate_url=candidate_url,
         )
+        if args.candidate_host_header is not None:
+            report["candidate_host_header"] = args.candidate_host_header
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")

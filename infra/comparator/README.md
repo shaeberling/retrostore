@@ -106,7 +106,7 @@ artifact. It derives download scenarios from public HTTP responses and needs no
 catalog database or object-reader permission.
 
 The checked-in `../front-door/private-soak-baseline.json` binds the current
-private evidence clock to candidate revision `redirects1` and schema-3 evidence
+private evidence streak for candidate revision `redirects1` and schema-3 evidence
 beginning no earlier than 2026-08-10 03:55 UTC. The local
 `retrostore.contract.soak_status` auditor verifies every retained object's
 content digest and internal counts, checks that the expected revision still has
@@ -124,9 +124,8 @@ and retained schema-3 artifact
 `d7fa173b8efc4bcdda7187d4db162ec799e433b71907771e82be2026926b9b47`.
 The auditor checksum-validated eleven reports total, with three current-boundary
 reports and no continuity gap. The earlier schema-1 and schema-2 reports remain
-valid history but cannot extend
-this exact revision and schema-3 clock. The 14-day gate is current but not yet
-eligible.
+valid history but cannot extend this exact revision and schema-3 streak. The
+three current reports satisfy the approved comparison-evidence gate.
 
 `runtime-baseline.json` independently pins job generation/image/configuration,
 job invokers, the enabled UTC scheduler target and identity, and the private
@@ -134,7 +133,7 @@ report bucket's conditional writer and 90-day prefix lifecycle. The read-only
 runtime auditor documented in `backend/README.md` passed all nine live checks on
 2026-08-10. It emits neither environment values nor IAM members and has no
 mutation operation.
-This private clock is evidence only and does not authorize a hostname,
+This private streak is evidence only and does not authorize a hostname,
 load balancer, data activation, or production route change.
 
 References:

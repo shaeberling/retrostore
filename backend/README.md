@@ -201,6 +201,25 @@ loopback proxy does not accept its automatic cleartext HTTP/2 upgrade; the
 reviewed Android, iOS, and wasm transport sources remain checksum-pinned and
 unchanged.
 
+The same unchanged clients can traverse the deployed pre-DNS load balancer via
+a guarded internal loopback bridge:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.contract.consumer_clients \
+  --trs80-checkout /path/to/TRS-80 \
+  --candidate-front-door-url http://34.102.211.182 \
+  --candidate-host-header next.retrostore.org \
+  --output /tmp/retrostore-next-consumers.json \
+  --apply \
+  --confirm-candidate-front-door-url http://34.102.211.182
+```
+
+The bridge binds only to loopback and the upstream guard accepts only the exact
+approved Host header plus a numeric global port-80 address. The first run passed
+all nine JVM SDK methods, all five TRS-80 KMP methods, and all three embedded C
+methods. Direct hostname/TLS transport must still be repeated after DNS exists.
+
 ## Protobuf generation
 
 `proto/ApiProtos.proto` is a frozen upstream contract. Do not edit it to change
@@ -258,6 +277,23 @@ per-app detail and media responses, media references, and every referenced byte
 range. The first App Engine self-comparison matched all 158 observations across
 32 apps, 60 media objects, and 6,826,237 media bytes. The report contains
 semantic metadata and hashes, not the media binaries.
+
+Before candidate DNS exists, the comparator can safely target only a numeric
+global load-balancer address with the exact approved Host header:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.contract.exhaustive \
+  --reference-url https://retrostore.org \
+  --candidate-url http://34.102.211.182 \
+  --candidate-host-header next.retrostore.org \
+  --output /tmp/retrostore-next-api-parity.json
+```
+
+The guard rejects any hostname except `next.retrostore.org`, non-HTTP origins,
+credentials, paths, ports other than 80, and non-global or non-numeric
+addresses. The public-list, download, redirect, and fallback comparators accept
+the same option. This is independent of public DNS while the domain moves.
 
 For a private Cloud Run candidate, add a keyless runtime identity token without
 printing or storing it:
@@ -369,8 +405,8 @@ necessary because the concurrency-20 request-count series reported 4,741 while
 its latency histogram independently contained all 5,020 measured-plus-warmup
 observations.
 
-Validate the retained hourly evidence and calculate the continuous private
-zero-diff clock with:
+Validate the retained hourly evidence and calculate the consecutive private
+zero-diff report streak with:
 
 ```shell
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
@@ -417,7 +453,7 @@ run passed all three services, each of which returned 403 anonymously and had
 no public IAM principal.
 
 Prove the current plain-HTTP native transport has the same complete read
-contract as HTTPS without changing the revision-bound private soak:
+contract as HTTPS without changing the revision-bound comparison evidence:
 
 ```shell
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
@@ -442,8 +478,8 @@ UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
 That sanitized gate matched 338/338: the 158 API cases, 94 legacy downloads,
 six redirects, 79 static routes, and the public listing. It stores no catalog
 values, app IDs, filenames, response bodies, or credentials. Run it and the
-pinned native port-80 client smoke at every future front-door and read-canary
-step; an HTTP redirect is a failure.
+pinned native port-80 client smoke before production cutover; an HTTP redirect
+is a failure.
 
 Audit the comparator job, scheduler, conditional report-prefix writer, bucket
 lifecycle, and private IAM as one evidence pipeline:
@@ -477,11 +513,10 @@ UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
   --output ../.migration-artifacts/migration-readiness.json
 ```
 
-The evaluator has no cloud or mutation operation. Its first real run reports
-all five engineering checks passing while correctly denying public resource
-creation, read canary, and App Engine retirement. The blockers are the
-fourteen-day duration and the exact pending decision IDs, not an unspecified
-catch-all.
+The evaluator has no cloud or mutation operation. The current three-report
+streak satisfies its comparison-evidence gate. Public resource creation,
+production cutover, and App Engine retirement remain blocked only by their exact unresolved
+operator decisions and other explicit handoff gates.
 
 Exercise the deployed write path with one synthetic state only. This guarded
 command is a dry run unless `--apply` and an exact URL confirmation are both
@@ -1038,14 +1073,38 @@ UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
   -m retrostore.public_site_deployment \
   --bundle /tmp/retrostore-public-site \
   --build-report /tmp/retrostore-public-site-build.json \
-  --target-bucket trs-80-retrostore-public-example-release \
+  --target-bucket trs-80-retrostore-public \
   --output /tmp/retrostore-public-site-deployment.json
 ```
 
 The planner has no `--apply` mode and makes no cloud requests. It refuses all
-five known existing project buckets and any name outside the dedicated
-`trs-80-retrostore-public-` namespace. Every upload has a create-only generation
+five known existing project buckets and any name other than the dedicated
+`trs-80-retrostore-public` bucket. Every initial upload has a create-only generation
 precondition, the object set and aggregate digest must exactly match the build,
-and the delete list is always empty. Its initial CDN-disabled, `no-store`,
-new-bucket-per-release policy is explicitly a proposal requiring confirmation;
-the emitted plan is never marked ready to apply.
+and the delete list is always empty. The approved small-project policy uses one
+public `us-central1` bucket, CDN disabled initially, and `Cache-Control:
+no-store`; CDN can be added later if measurements justify it. The emitted plan
+still has no apply capability and never marks itself ready to apply.
+
+Verify all 79 deployed static routes—including bytes, content types,
+`Cache-Control: no-store`, and the legacy CORS header—through the pre-DNS front
+door with:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.contract.static_front_door \
+  --bundle /tmp/retrostore-public-site \
+  --build-report /tmp/retrostore-public-site-build.json \
+  --candidate-url http://34.102.211.182 \
+  --candidate-host-header next.retrostore.org \
+  --output /tmp/retrostore-next-static-parity.json
+```
+
+The first deployed run matched 79/79. Together with API 158/158, downloads
+94/94, listing 1/1 (32 entries), redirects 6/6, and App Engine fallbacks 12/12,
+the candidate HTTP front door passes 350/350 pre-DNS scenarios.
+
+The guarded state lifecycle command accepts the same pre-DNS host override. Its
+first public-candidate run created one expiring 34-byte synthetic state and
+passed upload, full download, memory-excluded download, and overlapping-region
+checks without retaining the allocated token or payload.

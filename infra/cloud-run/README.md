@@ -12,8 +12,11 @@ future production URL map must keep those route groups pinned to App Engine.
 
 The compatibility API image is built from `backend/` with
 `services/api_compat/cloudbuild.yaml` and stored in the dedicated
-`us-central1-docker.pkg.dev/trs-80/retrostore` repository. A candidate deploy
-must set all replacement resource names explicitly:
+`us-central1-docker.pkg.dev/trs-80/retrostore` repository. The private comparison
+service remains as documented below. The separately deployed final service is
+`retrostore-api-next`; it has load-balancer-only ingress, a disabled default
+URL, and is reachable only through the `retrostore-next` load balancer. Both
+deployments set all replacement resource names explicitly:
 
 ```shell
 gcloud run deploy retrostore-api-compat-candidate \
@@ -131,7 +134,7 @@ anonymous invocation, matched all 94 current ZIP/typed/error download scenarios,
 matched the frozen API corpus 158/158 with zero approvals, and passed a guarded
 synthetic lifecycle through all three state RPCs. It then received 100% of the
 private candidate traffic; `retrostore.org` and the active catalog pointer did
-not change. A manual 158/158 comparator seeded its new revision-bound soak.
+not change. A manual 158/158 comparator seeded its new revision-bound evidence streak.
 Two subsequent concurrency-8 runs each matched 2,000/2,000 frozen API
 responses. The first preserved a low-sample client-latency non-pass while
 exact-revision resource telemetry passed; the independent confirmation passed

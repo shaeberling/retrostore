@@ -2,7 +2,11 @@ import httpx
 import pytest
 
 from retrostore.contract.capture import capture_scenarios_with_client
-from retrostore.contract.exhaustive import _gcloud_identity_token, discover_exhaustive_corpus
+from retrostore.contract.exhaustive import (
+    _gcloud_identity_token,
+    _with_candidate_host_header,
+    discover_exhaustive_corpus,
+)
 from services.api_compat.app import create_representative_app
 
 
@@ -88,3 +92,27 @@ def test_gcloud_identity_token_is_captured_without_logging_it(
             "--quiet",
         ]
     ]
+
+
+def test_pre_dns_host_override_is_limited_to_approved_global_http_front_door() -> None:
+    assert _with_candidate_host_header(
+        "http://34.102.211.182",
+        "next.retrostore.org",
+        {"Example": "value"},
+    ) == {"Example": "value", "Host": "next.retrostore.org"}
+
+    with pytest.raises(ValueError, match="approved HTTP front door"):
+        _with_candidate_host_header(
+            "https://34.102.211.182",
+            "next.retrostore.org",
+        )
+    with pytest.raises(ValueError, match="numeric load-balancer"):
+        _with_candidate_host_header(
+            "http://candidate.example",
+            "next.retrostore.org",
+        )
+    with pytest.raises(ValueError, match="approved HTTP front door"):
+        _with_candidate_host_header(
+            "http://user:password@34.102.211.182",
+            "next.retrostore.org",
+        )

@@ -3,14 +3,12 @@
 import argparse
 import hashlib
 import json
-import re
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-_PUBLIC_BUCKET_PREFIX = "trs-80-retrostore-public-"
-_BUCKET_NAME = re.compile(r"[a-z0-9][a-z0-9._-]{1,220}[a-z0-9]")
+_PUBLIC_BUCKET_NAME = "trs-80-retrostore-public"
 _PROTECTED_BUCKETS = frozenset(
     {
         "trs-80-retrostore-assets",
@@ -48,9 +46,7 @@ def plan_public_site_deployment(
             "project": "trs-80",
             "bucket": target_bucket,
             "required_state": "must_not_exist",
-            "required_location": "confirmation_required",
-            "proposed_location": "US",
-            "proposed_location_type": "multi-region",
+            "required_location": "us-central1",
             "dedicated_public_site_bucket": True,
             "uniform_bucket_level_access": True,
             "website": {
@@ -59,42 +55,26 @@ def plan_public_site_deployment(
             },
         },
         "proposed_initial_policy": {
-            "status": "confirmation_required",
-            "deployment_strategy": "new_empty_bucket_per_release",
+            "status": "approved_simple_hobby_project_policy",
+            "deployment_strategy": "single_dedicated_bucket",
             "handoff_strategy": "atomic_url_map_backend_switch",
             "root_request_resolution": "cloud_storage_main_page_suffix",
             "missing_object_policy": "native_cloud_storage_404",
-            "options": [
-                {
-                    "id": "private_bucket_with_cdn",
-                    "recommended": True,
-                    "public_access_prevention": "enforced",
-                    "bucket_iam": (
-                        "roles/storage.objectViewer for "
-                        "service-${PROJECT_NUMBER}@https-lb.iam.gserviceaccount.com only"
-                    ),
-                    "cdn_enabled": True,
-                    "cache_mode": "FORCE_CACHE_ALL",
-                    "max_ttl": "confirmation_required",
-                    "cache_invalidation_before_handoff": True,
-                },
-                {
-                    "id": "public_bucket_without_cdn",
-                    "recommended": False,
-                    "public_access_prevention": "disabled",
-                    "bucket_iam": "roles/storage.objectViewer for allUsers",
-                    "cdn_enabled": False,
-                    "cache_control": "no-store",
-                },
-            ],
+            "public_access_prevention": "disabled_for_dedicated_public_site_bucket",
+            "bucket_iam": "roles/storage.objectViewer for allUsers",
+            "cdn_enabled": False,
+            "cache_control": "no-store",
+            "future_optional_optimization": (
+                "Enable Cloud CDN later only if measured traffic or latency justifies it."
+            ),
             "reason": (
-                "Private load-balancer-only access requires Cloud CDN; the no-CDN "
-                "alternative requires public object access. Root resolution is "
-                "independent and always requires the bucket website suffix."
+                "This small public static site does not initially need CDN or "
+                "private-origin machinery; keep application data in separate "
+                "private buckets."
             ),
         },
         "front_door": {
-            "status": "confirmation_required",
+            "status": "approved_candidate_only",
             "default_backend": "app_engine_default",
             "static_backend": "static_backend_bucket",
             "static_matches": {
@@ -110,20 +90,13 @@ def plan_public_site_deployment(
             ],
             "unknown_path_disposition": "app_engine_default",
         },
-        "required_external_approvals": [
-            "candidate_hostnames",
-            "go_no_go_owner",
-            "rollback_operator",
-            "public_bucket_and_iam",
-            "cache_and_cdn_policy",
-            "bucket_location",
-        ],
+        "required_external_approvals": [],
         "operations": {
             "uploads": [
                 {
                     **item,
                     "if_generation_match": 0,
-                    "cache_control": "confirmation_required",
+                    "cache_control": "no-store",
                 }
                 for item in objects
             ],
@@ -182,10 +155,8 @@ def main(argv: Sequence[str] | None = None) -> int:
 def _validate_target_bucket(target_bucket: str) -> None:
     if target_bucket in _PROTECTED_BUCKETS:
         raise ValueError("Static website planning refuses an existing protected bucket")
-    if not _BUCKET_NAME.fullmatch(target_bucket):
-        raise ValueError("Target bucket name is invalid")
-    if not target_bucket.startswith(_PUBLIC_BUCKET_PREFIX):
-        raise ValueError(f"Target bucket must start with {_PUBLIC_BUCKET_PREFIX}")
+    if target_bucket != _PUBLIC_BUCKET_NAME:
+        raise ValueError(f"Target bucket must be exactly {_PUBLIC_BUCKET_NAME}")
 
 
 def _verify_bundle(

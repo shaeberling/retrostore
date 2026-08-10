@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parent
 ROUTES_PATH = ROOT / "route-groups.json"
 THRESHOLDS_PATH = ROOT / "monitoring-thresholds.json"
 PRIVATE_SOAK_PATH = ROOT / "private-soak-baseline.json"
+PUBLIC_CANDIDATE_PATH = ROOT / "public-candidate-baseline.json"
 
 FROZEN_API_METHODS = {
     "getApp",
@@ -193,6 +194,10 @@ def _validate_route_overlaps(routes: dict[str, Any]) -> None:
 
 def validate_routes(routes: dict[str, Any]) -> None:
     _require(routes.get("schema_version") == 1, "unsupported route schema")
+    _require(
+        routes.get("status") == "parallel_candidate_deployed_dns_pending",
+        "candidate deployment status changed unexpectedly",
+    )
     _require(routes.get("project") == "trs-80", "route project must be trs-80")
     _require(
         routes["front_door"]["production_baseline_backend"] == "app_engine_default",
@@ -221,16 +226,46 @@ def validate_routes(routes: dict[str, Any]) -> None:
     hostnames = routes["hostnames"]
     hostname_values = [entry["value"] for entry in hostnames.values()]
     _require(len(hostname_values) == len(set(hostname_values)), "hostnames must be distinct")
-    for name in ("front_door_rehearsal", "candidate_api", "candidate_admin"):
+    _require(
+        hostnames["parallel_candidate"]["value"] == "next.retrostore.org"
+        and hostnames["candidate_admin"]["value"] == "admin-next.retrostore.org",
+        "approved candidate hostnames changed",
+    )
+    backends = routes["backends"]
+    _require(
+        backends["cloud_run_api"] == {
+            "kind": "cloud_run",
+            "service": "retrostore-api-next",
+            "status": "public_candidate_ready",
+        },
+        "public API candidate backend changed",
+    )
+    _require(
+        backends["cloud_run_admin"] == {
+            "kind": "cloud_run",
+            "service": "retrostore-admin-next",
+            "status": "public_candidate_ready",
+        },
+        "public admin candidate backend changed",
+    )
+    _require(
+        backends["static_backend_bucket"].get("bucket")
+        == "trs-80-retrostore-public"
+        and backends["static_backend_bucket"].get("cdn_enabled") is False
+        and backends["static_backend_bucket"].get("status")
+        == "public_candidate_ready",
+        "public static candidate backend changed",
+    )
+    for name in ("parallel_candidate", "candidate_admin"):
         _require(
-            hostnames[name]["status"] == "confirmation_required",
-            f"{name} must remain confirmation-required until approved",
+            hostnames[name]["status"] == "approved",
+            f"{name} must retain its approved hostname",
         )
 
     for role in ("go_no_go", "rollback_operator"):
         owner = routes["ownership"][role]
-        _require(owner["confirmed_owner"] is None, f"{role} was assigned without confirmation")
-        _require(owner["status"] == "confirmation_required", f"{role} must require confirmation")
+        _require(owner["confirmed_owner"] == "Sascha Ha", f"{role} owner changed")
+        _require(owner["status"] == "approved", f"{role} approval changed")
 
     groups = routes["route_groups"]
     by_id = {group["id"]: group for group in groups}
@@ -244,7 +279,7 @@ def validate_routes(routes: dict[str, Any]) -> None:
         "hardware routes must stay on App Engine",
     )
     _require(hardware["migration_mode"] == "never_cut_over", "hardware routes cannot migrate")
-    _require(not hardware["canary_steps_percent"], "hardware routes cannot be canaried")
+    _require(not hardware["traffic_split_steps_percent"], "hardware routes cannot split traffic")
 
     api_owners = _api_methods(groups)
     _require(set(api_owners) == FROZEN_API_METHODS, "all frozen API methods must be routed exactly")
@@ -255,14 +290,17 @@ def validate_routes(routes: dict[str, Any]) -> None:
         state["migration_mode"] == "atomic_single_writer_handoff",
         "state methods require an atomic handoff",
     )
-    _require(not state["canary_steps_percent"], "state methods cannot be canaried")
+    _require(not state["traffic_split_steps_percent"], "state methods cannot split traffic")
 
     for group_id in ("catalog_api_reads", "media_api_reads", "legacy_media_download"):
         group = by_id[group_id]
-        _require(group["migration_mode"] == "weighted_read_canary", f"{group_id} must canary")
         _require(
-            group["canary_steps_percent"] == [1, 5, 25, 50, 100],
-            f"{group_id} has unexpected canary steps",
+            group["migration_mode"] == "atomic_route_change",
+            f"{group_id} must use the single production cutover",
+        )
+        _require(
+            not group["traffic_split_steps_percent"],
+            f"{group_id} cannot use percentage traffic steps",
         )
     _require(
         _paths(by_id["legacy_media_download"]) == {("exact", "/downloadapp")},
@@ -274,7 +312,7 @@ def validate_routes(routes: dict[str, Any]) -> None:
         admin["migration_mode"] == "atomic_single_writer_handoff",
         "admin writers require an atomic handoff",
     )
-    _require(not admin["canary_steps_percent"], "admin writers cannot be canaried")
+    _require(not admin["traffic_split_steps_percent"], "admin writers cannot split traffic")
 
     legacy_admin = by_id["legacy_catalog_admin"]
     _require(
@@ -292,7 +330,7 @@ def validate_routes(routes: dict[str, Any]) -> None:
     )
     _require(
         public_website["migration_mode"] == "atomic_route_change"
-        and not public_website["canary_steps_percent"],
+        and not public_website["traffic_split_steps_percent"],
         "the public website and its JSON dependency must move together",
     )
     public_static = by_id["public_static_site"]
@@ -303,7 +341,7 @@ def validate_routes(routes: dict[str, Any]) -> None:
     _require(
         public_static["future_backend"] == "static_backend_bucket"
         and public_static["migration_mode"] == "atomic_route_change"
-        and not public_static["canary_steps_percent"],
+        and not public_static["traffic_split_steps_percent"],
         "the public static website requires one atomic backend-bucket move",
     )
     public_redirects = by_id["public_redirects"]
@@ -313,7 +351,7 @@ def validate_routes(routes: dict[str, Any]) -> None:
     )
     _require(
         public_redirects["migration_mode"] == "atomic_route_change"
-        and not public_redirects["canary_steps_percent"],
+        and not public_redirects["traffic_split_steps_percent"],
         "public redirects require one atomic route change",
     )
     for group in (public_static, public_website, public_redirects):
@@ -327,16 +365,43 @@ def validate_routes(routes: dict[str, Any]) -> None:
         "only exact built static objects may move; the dynamic catalog stays separate",
     )
 
+    candidate = routes["candidate_maps"]["parallel_candidate"]
+    _require(
+        set(candidate["route_group_ids"])
+        == {
+            "catalog_api_reads",
+            "media_api_reads",
+            "state_api",
+            "new_screenshot_assets",
+            "legacy_media_download",
+            "public_static_site",
+            "public_website_catalog",
+            "public_redirects",
+        },
+        "parallel candidate route group closure changed",
+    )
+    _require(
+        routes["candidate_maps"]["admin_candidate"]["route_group_ids"]
+        == ["new_admin"],
+        "admin candidate route group changed",
+    )
     production = routes["candidate_maps"]["production_initial"]
     _require(production["default_backend"] == "app_engine_default", "initial production changed")
-    _require(not production["route_overrides"], "initial production must have no route overrides")
+    _require(not production["route_group_ids"], "initial production must have no route groups")
 
 
 def validate_thresholds(thresholds: dict[str, Any]) -> None:
     _require(thresholds.get("schema_version") == 1, "unsupported threshold schema")
     comparison = thresholds["comparison"]
     _require(comparison["schedule_seconds"] <= 3600, "comparison must run at least hourly")
-    _require(comparison["continuous_zero_diff_soak_days"] >= 14, "zero-diff soak is too short")
+    _require(
+        comparison["minimum_consecutive_zero_diff_reports"] >= 3,
+        "at least three consecutive zero-diff reports are required",
+    )
+    _require(
+        comparison["material_fix_restarts_evidence_streak"] is True,
+        "material fixes must restart the comparison evidence streak",
+    )
     _require(comparison["maximum_unexplained_differences"] == 0, "differences must be zero")
     _require(comparison["maximum_unapproved_differences"] == 0, "unapproved diffs must be zero")
 
@@ -350,22 +415,43 @@ def validate_thresholds(thresholds: dict[str, Any]) -> None:
     ):
         _require(integrity[name] == 0, f"{name} must be zero")
 
-    canary = thresholds["canary"]
-    _require(canary["read_steps_percent"] == [1, 5, 25, 50, 100], "canary steps differ")
+    cutover = thresholds["cutover"]
     _require(
-        canary["require_full_public_transport_parity_at_each_step"] is True,
-        "every canary step requires full public HTTP/HTTPS parity",
+        cutover["mode"]
+        == "single_atomic_switch_after_parallel_parity_and_operator_approval",
+        "cutover mode changed unexpectedly",
+    )
+    _require(cutover["percentage_canaries_enabled"] is False, "canaries must be disabled")
+    _require(cutover["minimum_observation_hours"] == 0, "fixed wait must remain disabled")
+    _require(
+        cutover["require_complete_comparator_before_cutover"] is True,
+        "cutover requires the complete comparator",
     )
     _require(
-        canary["require_app_engine_fallback_parity_at_each_step"] is True,
-        "every canary step requires App Engine fallback parity",
+        cutover["require_full_public_transport_parity_before_cutover"] is True,
+        "cutover requires full public HTTP/HTTPS parity",
     )
     _require(
-        canary["require_native_port_80_smoke_at_each_step"] is True,
-        "every canary step requires a native port-80 smoke",
+        cutover["require_app_engine_fallback_parity_before_cutover"] is True,
+        "cutover requires App Engine fallback parity",
     )
-    _require(canary["state_canary_allowed"] is False, "state canary must be disabled")
-    _require(canary["admin_writer_canary_allowed"] is False, "admin canary must be disabled")
+    _require(
+        cutover["require_native_port_80_smoke_before_cutover"] is True,
+        "cutover requires a native port-80 smoke",
+    )
+    _require(cutover["state_split_traffic_allowed"] is False, "state cannot be split")
+    _require(
+        cutover["admin_writer_split_traffic_allowed"] is False,
+        "admin writers cannot be split",
+    )
+    _require(
+        thresholds["post_cutover"] == {
+            "fixed_minimum_wait_required": False,
+            "continue_comparator": True,
+            "immediate_rollback_on_gate_failure": True,
+        },
+        "post-cutover policy changed unexpectedly",
+    )
     _require(
         thresholds["rollback"]["target_route_recovery_minutes"] <= 5,
         "route rollback target exceeds five minutes",
@@ -432,11 +518,95 @@ def validate_private_soak(baseline: dict[str, Any]) -> None:
         _require(baseline.get(name) is False, f"private soak unexpectedly authorizes {name}")
 
 
+def validate_public_candidate(candidate: dict[str, Any], routes: dict[str, Any]) -> None:
+    _require(candidate.get("schema_version") == 1, "unsupported candidate baseline schema")
+    _require(
+        candidate.get("status") == "deployed_pre_dns_domain_move_pending",
+        "public candidate baseline status changed unexpectedly",
+    )
+    _require(candidate.get("project") == "trs-80", "candidate project changed")
+    _require(candidate.get("production_changed") is False, "production must stay unchanged")
+    _require(candidate["dns"]["records_created"] is False, "candidate DNS is not yet authorized")
+    _require(
+        set(candidate["dns"]["authoritative_nameservers"])
+        == {"curt.ns.cloudflare.com", "rita.ns.cloudflare.com"},
+        "recorded authoritative DNS provider changed",
+    )
+    records = candidate["dns"]["required_records"]
+    _require(
+        set(records) == {"next.retrostore.org", "admin-next.retrostore.org"},
+        "candidate DNS names changed",
+    )
+    _require(
+        {entry["A"] for entry in records.values()} == {"34.102.211.182"}
+        and {entry["AAAA"] for entry in records.values()} == {"2600:1901:0:81dc::"},
+        "candidate DNS addresses changed",
+    )
+    cloud_run = candidate["cloud_run"]
+    _require(
+        cloud_run["api"]["service"] == routes["backends"]["cloud_run_api"]["service"]
+        and cloud_run["admin"]["service"]
+        == routes["backends"]["cloud_run_admin"]["service"],
+        "candidate Cloud Run baseline differs from route plan",
+    )
+    for service in cloud_run.values():
+        _require(
+            service["ingress"] == "internal-and-cloud-load-balancing"
+            and service["default_url_disabled"] is True
+            and service["public_invoker"] is True
+            and "@trs-80.iam.gserviceaccount.com" in service["service_account"],
+            "candidate Cloud Run exposure boundary changed",
+        )
+    static = candidate["static_site"]
+    _require(
+        static["bucket"] == routes["backends"]["static_backend_bucket"]["bucket"]
+        and static["object_count"] == 78
+        and static["cdn_enabled"] is False
+        and static["cache_control"] == "no-store"
+        and static["access_control_allow_origin"] == "*",
+        "candidate static-site baseline changed",
+    )
+    parity = candidate["pre_dns_http_parity"]
+    _require(
+        parity["total_scenarios"] == parity["matching_scenarios"] == 350
+        and parity["passes"] is True,
+        "candidate pre-DNS parity baseline is not green",
+    )
+    state = candidate["pre_dns_synthetic_state_lifecycle"]
+    _require(
+        state["protobuf_bytes"] == 34
+        and state["upload_success"] is True
+        and state["download_round_trip_match"] is True
+        and state["exclude_memory_data_match"] is True
+        and state["overlap_region_match"] is True
+        and state["contains_state_token"] is False
+        and state["passes"] is True,
+        "candidate pre-DNS synthetic state lifecycle is not green",
+    )
+    clients = candidate["pre_dns_real_clients"]
+    _require(
+        clients["reviewed_trs80_revision"]
+        == "aecbddcc7f5515fb844bb7a1fc350d8ffaaf5ce5"
+        and clients["published_jvm_sdk_method_count"] == 9
+        and clients["trs80_kmp_method_count"] == 5
+        and clients["trs80_embedded_c_method_count"] == 3
+        and clients["contains_state_tokens_or_payloads"] is False
+        and clients["passes"] is True,
+        "candidate pre-DNS real-client gate is not green",
+    )
+    _require(
+        candidate["load_balancer"]["default_backend"] == "retrostore-appengine-default",
+        "candidate load balancer must fail closed to App Engine",
+    )
+
+
 def main() -> int:
-    validate_routes(_load(ROUTES_PATH))
+    routes = _load(ROUTES_PATH)
+    validate_routes(routes)
     validate_thresholds(_load(THRESHOLDS_PATH))
     validate_private_soak(_load(PRIVATE_SOAK_PATH))
-    print("front-door route, threshold, and private-soak invariants: OK")
+    validate_public_candidate(_load(PUBLIC_CANDIDATE_PATH), routes)
+    print("front-door route, threshold, and candidate baselines: OK")
     return 0
 
 

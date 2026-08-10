@@ -4,9 +4,9 @@ Status: Infrastructure, Datastore, Blobstore, and Search validation complete
 
 Last verified: 2026-08-10
 
-This document records observed production and source behavior. Unknown values
-remain explicit; no production resources were created or modified while
-collecting it.
+This document records observed production and source behavior plus the separate
+parallel candidate. Unknown values remain explicit; no production resource or
+route was modified while collecting it.
 
 ## Local cloud context
 
@@ -89,14 +89,21 @@ door directly:
 - Both mappings have App Engine-managed certificates.
 - The apex certificate observed on 2026-08-05 is issued by Google Trust Services
   and is valid through 2026-09-15.
-- Authoritative DNS uses `ns-cloud-b1` through `ns-cloud-b4.googledomains.com`.
+- Authoritative DNS moved from the previously observed Google Domains name
+  servers to `curt.ns.cloudflare.com` and `rita.ns.cloudflare.com` on
+  2026-08-10.
 - There is no Cloud DNS managed zone in project `trs-80`.
-- There are no Compute URL maps, forwarding rules, reserved addresses, backend
-  services, network endpoint groups, or Compute-managed certificates.
+- Production still has no load balancer in its request path. A separate
+  candidate-only `retrostore-next` global external Application Load Balancer now
+  exists at `34.102.211.182` and `2600:1901:0:81dc::`, with an exact fail-closed
+  route map and a Google-managed Compute certificate for `next.retrostore.org`
+  and `admin-next.retrostore.org`.
+- Candidate DNS records are not published. Their A/AAAA records must be
+  coordinated at the now-authoritative Cloudflare zone.
 
-This confirms that production traffic goes directly to the App Engine domain
-mapping today; there is no existing external Application Load Balancer to
-modify in place.
+Production traffic still goes directly to the App Engine domain mapping. The
+candidate load balancer is isolated and cannot receive production traffic until
+a later explicit cutover.
 
 ## App Engine runtime and dispatch
 
@@ -155,7 +162,7 @@ paths fall through to the legacy login page with HTTP 200. Exact routing keeps
 all such unrecognized paths on App Engine, preserving those edge semantics.
 The corresponding 12-scenario fallback corpus matched production HTTP and
 HTTPS exactly after normalizing only the host-bearing login-forward body; it is
-now a required candidate-front-door canary gate.
+now a required pre-cutover candidate-front-door gate.
 
 The legacy `/rpc` registry contains:
 
@@ -375,7 +382,7 @@ no higher than 12.1/17.72 ms. One startup measured 950.6 ms. The accepted
 concurrency-16 step recorded 54.4 billable instance/CPU seconds and 27.2
 GiB-seconds of memory allocation. No service setting or traffic changed.
 
-A separate read-only soak auditor now verifies the retained comparison object
+A separate read-only evidence auditor now verifies the retained comparison object
 paths, generations, content digests, schemas, counts, URLs, and approval gates,
 then confirms the expected Cloud Run revision still serves 100% of private
 traffic. The checked-in boundary now requires `redirects1` at 100% private
@@ -383,17 +390,18 @@ traffic and schema-3 four-surface artifacts. The latest run validated eleven
 retained reports: all eleven APIs matched 158/158, one older schema-2 report
 passed the download/catalog gate, and three schema-3 reports passed all 94
 downloads, the 32-entry website JSON list, and all six public redirects. They start the
-current clock at 2026-08-10 03:55:01 UTC with no continuity gap. The private
-14-day clock is current but not yet eligible; the earlier reports remain
-historical evidence.
+current streak at 2026-08-10 03:55:01 UTC with no continuity gap. The three
+current reports satisfy the simplified evidence gate; the earlier reports
+remain historical evidence.
 
 Separate drift auditors passed the exact API/admin/preview revision, image,
 runtime configuration, traffic, IAM, and anonymous-denial baseline plus all nine
 job/scheduler/report-bucket pipeline checks. A read-only transport audit also
 matched HTTP and HTTPS for all 338 API, download, redirect, static, and public
-listing scenarios. The local readiness evaluator accepts all current
-engineering evidence while correctly denying public resources, a read canary,
-and App Engine retirement until the duration and operator decisions pass.
+listing scenarios. The separate public candidate now also matches 350/350
+pre-DNS HTTP scenarios through its load-balancer IP. Candidate-only resources
+are approved and deployed; production cutover and App Engine retirement remain
+denied until HTTPS, public real-client/admin, alerting, and operator gates pass.
 
 The pre-existing App Engine, Compute, and Firebase Admin SDK identities remain.
 The migration adds separate keyless migrator, public API, and administration

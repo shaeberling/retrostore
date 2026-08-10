@@ -12,8 +12,11 @@ from collections.abc import Mapping
 from pathlib import Path
 from urllib.parse import urlsplit
 
+import httpx
+from flask import Flask, Response, request
 from werkzeug.serving import make_server
 
+from retrostore.contract.exhaustive import _with_candidate_host_header
 from retrostore.contracts import PUBLIC_API_METHODS
 from services.api_compat.app import create_representative_app
 
@@ -219,16 +222,86 @@ def validate_loopback_candidate_url(candidate_url: str) -> str:
     return f"http://127.0.0.1:{endpoint.port}"
 
 
-def run(checkout: Path, candidate_url: str | None = None) -> int:
+def create_front_door_proxy_app(
+    candidate_url: str,
+    candidate_host_header: str,
+    *,
+    transport: httpx.BaseTransport | None = None,
+) -> tuple[Flask, httpx.Client]:
+    """Create a loopback-only bridge to the approved pre-DNS front door."""
+    headers = _with_candidate_host_header(candidate_url, candidate_host_header)
+    upstream = httpx.Client(
+        base_url=candidate_url.rstrip("/"),
+        headers=headers,
+        follow_redirects=False,
+        timeout=30.0,
+        transport=transport,
+    )
+    app = Flask("retrostore-front-door-client-bridge")
+
+    @app.route("/", defaults={"path": ""}, methods=["GET", "POST"])
+    @app.route("/<path:path>", methods=["GET", "POST"])
+    def forward(path: str) -> Response:
+        target = f"/{path}"
+        if request.query_string:
+            target += "?" + request.query_string.decode("ascii")
+        forwarded_headers = {
+            name: value
+            for name, value in request.headers.items()
+            if name.casefold() in {"accept", "content-type", "user-agent"}
+        }
+        response = upstream.request(
+            request.method,
+            target,
+            headers=forwarded_headers,
+            content=request.get_data(cache=False),
+        )
+        response_headers = {
+            name: value
+            for name, value in response.headers.items()
+            if name.casefold()
+            in {
+                "access-control-allow-origin",
+                "content-disposition",
+                "content-type",
+                "location",
+            }
+        }
+        return Response(response.content, status=response.status_code, headers=response_headers)
+
+    return app, upstream
+
+
+def run(
+    checkout: Path,
+    candidate_url: str | None = None,
+    *,
+    front_door_url: str | None = None,
+    candidate_host_header: str | None = None,
+) -> int:
     checkout = checkout.resolve()
     validate_trs80_revision(checkout)
     validate_trs80_client(checkout)
+    if candidate_url is not None and front_door_url is not None:
+        raise ValueError("Select either a loopback candidate or a front door")
 
     backend_directory = Path(__file__).resolve().parents[2]
     repository_directory = backend_directory.parent
     server = None
     server_thread = None
-    if candidate_url is None:
+    upstream = None
+    if front_door_url is not None:
+        if candidate_host_header is None:
+            raise ValueError("The pre-DNS front door requires its approved Host header")
+        proxy_app, upstream = create_front_door_proxy_app(
+            front_door_url,
+            candidate_host_header,
+        )
+        server = make_server("127.0.0.1", 0, proxy_app)
+        server_thread = threading.Thread(target=server.serve_forever, daemon=True)
+        server_thread.start()
+        candidate_url = f"http://127.0.0.1:{server.server_port}"
+    elif candidate_url is None:
         server = make_server("127.0.0.1", 0, create_representative_app())
         server_thread = threading.Thread(target=server.serve_forever, daemon=True)
         server_thread.start()
@@ -266,6 +339,8 @@ def run(checkout: Path, candidate_url: str | None = None) -> int:
         if server is not None and server_thread is not None:
             server.shutdown()
             server_thread.join(timeout=5)
+        if upstream is not None:
+            upstream.close()
 
 
 def main() -> None:
@@ -277,12 +352,32 @@ def main() -> None:
         help=f"TRS-80 checkout at reviewed revision {TRS80_REVISION}",
     )
     parser.add_argument("--candidate-url")
+    parser.add_argument("--candidate-front-door-url")
+    parser.add_argument("--candidate-host-header")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--confirm-candidate-url")
+    parser.add_argument("--confirm-candidate-front-door-url")
     args = parser.parse_args()
-    external = args.candidate_url is not None
-    if external:
+    external_loopback = args.candidate_url is not None
+    external_front_door = args.candidate_front_door_url is not None
+    if external_loopback and external_front_door:
+        raise ValueError("Select either --candidate-url or --candidate-front-door-url")
+    if external_front_door:
+        front_door_url = args.candidate_front_door_url.rstrip("/")
+        _with_candidate_host_header(front_door_url, args.candidate_host_header)
+        if (
+            not args.apply
+            or args.confirm_candidate_front_door_url != front_door_url
+            or args.output is None
+        ):
+            raise ValueError(
+                "Front-door client tests require --apply, --output, and the exact "
+                "--confirm-candidate-front-door-url"
+            )
+        if args.confirm_candidate_url is not None:
+            raise ValueError("Loopback confirmation cannot accompany a front-door test")
+    elif external_loopback:
         candidate_url = validate_loopback_candidate_url(args.candidate_url)
         if not args.apply or args.confirm_candidate_url != candidate_url:
             raise ValueError(
@@ -291,16 +386,37 @@ def main() -> None:
             )
         if args.output is None:
             raise ValueError("External client tests require --output")
-    elif args.apply or args.confirm_candidate_url is not None or args.output is not None:
+        if args.candidate_host_header is not None:
+            raise ValueError("Host overrides apply only to pre-DNS front-door tests")
+    elif (
+        args.apply
+        or args.confirm_candidate_url is not None
+        or args.confirm_candidate_front_door_url is not None
+        or args.candidate_host_header is not None
+        or args.output is not None
+    ):
         raise ValueError("External-only options require --candidate-url")
 
-    result = run(args.trs80_checkout, args.candidate_url)
-    if external:
+    result = run(
+        args.trs80_checkout,
+        args.candidate_url,
+        front_door_url=args.candidate_front_door_url,
+        candidate_host_header=args.candidate_host_header,
+    )
+    if external_loopback or external_front_door:
         report = {
             "schema_version": 1,
-            "operation": "deployed_private_consumer_client_gate",
+            "operation": (
+                "deployed_public_candidate_consumer_client_gate"
+                if external_front_door
+                else "deployed_private_consumer_client_gate"
+            ),
             "applied": True,
-            "candidate_transport": "authenticated_loopback_proxy",
+            "candidate_transport": (
+                "pre_dns_front_door_loopback_bridge"
+                if external_front_door
+                else "authenticated_loopback_proxy"
+            ),
             "reviewed_trs80_revision": TRS80_REVISION,
             "clients": {
                 "published_jvm_sdk_methods": sorted(PUBLIC_API_METHODS),
@@ -316,6 +432,9 @@ def main() -> None:
                 "production_host_rejected": True,
             },
         }
+        if external_front_door:
+            report["candidate_url"] = args.candidate_front_door_url.rstrip("/")
+            report["candidate_host_header"] = args.candidate_host_header
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     raise SystemExit(result)

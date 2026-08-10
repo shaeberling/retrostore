@@ -106,5 +106,5 @@ the retention period. Email notifications additionally require confirmed
 recipients and sender policy. Until then `/reportapp` remains on App Engine and
 the front-door configuration defaults it there.
 
-This gate does not block the frozen client API, private compatibility soak,
+This gate does not block the frozen client API, private compatibility comparison,
 public static bundle preparation, or the replacement catalog administration.

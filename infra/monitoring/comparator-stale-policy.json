@@ -27,7 +27,7 @@
   "documentation": {
     "mimeType": "text/markdown",
     "subject": "RetroStore comparator evidence is stale",
-    "content": "Check Cloud Scheduler delivery, the latest Cloud Run Job execution, private candidate IAM, and report-prefix object creation. The zero-diff soak clock does not advance while evidence is stale."
+    "content": "Check Cloud Scheduler delivery, the latest Cloud Run Job execution, private candidate IAM, and report-prefix object creation. The zero-diff evidence streak does not advance while evidence is stale."
   },
   "userLabels": {
     "service": "retrostore",

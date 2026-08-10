@@ -69,19 +69,19 @@ def test_plain_http_cannot_be_removed_or_redirected_during_migration() -> None:
         _validator().validate_routes(routes)
 
 
-def test_plain_http_corpus_and_native_smoke_are_required_at_every_canary_step() -> None:
+def test_plain_http_corpus_and_native_smoke_are_required_before_cutover() -> None:
     thresholds_path = REPOSITORY_ROOT / "infra/front-door/monitoring-thresholds.json"
     thresholds = json.loads(thresholds_path.read_text())
-    thresholds["canary"]["require_full_public_transport_parity_at_each_step"] = False
+    thresholds["cutover"]["require_full_public_transport_parity_before_cutover"] = False
 
     with pytest.raises(ValueError, match="full public HTTP/HTTPS parity"):
         _validator().validate_thresholds(thresholds)
 
 
-def test_app_engine_fallback_corpus_is_required_at_every_canary_step() -> None:
+def test_app_engine_fallback_corpus_is_required_before_cutover() -> None:
     thresholds_path = REPOSITORY_ROOT / "infra/front-door/monitoring-thresholds.json"
     thresholds = json.loads(thresholds_path.read_text())
-    thresholds["canary"]["require_app_engine_fallback_parity_at_each_step"] = False
+    thresholds["cutover"]["require_app_engine_fallback_parity_before_cutover"] = False
 
     with pytest.raises(ValueError, match="App Engine fallback parity"):
         _validator().validate_thresholds(thresholds)

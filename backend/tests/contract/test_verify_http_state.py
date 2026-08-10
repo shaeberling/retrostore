@@ -131,3 +131,49 @@ def test_apply_mints_identity_token_and_writes_aggregate_report(
     report = json.loads(output.read_text())
     assert report["result"]["token_in_legacy_range"] is True
     assert "secret" not in output.read_text()
+
+
+def test_pre_dns_apply_uses_only_the_approved_host_override(
+    tmp_path: Path, monkeypatch
+) -> None:
+    output = tmp_path / "pre-dns.json"
+    observed: dict[str, object] = {}
+
+    class Client:
+        def __init__(self, **kwargs) -> None:
+            observed.update(kwargs)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args) -> None:
+            return None
+
+    monkeypatch.setattr(command.httpx, "Client", Client)
+    monkeypatch.setattr(
+        command,
+        "verify_http_state_lifecycle",
+        lambda _client: {"upload_success": True},
+    )
+
+    assert (
+        command.main(
+            [
+                "--candidate-url",
+                "http://34.102.211.182",
+                "--candidate-host-header",
+                "next.retrostore.org",
+                "--output",
+                str(output),
+                "--apply",
+                "--confirm-candidate-url",
+                "http://34.102.211.182",
+            ]
+        )
+        == 0
+    )
+
+    assert observed["headers"] == {"Host": "next.retrostore.org"}
+    assert json.loads(output.read_text())["candidate_host_header"] == (
+        "next.retrostore.org"
+    )

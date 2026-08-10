@@ -15,13 +15,9 @@ _PUBLIC_RESOURCE_DECISIONS = frozenset(
         "candidate_hostnames",
         "go_no_go_owner",
         "rollback_operator",
-        "alert_destination",
     }
 )
-_READ_CANARY_DECISIONS = _PUBLIC_RESOURCE_DECISIONS | {
-    "soak_policy",
-    "canary_policy",
-}
+_PRODUCTION_CUTOVER_DECISIONS = _PUBLIC_RESOURCE_DECISIONS | {"alert_destination"}
 
 
 def evaluate_migration_readiness(
@@ -39,7 +35,7 @@ def evaluate_migration_readiness(
         raise ValueError("generated_at must be timezone-aware")
     pending = _pending_decisions(decisions)
     checks = {
-        "soak_evidence_is_current": _soak_current(soak),
+        "comparison_evidence_is_current": _soak_current(soak),
         "private_candidates_match_baseline": _summary_passes(
             candidates, "private_cloud_run_candidate_drift_audit"
         ),
@@ -52,16 +48,16 @@ def evaluate_migration_readiness(
     engineering_passes = all(checks.values())
     soak_eligible = _soak_eligible(soak)
     public_resource_blockers = sorted(pending & _PUBLIC_RESOURCE_DECISIONS)
-    read_canary_blockers = sorted(pending & _READ_CANARY_DECISIONS)
+    production_cutover_blockers = sorted(pending & _PRODUCTION_CUTOVER_DECISIONS)
     if not soak_eligible:
-        read_canary_blockers.append("private_zero_diff_soak_not_eligible")
+        production_cutover_blockers.append("private_zero_diff_evidence_not_ready")
     if not engineering_passes:
-        read_canary_blockers.extend(
+        production_cutover_blockers.extend(
             f"evidence:{name}" for name, passes in checks.items() if not passes
         )
     retirement_blockers = sorted(pending)
     if not soak_eligible:
-        retirement_blockers.append("private_zero_diff_soak_not_eligible")
+        retirement_blockers.append("private_zero_diff_evidence_not_ready")
     if not engineering_passes:
         retirement_blockers.extend(
             f"evidence:{name}" for name, passes in checks.items() if not passes
@@ -76,11 +72,11 @@ def evaluate_migration_readiness(
         "evidence": {
             "checks": checks,
             "passes": engineering_passes,
-            "soak": {
+            "comparison_evidence": {
                 "current": soak["soak"]["current"],
                 "eligible": soak["soak"]["eligible"],
                 "report_count": soak["soak"]["report_count"],
-                "required_days": soak["soak"]["required_days"],
+                "required_reports": soak["soak"]["required_reports"],
                 "started_at": soak["soak"]["started_at"],
                 "latest_at": soak["soak"]["latest_at"],
                 "reasons": soak["soak"]["reasons"],
@@ -99,9 +95,10 @@ def evaluate_migration_readiness(
                 "passes": not public_resource_blockers,
                 "blockers": public_resource_blockers,
             },
-            "read_canary": {
-                "passes": not read_canary_blockers,
-                "blockers": sorted(set(read_canary_blockers)),
+            "production_cutover": {
+                "passes": not production_cutover_blockers,
+                "blockers": sorted(set(production_cutover_blockers)),
+                "requires_runtime_operator_approval": True,
             },
             "app_engine_retirement": {
                 "passes": not retirement_blockers,
@@ -128,7 +125,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--consumers", type=Path, required=True)
     parser.add_argument("--public-transport", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--require-read-canary-ready", action="store_true")
+    parser.add_argument("--require-production-cutover-ready", action="store_true")
     args = parser.parse_args(argv)
     if args.output.exists():
         raise FileExistsError(f"Readiness output already exists: {args.output}")
@@ -153,7 +150,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             sort_keys=True,
         )
     )
-    if args.require_read_canary_ready and not report["gates"]["read_canary"]["passes"]:
+    if (
+        args.require_production_cutover_ready
+        and not report["gates"]["production_cutover"]["passes"]
+    ):
         return 1
     return 0
 
@@ -161,7 +161,8 @@ def main(argv: Sequence[str] | None = None) -> int:
 def _pending_decisions(decisions: Mapping[str, Any]) -> set[str]:
     if (
         decisions.get("schema_version") != 1
-        or decisions.get("status") != "operator_decisions_pending_no_public_authority"
+        or decisions.get("status")
+        != "candidate_public_resources_approved_no_production_authority"
     ):
         raise ValueError("Migration decision register identity is invalid")
     pending = decisions.get("pending")
@@ -194,13 +195,17 @@ def _soak_current(soak: Mapping[str, Any]) -> bool:
         raise ValueError("Soak report has no status")
     return (
         value.get("current") is True
-        and value.get("required_days") == 14
-        and value.get("report_count", 0) >= 2
+        and value.get("required_reports") == 3
+        and value.get("report_count", 0) >= 1
     )
 
 
 def _soak_eligible(soak: Mapping[str, Any]) -> bool:
-    return _soak_current(soak) and soak["soak"].get("eligible") is True
+    return (
+        _soak_current(soak)
+        and soak["soak"].get("eligible") is True
+        and soak["soak"].get("report_count", 0) >= 3
+    )
 
 
 def _summary_passes(report: Mapping[str, Any], operation: str) -> bool:

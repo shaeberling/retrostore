@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "operator_decisions_pending_no_public_authority",
+  "status": "candidate_public_resources_approved_no_production_authority",
   "last_verified": "2026-08-10",
   "resolved": [
     {
@@ -9,7 +9,7 @@
     },
     {
       "id": "parallel_migration",
-      "decision": "Run App Engine and private candidates in parallel until evidence gates pass"
+      "decision": "Keep App Engine live while the complete replacement runs on a separate candidate endpoint for comparison and real-client testing"
     },
     {
       "id": "public_api_contract",
@@ -26,54 +26,42 @@
     {
       "id": "catalog_activation",
       "decision": "Keep synchronized candidate snapshots inactive until a separate guarded handoff"
+    },
+    {
+      "id": "comparison_evidence_policy",
+      "decision": "Require three consecutive fresh zero-difference four-surface reports; no fixed-duration wait"
+    },
+    {
+      "id": "static_site_policy",
+      "decision": "Use one dedicated public us-central1 bucket with CDN disabled initially and Cache-Control no-store; CDN remains an optional measured future improvement"
+    },
+    {
+      "id": "production_cutover_policy",
+      "decision": "Run the complete replacement beside App Engine, require old-versus-new parity and real-client approval, then make one atomic route switch with immediate rollback available"
+    },
+    {
+      "id": "candidate_hostnames",
+      "decision": "Use next.retrostore.org for the complete parallel replacement and admin-next.retrostore.org for the replacement admin"
+    },
+    {
+      "id": "go_no_go_owner",
+      "decision": "Sascha Ha"
+    },
+    {
+      "id": "rollback_operator",
+      "decision": "Sascha Ha"
+    },
+    {
+      "id": "parallel_candidate_resource_creation",
+      "decision": "Create the candidate load balancer, certificates, next/admin-next DNS records, dedicated public static bucket and IAM, and separate candidate Cloud Run services; do not change retrostore.org or production data authority"
     }
   ],
   "pending": [
     {
-      "id": "candidate_hostnames",
-      "status": "confirmation_required",
-      "proposal": [
-        "lb-next.retrostore.org",
-        "next.retrostore.org",
-        "admin-next.retrostore.org"
-      ],
-      "required_before": ["load_balancer", "certificate", "dns"]
-    },
-    {
-      "id": "go_no_go_owner",
-      "status": "confirmation_required",
-      "proposal": "Sascha Ha",
-      "required_before": ["public_resource_creation", "traffic_change"]
-    },
-    {
-      "id": "rollback_operator",
-      "status": "confirmation_required",
-      "proposal": "Sascha Ha",
-      "required_before": ["public_resource_creation", "traffic_change"]
-    },
-    {
       "id": "alert_destination",
       "status": "confirmation_required",
       "proposal": null,
-      "required_before": ["enable_alert_policies", "traffic_change"]
-    },
-    {
-      "id": "soak_policy",
-      "status": "confirmation_required",
-      "proposal": "14 continuous days of hourly zero-diff schema-3 evidence",
-      "required_before": ["read_canary"]
-    },
-    {
-      "id": "canary_policy",
-      "status": "confirmation_required",
-      "proposal": "1%, 5%, 25%, 50%, 100% with at least 24 hours per step",
-      "required_before": ["read_canary"]
-    },
-    {
-      "id": "static_site_policy",
-      "status": "confirmation_required",
-      "proposal": "Fresh bucket per release and atomic backend switch; proposed US multi-region location; recommended private bucket uses CDN FORCE_CACHE_ALL with a bounded TTL, alternative public bucket uses no CDN and Cache-Control no-store",
-      "required_before": ["public_bucket", "public_bucket_iam", "static_route_handoff"]
+      "required_before": ["enable_alert_policies", "production_cutover"]
     },
     {
       "id": "migration_backup_retention",
@@ -96,7 +84,7 @@
   ],
   "readiness": {
     "private_engineering_may_continue": true,
-    "public_resource_creation_ready": false,
+    "public_resource_creation_ready": true,
     "production_traffic_change_ready": false,
     "app_engine_retirement_ready": false
   },
@@ -104,7 +92,7 @@
     "creates_or_changes_resources": false,
     "assigns_unconfirmed_owner": false,
     "selects_alert_recipient": false,
-    "authorizes_public_iam_or_dns": false,
+    "authorizes_public_iam_or_dns": true,
     "authorizes_production_cutover": false,
     "authorizes_legacy_data_deletion": false
   }

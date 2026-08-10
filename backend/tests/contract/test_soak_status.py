@@ -18,10 +18,10 @@ def _thresholds(path: Path) -> Path:
                 "schema_version": 1,
                 "comparison": {
                     "schedule_seconds": 3600,
-                    "continuous_zero_diff_soak_days": 14,
+                    "minimum_consecutive_zero_diff_reports": 3,
                     "maximum_unexplained_differences": 0,
                     "maximum_unapproved_differences": 0,
-                    "material_fix_restarts_soak": True,
+                    "material_fix_restarts_evidence_streak": True,
                 },
             }
         )
@@ -237,7 +237,7 @@ def test_dry_run_has_no_cloud_access(tmp_path: Path, monkeypatch: pytest.MonkeyP
 
     report = json.loads((tmp_path / "status.json").read_text())
     assert report["applied"] is False
-    assert report["policy"] == {"required_days": 14, "schedule_seconds": 3600}
+    assert report["policy"] == {"required_reports": 3, "schedule_seconds": 3600}
 
 
 def test_apply_requires_exact_confirmations_before_cloud_access(
@@ -298,14 +298,14 @@ def test_soak_streak_restarts_after_failure_and_rejects_staleness() -> None:
         not_before=start,
         as_of=start + timedelta(hours=4, minutes=30),
         schedule_seconds=3600,
-        required_days=14,
+        required_reports=3,
     )
     stale = soak_status.evaluate_soak(
         evidence,
         not_before=start,
         as_of=start + timedelta(hours=6),
         schedule_seconds=3600,
-        required_days=14,
+        required_reports=3,
     )
 
     assert current["current"] is True
@@ -316,21 +316,21 @@ def test_soak_streak_restarts_after_failure_and_rejects_staleness() -> None:
     assert stale["reasons"] == ["latest_report_is_stale"]
 
 
-def test_soak_streak_breaks_on_gap_and_becomes_eligible_after_fourteen_days() -> None:
+def test_evidence_streak_breaks_on_gap_and_becomes_eligible_at_three_reports() -> None:
     start = datetime(2026, 8, 1, tzinfo=UTC)
-    recent = [_evidence(start + timedelta(hours=hour)) for hour in range(14 * 24 + 1)]
+    recent = [_evidence(start + timedelta(hours=hour)) for hour in range(3)]
     old = _evidence(start - timedelta(hours=3))
 
     report = soak_status.evaluate_soak(
         [old, *recent],
         not_before=start - timedelta(hours=4),
-        as_of=start + timedelta(days=14),
+        as_of=start + timedelta(hours=2, minutes=30),
         schedule_seconds=3600,
-        required_days=14,
+        required_reports=3,
     )
 
     assert report["current"] is True
     assert report["eligible"] is True
-    assert report["report_count"] == 337
+    assert report["report_count"] == 3
     assert report["started_at"] == start.isoformat()
     assert report["maximum_observed_gap_seconds"] == 3600

@@ -9,7 +9,10 @@ from urllib.parse import urlsplit
 
 import httpx
 
-from retrostore.contract.exhaustive import _gcloud_identity_token
+from retrostore.contract.exhaustive import (
+    _gcloud_identity_token,
+    _with_candidate_host_header,
+)
 from retrostore.generated import ApiProtos_pb2 as api_pb
 
 _PRODUCTION_HOSTS = frozenset({"retrostore.org", "www.retrostore.org"})
@@ -91,6 +94,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--timeout-seconds", type=float, default=30.0)
     parser.add_argument("--candidate-gcloud-identity-token-service-account")
     parser.add_argument("--candidate-audience")
+    parser.add_argument("--candidate-host-header")
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--confirm-candidate-url")
     args = parser.parse_args(argv)
@@ -113,6 +117,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.confirm_candidate_url != candidate_url:
             raise ValueError("--confirm-candidate-url must exactly match --candidate-url")
         headers: Mapping[str, str] | None = None
+        if args.candidate_host_header is not None and (
+            args.candidate_audience is not None
+            or args.candidate_gcloud_identity_token_service_account is not None
+        ):
+            raise ValueError(
+                "The public front-door probe cannot use private authentication"
+            )
         if args.candidate_gcloud_identity_token_service_account:
             headers = {
                 "Authorization": "Bearer "
@@ -121,6 +132,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                     args.candidate_gcloud_identity_token_service_account,
                 )
             }
+        headers = _with_candidate_host_header(
+            candidate_url,
+            args.candidate_host_header,
+            headers,
+        )
         with httpx.Client(
             base_url=candidate_url,
             headers=headers,
@@ -128,6 +144,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             timeout=args.timeout_seconds,
         ) as client:
             report["result"] = verify_http_state_lifecycle(client)
+        if args.candidate_host_header is not None:
+            report["candidate_host_header"] = args.candidate_host_header
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
