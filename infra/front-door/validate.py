@@ -221,6 +221,24 @@ def validate_private_soak(baseline: dict[str, Any]) -> None:
         boundary_timestamp >= ready_timestamp,
         "private soak boundary predates revision readiness",
     )
+    _require(
+        baseline.get("evidence_schema_version") == 2,
+        "private soak must require multi-surface evidence schema 2",
+    )
+    _require(
+        baseline.get("required_surfaces")
+        == ["frozen_api", "legacy_downloads", "public_app_list"],
+        "private soak required surfaces changed unexpectedly",
+    )
+    _require(
+        baseline.get("comparator_job_generation") == 3,
+        "private soak comparator generation changed unexpectedly",
+    )
+    digest = baseline.get("comparator_image_digest")
+    _require(
+        isinstance(digest, str) and digest.startswith("sha256:") and len(digest) == 71,
+        "private soak comparator digest is invalid",
+    )
     for name in (
         "production_routing_changed",
         "catalog_activation_authorized",

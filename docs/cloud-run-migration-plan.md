@@ -437,12 +437,14 @@ Completed foundation work:
   p95/p99 at most 12.1/17.72 ms, plus one 950.6 ms startup. Allocation metrics
   provide raw cost inputs. No service configuration or traffic changed.
 - A checksum-validating private soak auditor now binds evidence to the checked-in
-  `website1` readiness boundary, verifies the revision still serves 100%
+  `website1` revision and schema-2 multi-surface boundary, verifies the revision
+  still serves 100%
   of private traffic, and independently validates every retained comparison
-  object and result count. The scheduled and manual post-promotion executions
-  both matched 158/158 with no approvals and seeded a new clock at 03:18:41 UTC;
-  the five earlier reports remain valid evidence but precede this revision
-  boundary.
+  object and internal count. Job generation 3 requires 158 frozen API cases, 94
+  live-discovered downloads, and the 32-entry website list in every artifact.
+  Its first execution passed all three surfaces and seeded a new clock at
+  03:31:45 UTC. The seven earlier API-only artifacts remain valid historical
+  evidence but cannot satisfy this stronger gate.
   The fourteen-day clock is current but not yet eligible. The baseline explicitly
   denies cutover, load-balancer, and catalog-activation authority.
 - The promoted private `downloads1` revision received two additional guarded
@@ -471,6 +473,12 @@ Completed foundation work:
   was deployed at zero traffic and passed anonymous-denial, 32-entry website
   JSON, 94-download, 158-scenario API, and synthetic-state gates before private
   promotion. It now serves 100% of only the private candidate service.
+- The scheduled comparator is upgraded without expanding IAM. It discovers the
+  download corpus through public HTTP, is pinned to immutable image
+  `sha256:2c2cf7f2bf17196ceb3b2b53ca8f33b5e43e1b44f5f5681e5721f94fae95c86c`,
+  and emits a schema-2 aggregate whose overall gate drives the existing alert.
+  The checksum auditor rejects API-only artifacts for the new soak while still
+  parsing them as history.
 
 Open foundation work:
 

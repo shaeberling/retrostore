@@ -77,7 +77,7 @@ does not change application-asset retention.
 
 - Job: `retrostore-hourly-comparator`, `us-central1`
 - Runtime identity: `retrostore-comparator@trs-80.iam.gserviceaccount.com`
-- Image digest: `sha256:3a36e48a2a1f4a4a0952493099ffd1b229e96248bdba8d3c56228fb264b81310`
+- Image digest: `sha256:2c2cf7f2bf17196ceb3b2b53ca8f33b5e43e1b44f5f5681e5721f94fae95c86c`
 - Candidate: private `retrostore-api-compat-candidate`
 - Retries: zero; timeout: 15 minutes; one task
 - Schedule: minute 17 hourly, `Etc/UTC`, enabled
@@ -96,19 +96,26 @@ through the authenticated Cloud Run v2 job endpoint. It also matched 158/158
 and retained the 26,470-byte report
 `20260810T003533221691Z-f43d86a7e3f563c9.json`, whose full SHA-256 is
 `f43d86a7e3f563c9063c0762ca2299ca45d01d850864ecd8964fe1c2bc4b3e66`.
-The job is now pinned to the hardened `observability2` API image; changing the
+Job generation 3 is pinned to the multi-surface comparator image; changing the
 private service revision alone cannot silently change the comparator runtime.
+Each execution now requires the 158 frozen API scenarios, all dynamically
+discovered legacy ZIP/typed downloads (currently 94), and the full public
+website JSON list (currently 32 entries) to pass in one schema-2 artifact. It
+derives download scenarios from public HTTP responses and needs no catalog
+database or object-reader permission.
 
 The checked-in `../front-door/private-soak-baseline.json` binds the current
-private evidence clock to candidate revision `website1` beginning no earlier
-than 2026-08-10 03:16 UTC. The local
+private evidence clock to candidate revision `website1` and schema-2 evidence
+beginning no earlier than 2026-08-10 03:31 UTC. The local
 `retrostore.contract.soak_status` auditor verifies every retained object's
 content digest and internal counts, checks that the expected revision still has
 100% of private service traffic, and calculates continuity using the 90-minute
-stale-evidence limit. Scheduled and manual post-promotion executions both
-matched 158/158 with no approvals and seeded the new clock at 03:18:41 UTC. The
-auditor validated seven retained reports total; the preceding five are
-correctly outside the new boundary. The
+stale-evidence limit. Execution `retrostore-hourly-comparator-4bhcc` passed all
+three surfaces and retained artifact
+`20260810T033145397633Z-d5c0ef70423ddfa7.json` with full SHA-256
+`d5c0ef70423ddfa7d763faf2d490e6593856cdf2387fd4a471a029478c6b9a09`.
+The auditor validated eight retained reports total; the seven earlier API-only
+schema-1 reports remain history but cannot satisfy the stronger gate. The
 14-day gate is current but not yet eligible.
 This private clock is evidence only and does not authorize a hostname,
 load balancer, data activation, or production route change.

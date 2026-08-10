@@ -368,12 +368,12 @@ GiB-seconds of memory allocation. No service setting or traffic changed.
 A separate read-only soak auditor now verifies the retained comparison object
 paths, generations, content digests, schemas, counts, URLs, and approval gates,
 then confirms the expected Cloud Run revision still serves 100% of private
-traffic. The checked-in boundary now starts after `website1` became ready at
-100% private traffic. The latest run validated seven retained zero-diff reports;
-the scheduled and manual runs after the new boundary both matched 158/158 with
-no approvals and start the clock at 2026-08-10 03:18:41 UTC. The private 14-day
-clock is current but not yet eligible. The earlier five reports remain valid
-evidence for prior revisions.
+traffic. The checked-in boundary now requires `website1` at 100% private traffic
+and schema-2 multi-surface artifacts. The latest run validated eight retained
+reports: all eight APIs matched 158/158, while the newest also passed all 94
+downloads and the 32-entry website JSON list. It starts the stronger clock at
+2026-08-10 03:31:45 UTC. The private 14-day clock is current but not yet
+eligible; the seven API-only reports remain historical evidence.
 
 The pre-existing App Engine, Compute, and Firebase Admin SDK identities remain.
 The migration adds separate keyless migrator, public API, and administration

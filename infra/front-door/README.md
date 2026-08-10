@@ -14,9 +14,9 @@ python3 infra/front-door/validate.py
 No script in this directory provisions, updates, or deletes a Google Cloud or
 DNS resource.
 
-The current private soak boundary is 2026-08-10 03:16 UTC, rounded up after
-revision `retrostore-api-compat-candidate-website1` became ready at 100%
-private traffic. Any
+The current private soak boundary is 2026-08-10 03:31 UTC, after revision
+`retrostore-api-compat-candidate-website1` became ready at 100% private traffic
+and comparator generation 3 was pinned to schema-2 multi-surface evidence. Any
 material service revision requires a reviewed baseline update and starts a new
 clock. The baseline explicitly records that production routing, catalog
 activation, and load-balancer provisioning remain unauthorized.

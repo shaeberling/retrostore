@@ -366,10 +366,13 @@ UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
 The command impersonates the read-capable migration identity without a key,
 downloads only the comparison prefix, pins every download to its object
 generation, and verifies its path timestamp, content-derived SHA-256, schema,
-URLs, result counts, difference counts, and approval gate. It also proves the
-checked-in revision is currently serving 100% of the private candidate. A
-failure or gap over 90 minutes restarts or stops the calculated streak. The
-summary retains only aggregate evidence and cannot authorize a cutover.
+URLs, result counts, difference counts, and approval gate. Schema 2 additionally
+requires every dynamically discovered legacy download and the public website
+JSON list to match; older API-only reports cannot extend the current streak. It
+also proves the checked-in revision is currently serving 100% of the private
+candidate. A failure or gap over 90 minutes restarts or stops the calculated
+streak. The summary retains only aggregate evidence and cannot authorize a
+cutover.
 
 Exercise the deployed write path with one synthetic state only. This guarded
 command is a dry run unless `--apply` and an exact URL confirmation are both

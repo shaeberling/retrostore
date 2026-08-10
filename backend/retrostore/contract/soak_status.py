@@ -44,15 +44,18 @@ class ComparisonEvidence:
     additional_surfaces_pass: bool
 
     @property
-    def zero_diff_passes(self) -> bool:
+    def api_zero_diff_passes(self) -> bool:
         return (
             self.approval_gate_passes
-            and self.additional_surfaces_pass
             and self.total >= 158
             and self.matching == self.total
             and self.different == 0
             and self.difference_fields == 0
         )
+
+    @property
+    def zero_diff_passes(self) -> bool:
+        return self.api_zero_diff_passes and self.additional_surfaces_pass
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -125,8 +128,13 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "at_or_after_boundary_count": sum(
                     item.generated_at >= not_before for item in evidence
                 ),
-                "zero_diff_count": sum(item.zero_diff_passes for item in evidence),
-                "non_zero_diff_or_failed_count": sum(
+                "api_zero_diff_count": sum(
+                    item.api_zero_diff_passes for item in evidence
+                ),
+                "multi_surface_zero_diff_count": sum(
+                    item.zero_diff_passes for item in evidence
+                ),
+                "not_multi_surface_eligible_count": sum(
                     not item.zero_diff_passes for item in evidence
                 ),
                 "latest": _evidence_reference(evidence[-1]) if evidence else None,
@@ -477,9 +485,20 @@ def _load_baseline(path: Path) -> dict[str, str]:
         "production_routing_changed": False,
         "catalog_activation_authorized": False,
         "load_balancer_authorized": False,
+        "evidence_schema_version": 2,
+        "comparator_job_generation": 3,
+        "comparator_image_digest": (
+            "sha256:2c2cf7f2bf17196ceb3b2b53ca8f33b5e43e1b44f5f5681e5721f94fae95c86c"
+        ),
     }
     if any(value.get(key) != expected_value for key, expected_value in expected.items()):
         raise ValueError("Private soak baseline violates its safety boundary")
+    if value.get("required_surfaces") != [
+        "frozen_api",
+        "legacy_downloads",
+        "public_app_list",
+    ]:
+        raise ValueError("Private soak baseline does not require all public read surfaces")
     revision = value.get("revision")
     _validate_revision(revision)
     ready_at = _parse_timestamp(value.get("revision_ready_at"), "revision_ready_at")
@@ -587,6 +606,7 @@ def _evidence_reference(item: ComparisonEvidence) -> dict[str, Any]:
         "difference_fields": item.difference_fields,
         "approval_gate_passes": item.approval_gate_passes,
         "additional_surfaces_pass": item.additional_surfaces_pass,
+        "api_zero_diff_passes": item.api_zero_diff_passes,
         "zero_diff_passes": item.zero_diff_passes,
     }
 

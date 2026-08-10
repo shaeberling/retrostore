@@ -45,6 +45,16 @@ def _baseline(path: Path) -> Path:
                 "revision": _REVISION,
                 "revision_ready_at": "2026-08-10T00:39:20Z",
                 "soak_not_before": "2026-08-10T00:40:00Z",
+                "evidence_schema_version": 2,
+                "required_surfaces": [
+                    "frozen_api",
+                    "legacy_downloads",
+                    "public_app_list",
+                ],
+                "comparator_job_generation": 3,
+                "comparator_image_digest": (
+                    "sha256:2c2cf7f2bf17196ceb3b2b53ca8f33b5e43e1b44f5f5681e5721f94fae95c86c"
+                ),
                 "production_routing_changed": False,
                 "catalog_activation_authorized": False,
                 "load_balancer_authorized": False,
