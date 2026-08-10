@@ -72,7 +72,7 @@ def test_plain_http_cannot_be_removed_or_redirected_during_migration() -> None:
 def test_plain_http_corpus_and_native_smoke_are_required_at_every_canary_step() -> None:
     thresholds_path = REPOSITORY_ROOT / "infra/front-door/monitoring-thresholds.json"
     thresholds = json.loads(thresholds_path.read_text())
-    thresholds["canary"]["require_plain_http_full_corpus_at_each_step"] = False
+    thresholds["canary"]["require_full_public_transport_parity_at_each_step"] = False
 
-    with pytest.raises(ValueError, match="full plain-HTTP corpus"):
+    with pytest.raises(ValueError, match="full public HTTP/HTTPS parity"):
         _validator().validate_thresholds(thresholds)

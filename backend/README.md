@@ -429,8 +429,21 @@ UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
 
 The mutation-safe corpus excludes `uploadState`. Its first transport run matched
 158/158 scenarios over 32 apps, 60 media objects, and 6,826,237 media bytes.
-Run the full transport corpus and the pinned native port-80 client smoke at every
-future front-door and read-canary step; an HTTP redirect is a failure.
+After building the static bundle described below, run the complete public-read
+transport gate with:
+
+```shell
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
+  -m retrostore.contract.public_transport_parity \
+  --static-bundle /tmp/retrostore-public-site \
+  --output ../.migration-artifacts/public-http-https-parity.json
+```
+
+That sanitized gate matched 338/338: the 158 API cases, 94 legacy downloads,
+six redirects, 79 static routes, and the public listing. It stores no catalog
+values, app IDs, filenames, response bodies, or credentials. Run it and the
+pinned native port-80 client smoke at every future front-door and read-canary
+step; an HTTP redirect is a failure.
 
 Audit the comparator job, scheduler, conditional report-prefix writer, bucket
 lifecycle, and private IAM as one evidence pipeline:

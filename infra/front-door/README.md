@@ -184,12 +184,12 @@ also confirmed that `POST http://retrostore.org/api/listApps` returns HTTP 200,
 an empty redirect target, and the protobuf media type; redirecting would change
 today's observable contract.
 
-The complete mutation-safe corpus also matched HTTPS and plain HTTP across all
-158 scenarios, 32 apps, 60 media objects, and 6,826,237 media bytes. The
-machine-readable canary policy now requires that full parity run plus the pinned
-native port-80 smoke at every read step. This transport gate is separate from
-the current schema-3 private Cloud Run soak, so adding it did not reset that
-revision-bound clock.
+The complete public-read transport gate also matched HTTPS and plain HTTP across
+338/338 scenarios: 158 API cases, 94 legacy downloads, six redirects, 79 static
+routes, and the public listing. The machine-readable canary policy now requires
+that full parity run plus the pinned native port-80 smoke at every read step.
+This transport gate is separate from the current schema-3 private Cloud Run
+soak, so adding it did not reset that revision-bound clock.
 
 ## Google Cloud references
 
