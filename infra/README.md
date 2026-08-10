@@ -45,3 +45,7 @@ without service-account keys or access to the legacy default database.
 The non-routed Cloud Run candidate build and deployment convention is in
 `cloud-run/`. Candidate containers use the dedicated runtime identities and
 explicit replacement-resource environment variables.
+
+The read-only load-balancer, route-group, monitoring-threshold, and rollback
+preparation is in `front-door/`. Its validator is run in CI and deliberately has
+no cloud apply path.

@@ -37,6 +37,10 @@ jobs:
         run: uv run ruff check .
         working-directory: backend
 
+      - name: Validate front-door safety invariants
+        run: python ../infra/front-door/validate.py
+        working-directory: backend
+
       - name: Run tests
         run: uv run pytest
         working-directory: backend

@@ -112,18 +112,40 @@ all 158 read-only observations. The private authenticated HTTP state lifecycle
 also passed upload, full download, memory-excluded download, and overlapping
 region retrieval. No production routing changed.
 
+## Private staged-snapshot preview
+
+- Service: `retrostore-api-preview`
+- Region: `us-central1`
+- Revision: `retrostore-api-preview-preview1`
+- Runtime identity: `retrostore-api@trs-80.iam.gserviceaccount.com`
+- Image digest: `sha256:1f265510a590a6a880b759626dfb94d6106c43aa2c8590963f1825b7c60aaeee`
+- Pinned snapshot: `catalog-5b0bbf8bb683ed653d4583fa486589358ea759ff0e145f156bedb049b7cc04a2`
+- Authentication: private; only the runtime identity and migration operator
+  have service-scoped `roles/run.invoker`; anonymous HTTP returns 403
+- Production URL map: unchanged
+
+This is a separate service, not a revision receiving traffic on the active
+candidate. Both the snapshot ID and digest are explicit environment variables,
+and startup reconciles the complete staged manifest. The 2026-08-10 exhaustive
+run matched 156/158 production scenarios. The two expected differences were
+the full and nano catalog pages, each adding only isolated staged `TestApp`
+(`015488ef-d9e2-4437-9c38-519d10cb8585`) and removing nothing. All existing
+app details, media responses, and media ranges matched. The synthetic external
+state lifecycle also passed all checks. The active snapshot pointer and
+production routing did not move.
+
 ## Current private administration candidate
 
 - Service: `retrostore-admin-candidate`
 - Region: `us-central1`
-- Revision: `retrostore-admin-candidate-working1`
+- Revision: `retrostore-admin-candidate-draft2`
 - Runtime identity: `retrostore-admin@trs-80.iam.gserviceaccount.com`
-- Image digest: `sha256:fed3a29ce5b3b82d2f2208c4bc6b2d8f0843a408936b9e70df8a6aaf9b9d072e`
+- Image digest: `sha256:bf535aab9849638f84435a115b103e4607a109f48435b702fb086907459be99e`
 - Authentication: private Cloud Run invocation followed by Firebase server
   session verification; no `allUsers` invoker binding
 - Data mode: the materialized synchronized baseline is read-only; Firestore
-  user-profile roles and isolated `STAGING` apps/authors/media/screenshots plus
-  their atomic audit events and guarded RPK imports are mutable
+  user-profile roles, isolated `STAGING` records, guarded RPK imports, and
+  copy-on-write published drafts plus their draft-only assets are mutable
 - Production URL map: unchanged
 
 The authenticated runtime-identity smoke passed `/health`, `/ready`, the
@@ -181,3 +203,17 @@ screenshots. A follow-up reconciled all 200 documents, source fingerprints,
 active object checksums, control metadata, and exactly one audit event. The
 active snapshot pointer did not move, and the post-materialization public
 comparison matched 158/158 with zero differences.
+
+Revision `draft1` added audited copy-on-write metadata overlays in the separate
+`appDrafts` collection, bound to the exact baseline snapshot and source
+fingerprint. Revision `draft2` extends those overlays to media and screenshots
+through separate `appDraftMedia` and `appDraftScreenshots` collections.
+Replacing or removing an inherited asset changes only the overlay and never
+deletes a published object; draft-only uploads use unique immutable paths and
+are deleted when replaced, removed, or discarded. The responsive compact slot
+rows and ordered screenshot controls are shared with new-app staging. `draft2`
+passed all seven readiness checks, login/CSS/redirect smoke tests at zero
+percent before receiving 100% of private admin traffic. Anonymous HTTP remains
+403. A subsequent active-snapshot comparison matched 158/158 with no approvals.
+No authenticated draft asset mutation was created automatically during the
+deployment smoke, so the existing isolated staged `TestApp` was left unchanged.

@@ -322,20 +322,39 @@ Completed foundation work:
   is deployed privately with healthy readiness including the published-draft
   store. It provides audited copy-on-write metadata create/edit/discard without
   changing published source documents or the active snapshot.
-- Copy-on-write draft assets are implemented locally as the next admin slice.
+- Copy-on-write draft assets are implemented and deployed privately as admin
+  revision `draft2`, image digest
+  `sha256:bf535aab9849638f84435a115b103e4607a109f48435b702fb086907459be99e`.
   Replacements use separate `appDraftMedia` and `appDraftScreenshots`
   collections with unique immutable objects. Removing inherited media or
   screenshots changes only the overlay; draft deletion cascades only
   draft-owned objects. Screenshot ordering, optimistic revisions, ownership,
   content verification, audit events, publication merging, and the compact
-  server-rendered asset UI are covered. The complete Python suite now has 234
-  passing tests; this asset slice still requires its private deployment smoke.
+  server-rendered asset UI are covered. The complete Python suite has 234
+  passing tests. All seven readiness checks, login, compiled CSS, redirect, and
+  anonymous-denial smoke tests passed at zero percent before `draft2` received
+  100% of private admin traffic. A post-promotion active API comparison matched
+  158/158 scenarios with zero approvals. An authenticated asset mutation was
+  deliberately not synthesized against a published app during unattended
+  deployment; that browser review remains an operator-visible UI check.
+- Front-door preparation is now checked in under `infra/front-door/`. The
+  machine-readable plan keeps an App Engine-only production baseline, assigns
+  every frozen API method to a route group, permanently pins the Card and
+  TRS-IO route island to App Engine, and fails unclassified paths closed to App
+  Engine. A separate threshold file requires hourly comparisons, fourteen
+  continuous zero-diff days, zero integrity errors, staged read canaries, and
+  atomic state/admin handoffs. Its safety validator runs in CI. Read-only cloud
+  discovery on 2026-08-10 reconfirmed that no load-balancer resource exists and
+  that Certificate Manager is not enabled. No resource was created.
 
 Open foundation work:
 
-- Finalize candidate hostnames, the load-balancer URL map, route groups,
-  monitoring thresholds, named rollback owners, and the soak policy without
-  changing production routing prematurely.
+- Confirm the proposed `lb-next.retrostore.org`, `next.retrostore.org`, and
+  `admin-next.retrostore.org` names and formally name the go/no-go owner and
+  rollback operator. Sascha Ha is recorded only as the suggested owner pending
+  confirmation. Provisioning the load balancer, DNS authorizations,
+  certificates, public candidate services, or DNS records remains a separate
+  explicitly approved action.
 - The `native-client-library` Arduino tree in this repository is an unfinished
   prototype: it sends a bodyless GET, ignores its configurable host, and has no
   media implementation. It is distinct from the working native C/ESP32 source
@@ -704,13 +723,17 @@ Use these route groups and dependency rules:
 | 3 | Media reads and assets | Canary gradually after checksum/range parity |
 | 4 | Admin and catalog writes | Atomic writer handoff; never dual-write |
 | 5 | All three state endpoints | Move atomically after active-state migration |
-| 6 | Firmware and remaining legacy routes | Move only after route-specific parity |
+| 6 | Other legacy routes | Keep on App Engine until each has a replacement and route-specific parity |
 
 Catalog and media reads can use controlled traffic increments once their gates
 pass. Admin writes cannot canary across two writers: freeze the old admin, run a
 final sync, verify it, and enable the new admin as the sole writer. The three
 state endpoints form one atomic route group so token allocation, upload, and
 download never split across authorities.
+
+The Card and TRS-IO paths are not in this sequence. They stay on App Engine
+permanently under the approved scope. Unclassified routes also remain on App
+Engine, so a missing route definition cannot expose an incomplete handler.
 
 ### Public compatibility API service
 
@@ -1326,11 +1349,12 @@ the rollback. If a gate fails, traffic stays on or returns to App Engine.
 - Whether application reports continue through email or become an admin queue.
 - Whether stable screenshot URLs are initially served by Flask or routed through
   a CDN from the first release.
-- The exact candidate API and admin hostnames.
-- The required zero-diff soak duration; the provisional recommendation is two
-  to four continuous weeks after the last material compatibility change.
-- The traffic increments, observation duration, and automatic rollback
-  thresholds for catalog and media read canaries.
+- Confirmation of the proposed `lb-next.retrostore.org`,
+  `next.retrostore.org`, and `admin-next.retrostore.org` hostnames.
+- Confirmation or revision of the checked-in fourteen-day zero-diff soak.
+- Confirmation or revision of the checked-in 1%, 5%, 25%, 50%, and 100% read
+  canaries, 24-hour minimum step observation, and automatic rollback
+  thresholds.
 - Who has go/no-go authority for each route group and who operates rollback.
 
 These decisions do not block contract capture, the Python project skeleton, or
@@ -1410,9 +1434,20 @@ Phase 1:
 - [x] Implement and exercise a stage-only publication rehearsal that rebuilds
   the active snapshot from the materialized working collections, verifies all
   metadata and objects, and has no activation capability.
-- [ ] Finalize candidate hostnames, the load-balancer URL map, route groups,
-  monitoring thresholds, and named rollback owners. Current DNS, certificates,
-  HTTP behavior, and absence of an existing load balancer are documented.
+- [x] Build and privately deploy an immutable staged publication candidate,
+  pin it to a separate preview service, prove all pre-existing API behavior and
+  isolated state RPCs, and leave the active pointer unchanged.
+- [x] Add copy-on-write published app metadata and asset drafts with guarded
+  publication merging, separate draft collections, object ownership, optimistic
+  revisions, audit events, and a private server-rendered admin deployment.
+- [x] Freeze the proposed candidate hostnames, App Engine-only initial URL map,
+  exact API route groups, permanent hardware route exclusion, monitoring
+  thresholds, soak policy, and rollback invariants in a CI-validated
+  machine-readable front-door plan.
+- [ ] Confirm the proposed hostnames and formally name the go/no-go and rollback
+  owners before any load-balancer, certificate, public IAM, or DNS resource is
+  created. Current DNS, certificates, HTTP behavior, and absence of an existing
+  load balancer are documented and reverified.
 
 The unfinished Arduino tree in this repository is not the reviewed native
 C/ESP32 consumer and remains outside the compatibility gate; leave it untouched
@@ -1423,11 +1458,14 @@ and browser inventory review have passed through the private Cloud Run proxy.
 Administrator/publisher role management is atomically audited in Firestore, and
 the isolated staging app/author create/edit/delete workflow is deployed. The
 isolated media-slot, ordered-screenshot, and guarded RPK import workflows are
-also deployed and have passed complete authenticated lifecycle proofs. The next
-executable gate is implementing and privately rehearsing the explicit
-working-set-to-immutable-snapshot publication boundary without activation,
-followed by the candidate hostname and load-balancer gate. Synchronized-catalog
-activation remains disabled.
+also deployed and have passed complete authenticated lifecycle proofs. The
+working-set-to-immutable-snapshot publication boundary, separate pinned preview,
+guarded activation/rollback command, and copy-on-write draft UI are now deployed
+privately without activation. Front-door preparation is complete without cloud
+mutation. While hostname and owner confirmation remain pending, the next safe
+executable work is request observability and a deployable scheduled comparator
+job; provisioning still requires explicit approval.
+Synchronized-catalog activation remains disabled.
 The RetroStore Card and TRS-IO hardware update subsystem stays unchanged on App
 Engine and is not part of that work queue.
 

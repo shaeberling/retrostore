@@ -2,7 +2,7 @@
 
 Status: Infrastructure, Datastore, Blobstore, and Search validation complete
 
-Last verified: 2026-08-07
+Last verified: 2026-08-10
 
 This document records observed production and source behavior. Unknown values
 remain explicit; no production resources were created or modified while
@@ -21,9 +21,10 @@ The selected gcloud account was reauthenticated and the project was verified
 before this inventory. Initial cloud discovery was read-only. Controlled,
 non-promoted App Engine versions were later deployed and deleted to collect the
 bundled-service evidence described below. On 2026-08-07, the approved isolated
-Firestore databases and private Storage buckets described below were created;
-they remain empty. No legacy resource, production data, IAM binding, or route
-was changed.
+Firestore databases and private Storage buckets described below were created.
+They now contain only the imported immutable catalog mirror, isolated staging
+and administration records, and synthetic state-test data described below. No
+legacy resource, production data, production IAM binding, or route was changed.
 
 ## Firebase and Firestore
 
@@ -32,8 +33,8 @@ Observed with `firebase firestore:databases:list --project trs-80`:
 | Database ID | Mode | Location | Concurrency | Delete protection | Purpose |
 | --- | --- | --- | --- | --- | --- |
 | `(default)` | Datastore | `nam5` | Optimistic | Disabled | Legacy App Engine/Objectify production data |
-| `retrostore` | Firestore Native, Standard | `nam5` | Pessimistic | Enabled | Empty durable migration target |
-| `retrostore-state` | Firestore Native, Standard | `nam5` | Pessimistic | Disabled | Empty ephemeral state target |
+| `retrostore` | Firestore Native, Standard | `nam5` | Pessimistic | Enabled | Durable migration mirror and isolated administration data |
+| `retrostore-state` | Firestore Native, Standard | `nam5` | Pessimistic | Disabled | Ephemeral synthetic state target |
 
 The two named databases were created on 2026-08-07 after topology approval.
 `retrostore-state` has a TTL policy on `states.expiresAt`. The migration must
@@ -43,12 +44,12 @@ rollback window.
 Observed Firebase resources:
 
 - Default Hosting site: `trs-80`, served at `https://trs-80.web.app`.
-- Registered Firebase apps: one Android app named `TRS-80 Android`, namespace
-  `org.puder.trs80`.
-- No Firebase web app is currently registered.
-- Firebase Authentication is not initialized. The Identity Toolkit project
-  configuration endpoint returns `CONFIGURATION_NOT_FOUND`, so there are no
-  existing provider settings to preserve or Firebase identities to reconcile.
+- Registered Firebase apps include the Android app named `TRS-80 Android`,
+  namespace `org.puder.trs80`, and the web app used by the new administration
+  candidate.
+- Firebase Authentication is initialized with Google sign-in for the new admin
+  candidate. Authorization still comes from server-verified sessions and
+  Firestore role profiles; the browser never receives direct database access.
 
 ## App Engine deployment
 
@@ -310,23 +311,26 @@ delete so its lifecycle does not retain expired payloads for an extra week:
 | `trs-80.appspot.com` | 0 | 0 | Firebase/App Engine default bucket; no lifecycle rule |
 | `staging.trs-80.appspot.com` | 0 | 0 | App Engine staging; delete objects after 15 days |
 | `us.artifacts.trs-80.appspot.com` | 92 | About 1.35 GiB | Legacy Container Registry artifacts |
-| `trs-80-retrostore-assets` | 0 | 0 | Private durable target; uniform access, public-access prevention, seven-day soft delete |
-| `trs-80-retrostore-state` | 0 | 0 | Private ephemeral target; uniform access, public-access prevention, delete after eight days, soft delete disabled |
+| `trs-80-retrostore-assets` | 150 baseline objects | 12,738,856 baseline bytes | Private durable mirror; uniform access, public-access prevention, seven-day soft delete |
+| `trs-80-retrostore-state` | Synthetic smoke-test objects only | Ephemeral | Private state target; uniform access, public-access prevention, delete after eight days, soft delete disabled |
 
 The three legacy buckets retain their existing ACL configuration. Uniform
 bucket-level access and public-access prevention are enforced on both new
-buckets; object versioning is disabled. The new buckets have no bucket-level IAM
-bindings; inherited project roles still apply, and no migration-specific
-principal exists yet.
+buckets; object versioning is disabled. Additive database- and bucket-scoped IAM
+grants exist for dedicated migrator, API, and admin service accounts. No
+service-account key was created.
 
-The Artifact Registry API is enabled but has no repositories. The Cloud Run
-Admin API is disabled and was deliberately left disabled during inventory, so
-there are no existing Cloud Run services to preserve. Cloud Build is enabled.
+Artifact Registry now contains the dedicated `retrostore` repository and Cloud
+Build is enabled. Three unrouted private Cloud Run services exist in
+`us-central1`: the active-snapshot API candidate, the pinned staged-snapshot API
+preview, and the administration candidate. Each denies anonymous invocation;
+none is connected to `retrostore.org`.
 
-The project has three user-managed/default service accounts: the App Engine
-default account, the Compute default account, and the Firebase Admin SDK service
-account. The App Engine and Compute default accounts currently hold the broad
-Editor role. No migration-specific or Cloud Run runtime identity exists yet.
+The pre-existing App Engine, Compute, and Firebase Admin SDK identities remain.
+The migration adds separate keyless migrator, public API, and administration
+identities with scoped access to the named databases, private buckets, and
+private candidate services. It does not grant them access to rewrite the legacy
+default database.
 
 ## Remaining data-migration work
 
@@ -334,11 +338,12 @@ Infrastructure discovery and Datastore, Blobstore, and Search reconciliation are
 complete enough to choose the target topology. Remaining data work is:
 
 - Investigate and classify the eight unreferenced Blobstore objects.
-- Decide whether the ten legacy `RetroStoreUser` records become invited
-  Firebase identities, disabled historical records, or both. Firebase Auth has
-  no existing identities or configuration to merge.
+- Decide whether the remaining legacy `RetroStoreUser` records become invited
+  Firebase identities, disabled historical records, or both. The new Firebase
+  administrator role store is deliberately separate from those legacy records.
 
 The approved target locations are `nam5` for both named Firestore databases,
-`US` for the two private buckets, and `us-central1` for Cloud Run. The databases
-and buckets are provisioned but empty; no Cloud Run candidate or migration IAM
-identity exists yet.
+`US` for the two private buckets, and `us-central1` for Cloud Run. The immutable
+32-app production mirror, its materialized read-only working collections, one
+isolated staged app, and synthetic state probes have been reconciled. The
+legacy stores remain authoritative and unchanged.
