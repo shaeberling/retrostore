@@ -43,25 +43,38 @@ PUBLIC_REDIRECT_PATHS = {
     ("exact", "/app"),
     ("exact", "/app/"),
 }
-PUBLIC_STATIC_PATHS = {
-    ("exact", "/"),
-    ("exact", "/404.html"),
-    ("exact", "/LICENSE"),
-    ("exact", "/apps.html"),
-    ("exact", "/contact.html"),
-    ("exact", "/emulator.html"),
-    ("exact", "/favicon.ico"),
-    ("exact", "/full-width.html"),
-    ("exact", "/index.html"),
-    ("exact", "/signup.html"),
-    ("prefix", "/css/"),
-    ("prefix", "/favicon/"),
-    ("prefix", "/gfx/"),
-    ("prefix", "/js/"),
-    ("prefix", "/lightbox2/"),
-    ("prefix", "/public/"),
-    ("prefix", "/vendor/"),
-}
+REPOSITORY_ROOT = ROOT.parents[1]
+
+
+def _public_static_paths() -> set[tuple[str, str]]:
+    web_inf = REPOSITORY_ROOT / "appengine/src/main/webapp/WEB-INF"
+    public = web_inf / "public"
+    favicon = web_inf / "favicon"
+    gfx = web_inf / "gfx"
+    _require(
+        public.is_dir() and favicon.is_dir() and gfx.is_dir(),
+        "legacy public source directories are missing",
+    )
+    public_files = [
+        path.relative_to(public).as_posix()
+        for path in public.rglob("*")
+        if path.is_file()
+    ]
+    favicon_files = [
+        path.relative_to(favicon).as_posix()
+        for path in favicon.rglob("*")
+        if path.is_file()
+    ]
+    gfx_files = [path.relative_to(gfx).as_posix() for path in gfx.rglob("*") if path.is_file()]
+    values = {
+        "/",
+        "/favicon.ico",
+        *(f"/{path}" for path in public_files),
+        *(f"/public/{path}" for path in public_files),
+        *(f"/favicon/{path}" for path in favicon_files),
+        *(f"/gfx/{path}" for path in gfx_files),
+    }
+    return {("exact", value) for value in values}
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -284,7 +297,7 @@ def validate_routes(routes: dict[str, Any]) -> None:
     )
     public_static = by_id["public_static_site"]
     _require(
-        _paths(public_static) == PUBLIC_STATIC_PATHS,
+        _paths(public_static) == _public_static_paths(),
         "the public static website route closure changed unexpectedly",
     )
     _require(
@@ -309,9 +322,9 @@ def validate_routes(routes: dict[str, Any]) -> None:
             "static files, catalog JSON, and redirects must share one handoff group",
         )
     _require(
-        ("prefix", "/public/") in _paths(public_static)
-        and ("exact", "/public/apps.json") in _paths(public_website),
-        "the exact dynamic catalog route must override the legacy /public/ alias",
+        all(kind == "exact" for kind, _ in _paths(public_static))
+        and ("exact", "/public/apps.json") not in _paths(public_static),
+        "only exact built static objects may move; the dynamic catalog stays separate",
     )
 
     production = routes["candidate_maps"]["production_initial"]

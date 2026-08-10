@@ -18,27 +18,7 @@ _FAVICON_SOURCE = _REPOSITORY_ROOT / "appengine/src/main/webapp/WEB-INF/favicon"
 _GFX_SOURCE = _REPOSITORY_ROOT / "appengine/src/main/webapp/WEB-INF/gfx"
 _STATIC_SUFFIXES = frozenset({".css", ".gif", ".ico", ".js", ".json", ".png", ".svg"})
 _REMOVED_MISSING_SCRIPT = '    <script src="js/contact_me.js"></script>\n'
-PUBLIC_STATIC_EXACT_PATHS = (
-    "/",
-    "/404.html",
-    "/LICENSE",
-    "/apps.html",
-    "/contact.html",
-    "/emulator.html",
-    "/favicon.ico",
-    "/full-width.html",
-    "/index.html",
-    "/signup.html",
-)
-PUBLIC_STATIC_PREFIX_PATHS = (
-    "/css/",
-    "/favicon/",
-    "/gfx/",
-    "/js/",
-    "/lightbox2/",
-    "/public/",
-    "/vendor/",
-)
+PUBLIC_STATIC_ROOT_PATH = "/"
 
 
 class _ReferenceParser(HTMLParser):
@@ -90,7 +70,8 @@ def build_public_site(
                 "Static website has missing local assets: " + ", ".join(missing)
             )
         files = sorted(path for path in output.rglob("*") if path.is_file())
-        unrouted = _unrouted_static_files(output, files)
+        exact_routes = _exact_static_routes(output, files)
+        unrouted = _unrouted_static_files(output, files, exact_routes)
         if unrouted:
             raise ValueError("Static website has unrouted files: " + ", ".join(unrouted))
         aggregate = hashlib.sha256()
@@ -134,8 +115,8 @@ def build_public_site(
         },
         "transformations": transformations,
         "routes": {
-            "exact": list(PUBLIC_STATIC_EXACT_PATHS),
-            "prefix": list(PUBLIC_STATIC_PREFIX_PATHS),
+            "exact": list(exact_routes),
+            "prefix": [],
             "dynamic_exact_exclusion": "/public/apps.json",
         },
         "objects": objects,
@@ -248,14 +229,21 @@ def _missing_static_references(root: Path) -> list[str]:
     return sorted(missing)
 
 
-def _unrouted_static_files(root: Path, files: Sequence[Path]) -> list[str]:
-    exact = frozenset(PUBLIC_STATIC_EXACT_PATHS)
-    prefixes = PUBLIC_STATIC_PREFIX_PATHS
+def _exact_static_routes(root: Path, files: Sequence[Path]) -> tuple[str, ...]:
+    return (
+        PUBLIC_STATIC_ROOT_PATH,
+        *(f"/{path.relative_to(root).as_posix()}" for path in files),
+    )
+
+
+def _unrouted_static_files(
+    root: Path, files: Sequence[Path], exact_routes: Sequence[str]
+) -> list[str]:
+    exact = frozenset(exact_routes)
     return [
         path.relative_to(root).as_posix()
         for path in files
-        if (public_path := f"/{path.relative_to(root).as_posix()}") not in exact
-        and not public_path.startswith(prefixes)
+        if f"/{path.relative_to(root).as_posix()}" not in exact
     ]
 
 

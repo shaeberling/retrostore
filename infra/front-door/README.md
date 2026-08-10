@@ -88,22 +88,37 @@ Cloud Run implementation but no production routing authority. The six exact
 candidate with the legacy empty-body 302 behavior; longer paths remain
 unclassified and fail closed to App Engine.
 
-The static route group enumerates every root page and asset prefix, including
-the legacy `/public/` alias. It targets only the not-yet-created backend bucket.
+The static route group enumerates `/` plus every one of the 78 verified object
+paths, including the legacy `/public/` aliases. It intentionally uses no broad
+asset prefix: missing paths have inconsistent legacy fall-through behavior and
+must continue to reach App Engine. It targets only the not-yet-created backend bucket.
 It shares one `public_website` handoff group with `/public/apps.json` and the six
 redirects, so those three backends change or roll back in one URL-map update.
-The one intentional same-host overlap is now machine-readable: the exact
-dynamic `/public/apps.json` route has priority over the static `/public/`
-prefix. Validation rejects every undeclared exact/prefix overlap, all duplicate
-exact routes, and all overlapping prefixes.
+Because the dynamic `/public/apps.json` path is not a static object, there is no
+static/dynamic route overlap to resolve. Validation rejects every undeclared
+exact/prefix overlap, all duplicate exact routes, and all overlapping prefixes.
 
 The local static deployment planner now verifies the complete bundle and emits
 only create-if-absent upload descriptions. It cannot call Cloud Storage, refuses
 the private assets/state and Firebase/App Engine buckets, never emits deletes,
-and never marks a plan deployable. The conservative initial proposal uses a new
-empty bucket for each release, an atomic URL-map backend switch, disabled CDN,
-and `Cache-Control: no-store`; bucket/IAM and cache/CDN choices remain approval
-items.
+and never marks a plan deployable. Every plan requires the bucket website
+`mainPageSuffix` to be `index.html`; this preserves `/` without an unsupported
+full-path URL-map rewrite. It deliberately leaves `notFoundPage` unset until
+missing-path behavior is compared, so the public `/404.html` object does not
+silently become a different response for every missing object.
+
+The remaining bucket/IAM/cache choice is explicit. The recommended option is a
+private bucket with public access prevention enforced, Cloud CDN enabled,
+`FORCE_CACHE_ALL`, a bounded maximum TTL, and only
+`service-${PROJECT_NUMBER}@https-lb.iam.gserviceaccount.com` granted
+`roles/storage.objectViewer`. Google's private backend-bucket access requires
+that cache-fill identity and CDN configuration. The simpler no-CDN alternative
+needs `allUsers` object-viewer access and public access prevention disabled; it
+can start with `Cache-Control: no-store`. Both use a new empty bucket per
+release and an atomic backend switch. Neither is authorized yet.
+
+Primary references: [Cloud Storage static website configuration](https://cloud.google.com/storage/docs/hosting-static-website)
+and [private backend-bucket access](https://cloud.google.com/cdn/docs/setting-up-cdn-with-bucket).
 
 ## Why active comparison is required
 

@@ -72,7 +72,7 @@
     {
       "id": "static_site_policy",
       "status": "confirmation_required",
-      "proposal": "Fresh bucket per release, atomic backend switch, CDN disabled, Cache-Control no-store initially",
+      "proposal": "Fresh bucket per release and atomic backend switch; recommended private bucket uses CDN FORCE_CACHE_ALL with a bounded TTL, alternative public bucket uses no CDN and Cache-Control no-store",
       "required_before": ["public_bucket", "public_bucket_iam", "static_route_handoff"]
     },
     {

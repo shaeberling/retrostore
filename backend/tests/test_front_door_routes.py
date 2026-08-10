@@ -35,8 +35,8 @@ def test_checked_in_front_door_routes_are_collision_closed() -> None:
 
 def test_undeclared_exact_prefix_overlap_is_rejected() -> None:
     routes = copy.deepcopy(_routes())
-    group = _group(routes, "public_redirects")
-    group["paths"].append({"kind": "exact", "value": "/public/other.json"})
+    group = _group(routes, "public_static_site")
+    group["paths"].append({"kind": "prefix", "value": "/public/"})
 
     with pytest.raises(ValueError, match="declarations do not match overlaps"):
         _validator().validate_routes(routes)
@@ -53,8 +53,8 @@ def test_duplicate_exact_route_is_rejected() -> None:
 
 def test_overlapping_prefix_routes_are_rejected() -> None:
     routes = copy.deepcopy(_routes())
-    group = _group(routes, "public_report")
-    group["paths"].append({"kind": "prefix", "value": "/public/reports/"})
+    group = _group(routes, "public_redirects")
+    group["paths"].append({"kind": "prefix", "value": "/reportapp/private/"})
 
     with pytest.raises(ValueError, match="overlapping route prefixes"):
         _validator().validate_routes(routes)

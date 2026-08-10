@@ -474,8 +474,11 @@ Completed foundation work:
   unrouted assets, including real `/public/` compatibility aliases and a
   per-object checksum/content-type manifest. A 79-scenario live comparison
   matched every legacy source/status/content-type/CORS gate and all six expected
-  HTML transformations. Static files, `/public/apps.json`, and the redirects are
-  one validated `public_website` handoff group. The
+  HTML transformations. Live missing-path probes demonstrated different 404
+  and login fall-through behavior by legacy asset family, so the future URL map
+  now names `/` and every object exactly instead of claiming whole prefixes.
+  Static files, `/public/apps.json`, and the redirects are one validated
+  `public_website` handoff group. The
   existing default Firebase Hosting site was confirmed to contain the separate
   TRS-80 KMP web application and is explicitly excluded; no new site or bucket
   was created.
@@ -1511,9 +1514,13 @@ the rollback. If a gate fails, traffic stays on or returns to App Engine.
 
 - The public static website bucket's CDN, cache-invalidation, and deployment
   policy. It must remain separate from the private application-assets bucket.
-  A non-executable proposal now uses a fresh empty bucket per release, atomic
-  backend switching, CDN disabled, and `Cache-Control: no-store` for the initial
-  handoff; this still needs confirmation before bucket or IAM creation.
+  A non-executable proposal uses a fresh empty bucket per release, atomic
+  backend switching, and the required `index.html` website main-page suffix.
+  The recommended access option keeps the bucket private and enables CDN with
+  `FORCE_CACHE_ALL`, an approved maximum TTL, and only the load-balancer
+  cache-fill service account as object viewer. The alternative disables CDN
+  but must make objects public and can begin with `Cache-Control: no-store`.
+  This still needs confirmation before bucket or IAM creation.
 - The retention period for normalized migration exports and legacy backups. A
   validated no-delete proposal recommends 365 days after final App Engine
   retirement, separate private backup storage, and manual review afterward.
@@ -1669,9 +1676,9 @@ Phase 1:
 - [x] Close the complete public static route set, preserve the legacy `/public/`
   aliases, generate per-object deployment metadata, and compare all 78 objects
   plus `/` with zero differences outside six deterministic HTML changes.
-- [x] Make the one intentional static/dynamic route overlap machine-readable:
-  exact `/public/apps.json` wins over the `/public/` static alias, both remain
-  in one atomic handoff group, and validation rejects every undeclared overlap.
+- [x] Eliminate the static/dynamic route overlap: route `/` and the 78 verified
+  static objects exactly, keep `/public/apps.json` separate, leave missing paths
+  on App Engine, and retain all three website backends in one atomic handoff.
 - [x] Add a local-only static deployment planner that checksum-verifies all 78
   objects, rejects every known existing project bucket, emits only
   create-if-absent uploads and zero deletes, and deliberately has no apply path.

@@ -148,6 +148,12 @@ The source dispatch order is significant:
 | `/updateData` | Search-index refresh | Removed after search migration |
 | `/ping` | One-minute App Engine warmup cron | Retain unless independently proven unnecessary for the surviving hardware routes |
 
+The static handoff is closed over `/` and 78 exact verified object paths; it
+does not route whole asset prefixes. Safe live probes showed why: a missing
+`/public/*` or `/gfx/*` object returns 404, while several other missing asset
+paths fall through to the legacy login page with HTTP 200. Exact routing keeps
+all such unrecognized paths on App Engine, preserving those edge semantics.
+
 The legacy `/rpc` registry contains:
 
 - `userlist`, `getSiteContext`, `addEditUser`, and `deleteUser`.
@@ -336,15 +342,16 @@ A private `retrostore-hourly-comparator` Cloud Run Job uses a fourth dedicated
 keyless identity. It can invoke only the private active-snapshot API candidate
 and create new objects only under the conditional
 `operations/comparisons/` assets-bucket prefix; it has no database, state,
-asset-read, overwrite, or delete permission. Its first 158-scenario execution
-passed and retained a checksum-verified report. Cloud Scheduler is enabled with
-an hourly UTC trigger. The assets bucket now deletes only comparison-report
-objects after 90 days; application asset paths are not lifecycle targets.
-The scheduler-triggered execution also passed 158/158, proving the authenticated
-delivery path. A migration dashboard and successful-comparison log metric now
-exist. Difference and 90-minute stale-evidence alert policies are installed but
-deliberately disabled without notification channels pending assignment of the
-responsible recipient.
+asset-read, overwrite, or delete permission. Job generation 4 runs the 158-case
+API corpus plus all 94 legacy downloads, the 32-entry website list, and six
+redirects, then retains one checksum-bound schema-3 report. Cloud Scheduler is
+enabled with an hourly UTC trigger. The assets bucket now deletes only
+comparison-report objects after 90 days; application asset paths are not
+lifecycle targets. The first automatic generation-4 execution passed all four
+surfaces, proving the authenticated delivery path. A migration dashboard and
+successful-comparison log metric now exist. Difference and 90-minute
+stale-evidence alert policies are installed but deliberately disabled without
+notification channels pending assignment of the responsible recipient.
 
 The private API candidate also has a guarded read-only capacity harness. Its
 first 60-second/2,000-request run on 2026-08-10 exercised the full 158-scenario
@@ -369,12 +376,21 @@ A separate read-only soak auditor now verifies the retained comparison object
 paths, generations, content digests, schemas, counts, URLs, and approval gates,
 then confirms the expected Cloud Run revision still serves 100% of private
 traffic. The checked-in boundary now requires `redirects1` at 100% private
-traffic and schema-3 four-surface artifacts. The latest run validated nine
-retained reports: all nine APIs matched 158/158, two passed the older
-download/catalog multi-surface gate, and the newest also passed all 94
-downloads, the 32-entry website JSON list, and all six public redirects. It
-starts the current clock at 2026-08-10 03:55:01 UTC. The private 14-day clock is
-current but not yet eligible; the earlier reports remain historical evidence.
+traffic and schema-3 four-surface artifacts. The latest run validated ten
+retained reports: all ten APIs matched 158/158, one older schema-2 report passed
+the download/catalog gate, and two schema-3 reports passed all 94 downloads,
+the 32-entry website JSON list, and all six public redirects. They start the
+current clock at 2026-08-10 03:55:01 UTC with no continuity gap. The private
+14-day clock is current but not yet eligible; the earlier reports remain
+historical evidence.
+
+Separate drift auditors passed the exact API/admin/preview revision, image,
+runtime configuration, traffic, IAM, and anonymous-denial baseline plus all nine
+job/scheduler/report-bucket pipeline checks. A read-only transport audit also
+matched HTTP and HTTPS for all 338 API, download, redirect, static, and public
+listing scenarios. The local readiness evaluator accepts all current
+engineering evidence while correctly denying public resources, a read canary,
+and App Engine retirement until the duration and operator decisions pass.
 
 The pre-existing App Engine, Compute, and Firebase Admin SDK identities remain.
 The migration adds separate keyless migrator, public API, and administration

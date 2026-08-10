@@ -51,16 +51,44 @@ def plan_public_site_deployment(
             "required_location": "us-central1",
             "dedicated_public_site_bucket": True,
             "uniform_bucket_level_access": True,
+            "website": {
+                "main_page_suffix": "index.html",
+                "not_found_page": None,
+            },
         },
         "proposed_initial_policy": {
             "status": "confirmation_required",
             "deployment_strategy": "new_empty_bucket_per_release",
             "handoff_strategy": "atomic_url_map_backend_switch",
-            "cdn_enabled": False,
-            "cache_control": "no-store",
+            "root_request_resolution": "cloud_storage_main_page_suffix",
+            "missing_object_policy": "native_cloud_storage_404",
+            "options": [
+                {
+                    "id": "private_bucket_with_cdn",
+                    "recommended": True,
+                    "public_access_prevention": "enforced",
+                    "bucket_iam": (
+                        "roles/storage.objectViewer for "
+                        "service-${PROJECT_NUMBER}@https-lb.iam.gserviceaccount.com only"
+                    ),
+                    "cdn_enabled": True,
+                    "cache_mode": "FORCE_CACHE_ALL",
+                    "max_ttl": "confirmation_required",
+                    "cache_invalidation_before_handoff": True,
+                },
+                {
+                    "id": "public_bucket_without_cdn",
+                    "recommended": False,
+                    "public_access_prevention": "disabled",
+                    "bucket_iam": "roles/storage.objectViewer for allUsers",
+                    "cdn_enabled": False,
+                    "cache_control": "no-store",
+                },
+            ],
             "reason": (
-                "Begin with revalidation-safe behavior; cache and CDN policy remains "
-                "an explicit operator decision"
+                "Private load-balancer-only access requires Cloud CDN; the no-CDN "
+                "alternative requires public object access. Root resolution is "
+                "independent and always requires the bucket website suffix."
             ),
         },
         "required_external_approvals": [
@@ -75,7 +103,7 @@ def plan_public_site_deployment(
                 {
                     **item,
                     "if_generation_match": 0,
-                    "cache_control": "no-store",
+                    "cache_control": "confirmation_required",
                 }
                 for item in objects
             ],

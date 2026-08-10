@@ -4,11 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from retrostore.public_site import (
-    PUBLIC_STATIC_EXACT_PATHS,
-    PUBLIC_STATIC_PREFIX_PATHS,
-    build_public_site,
-)
+from retrostore.public_site import build_public_site
 
 
 def test_static_public_site_build_is_closed_and_rewrites_catalog_fetch(
@@ -34,7 +30,9 @@ def test_static_public_site_build_is_closed_and_rewrites_catalog_fetch(
     assert (output / "public/apps.html").read_text() == apps
     assert not (output / "public/apps.json").exists()
     assert report["routes"]["dynamic_exact_exclusion"] == "/public/apps.json"
-    assert "/public/" in report["routes"]["prefix"]
+    assert report["routes"]["prefix"] == []
+    assert len(report["routes"]["exact"]) == 79
+    assert "/public/apps.html" in report["routes"]["exact"]
     assert report["transformations"] == {
         "lightbox_paths_rewritten": 4,
         "missing_contact_scripts_removed": 4,
@@ -58,15 +56,17 @@ def test_static_public_site_build_is_create_only(tmp_path: Path) -> None:
         build_public_site(output)
 
 
-def test_static_builder_and_front_door_route_manifest_stay_in_sync() -> None:
+def test_static_builder_and_front_door_route_manifest_stay_in_sync(
+    tmp_path: Path,
+) -> None:
     routes_path = Path(__file__).parents[2] / "infra/front-door/route-groups.json"
     plan = json.loads(routes_path.read_text())
     static = next(
         group for group in plan["route_groups"] if group["id"] == "public_static_site"
     )
+    report = build_public_site(tmp_path / "site")
 
     assert {(entry["kind"], entry["value"]) for entry in static["paths"]} == {
-        *(("exact", path) for path in PUBLIC_STATIC_EXACT_PATHS),
-        *(("prefix", path) for path in PUBLIC_STATIC_PREFIX_PATHS),
+        *(("exact", path) for path in report["routes"]["exact"]),
     }
     assert static["handoff_group"] == "public_website"

@@ -29,8 +29,11 @@ has zero missing local asset references and zero unrouted objects, and produces
 aggregate SHA-256
 `991c3fabcc2b3fa359c34ad7b57a90510a54ce8de8cbbed1ff96b3b4a5aabf0b`.
 It includes real `/public/` alias objects because the legacy static handler
-exposes that tree; no load-balancer path rewrite is needed. The build report has
-a size, checksum, and legacy-compatible content type for every object.
+exposes that tree; no load-balancer path rewrite is needed. The future route set
+contains `/` and 78 exact object paths rather than directory prefixes. This
+preserves App Engine's existing behavior for missing asset paths, which varies
+between login fall-through and 404 depending on the legacy handler. The build
+report has a size, checksum, and legacy-compatible content type for every object.
 
 A bounded live comparison checked all 78 objects plus `/` against App Engine.
 All 79 status, source-byte, content-type, CORS, and candidate-output gates
@@ -53,5 +56,5 @@ content type, body length, and body digest without following them.
 
 Static objects, the exact dynamic `/public/apps.json` route, and the six
 redirects share the `public_website` atomic handoff group. The exact JSON route
-must take precedence over the broader legacy `/public/` static alias. A partial
-move would strand either the catalog page or one of its legacy entry points.
+is deliberately absent from the exact static-object set. A partial move would
+strand either the catalog page or one of its legacy entry points.

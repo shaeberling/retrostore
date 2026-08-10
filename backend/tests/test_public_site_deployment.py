@@ -40,12 +40,27 @@ def test_static_deployment_plan_is_closed_create_only_and_not_executable(
     assert len(plan["operations"]["uploads"]) == 78
     assert all(
         item["if_generation_match"] == 0
-        and item["cache_control"] == "no-store"
+        and item["cache_control"] == "confirmation_required"
         and "body" not in item
         for item in plan["operations"]["uploads"]
     )
+    assert plan["target"]["website"] == {
+        "main_page_suffix": "index.html",
+        "not_found_page": None,
+    }
     assert plan["safety"]["apply_capability_present"] is False
     assert plan["proposed_initial_policy"]["status"] == "confirmation_required"
+    assert plan["proposed_initial_policy"]["root_request_resolution"] == (
+        "cloud_storage_main_page_suffix"
+    )
+    private, public = plan["proposed_initial_policy"]["options"]
+    assert private["id"] == "private_bucket_with_cdn"
+    assert private["recommended"] is True
+    assert private["cdn_enabled"] is True
+    assert private["public_access_prevention"] == "enforced"
+    assert public["id"] == "public_bucket_without_cdn"
+    assert public["cdn_enabled"] is False
+    assert public["cache_control"] == "no-store"
 
 
 @pytest.mark.parametrize(
