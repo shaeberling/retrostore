@@ -395,3 +395,6 @@ full Java suite proves cross-language parsing, checksum/aggregate validation,
 live-window enforcement, protobuf validation, and in-memory conversion of exact
 tokens, creation timestamps, models, registers, and memory regions. The class is
 not registered in `MainServlet` and has no Objectify or other mutation method.
+Its read-only collision preflight classifies absent, exactly identical, and
+expired legacy records while rejecting a different live record without logging
+the token. It has not been run against frozen production legacy state data.

@@ -28,6 +28,7 @@ import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Locale;
 import java.util.zip.ZipEntry;
@@ -103,6 +104,54 @@ public final class NormalizedStateArchiveValidatorTest {
                     new ByteArrayInputStream(archive(invalid, EXPIRES_AT, false))));
 
     assertThat(error).hasMessageThat().contains("SystemState protobuf");
+  }
+
+  @Test
+  public void collisionPreflightClassifiesAbsentIdenticalAndExpiredWithoutWrites()
+      throws Exception {
+    NormalizedStateArchiveValidator.ValidatedBundle bundle = loadBundle();
+
+    NormalizedStateArchiveValidator.PreflightReport absent =
+        NormalizedStateArchiveValidator.preflight(bundle, ignored -> null);
+    assertThat(absent.getStateCount()).isEqualTo(1);
+    assertThat(absent.getCreates()).isEqualTo(1);
+    assertThat(absent.getReuses()).isEqualTo(0);
+    assertThat(absent.getExpiredReplacements()).isEqualTo(0);
+
+    org.retrostore.data.xray.SystemState identical = bundle.getLegacyStates().get(0);
+    NormalizedStateArchiveValidator.PreflightReport reused =
+        NormalizedStateArchiveValidator.preflight(bundle, ignored -> identical);
+    assertThat(reused.getCreates()).isEqualTo(0);
+    assertThat(reused.getReuses()).isEqualTo(1);
+
+    org.retrostore.data.xray.SystemState expired = bundle.getLegacyStates().get(0);
+    expired.registers.pc++;
+    expired.addTimestamp =
+        Instant.parse(CAPTURED_AT).minus(Duration.ofDays(8)).toEpochMilli();
+    NormalizedStateArchiveValidator.PreflightReport replace =
+        NormalizedStateArchiveValidator.preflight(bundle, ignored -> expired);
+    assertThat(replace.getExpiredReplacements()).isEqualTo(1);
+  }
+
+  @Test
+  public void collisionPreflightRejectsADifferentLiveLegacyState() throws Exception {
+    NormalizedStateArchiveValidator.ValidatedBundle bundle = loadBundle();
+    org.retrostore.data.xray.SystemState different = bundle.getLegacyStates().get(0);
+    different.registers.pc++;
+
+    NormalizedStateArchiveValidator.ValidationException error =
+        assertThrows(
+            NormalizedStateArchiveValidator.ValidationException.class,
+            () -> NormalizedStateArchiveValidator.preflight(bundle, ignored -> different));
+
+    assertThat(error).hasMessageThat().contains("different live legacy state");
+    assertThat(error).hasMessageThat().doesNotContain(Long.toString(TOKEN));
+  }
+
+  private static NormalizedStateArchiveValidator.ValidatedBundle loadBundle()
+      throws Exception {
+    return NormalizedStateArchiveValidator.load(
+        new ByteArrayInputStream(archive(state().toByteArray(), EXPIRES_AT, false)));
   }
 
   private static SystemState state() {

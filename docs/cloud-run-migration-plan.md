@@ -383,8 +383,9 @@ Completed foundation work:
   checks and atomic routing for all three state RPCs, and cannot apply writes.
 - A matching disabled Java state-archive validator passes the complete App
   Engine test suite. It maps verified records into fresh in-memory legacy
-  entities but has no route or persistence operation. Exact-token collision
-  preflight and a writer-frozen replay remain intentionally unimplemented.
+  entities and performs aggregate-only absent/identical/expired collision
+  preflight, but has no route or persistence operation. Production collision
+  preflight and a writer-frozen replay remain intentionally unavailable.
 
 Open foundation work:
 

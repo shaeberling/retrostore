@@ -658,8 +658,11 @@ The legacy Java tree contains a matching `NormalizedStateArchiveValidator`.
 It independently enforces the archive limits, live windows, paths, protobufs,
 checksums, and aggregate, then maps each record to a fresh in-memory Objectify
 `SystemState` entity. It has no servlet registration, Objectify call, mutation
-method, or apply command. This closes the cross-language format/conversion gate,
-not the exact-token collision and writer-handoff gates.
+method, or apply command. A pure read-only preflight classifies absent,
+byte-for-byte-equivalent, and expired legacy token collisions and rejects a
+different live state without putting its token in an error. This closes the
+cross-language format/conversion and collision-policy unit gates, not the frozen
+production preflight, persistence, RPC reconciliation, or writer-handoff gates.
 
 ## Read-only production inventory
 

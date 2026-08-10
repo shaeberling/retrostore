@@ -30,6 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
+import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -59,6 +60,7 @@ public final class NormalizedStateArchiveValidator {
   private static final long MAX_MANIFEST_BYTES = 1024L * 1024L;
   private static final long MAX_ARCHIVE_BYTES = 256L * 1024L * 1024L;
   private static final Pattern SHA256 = Pattern.compile("[0-9a-f]{64}");
+  private static final long LEGACY_MAX_AGE_MILLIS = Duration.ofDays(7).toMillis();
   private static final Gson GSON = new Gson();
 
   private NormalizedStateArchiveValidator() {}
@@ -156,6 +158,37 @@ public final class NormalizedStateArchiveValidator {
         records,
         totalBytes,
         aggregate);
+  }
+
+  /**
+   * Classify every exact-token legacy collision without performing a persistence operation.
+   *
+   * <p>A different live legacy state is a hard failure. A different expired state is replaceable
+   * because the existing allocator already treats values older than seven days as reusable.
+   */
+  public static PreflightReport preflight(
+      ValidatedBundle bundle, LegacyStateReader legacyStates) {
+    Objects.requireNonNull(bundle);
+    Objects.requireNonNull(legacyStates);
+    int creates = 0;
+    int reuses = 0;
+    int expiredReplacements = 0;
+    for (LegacyStateRecord record : bundle.records) {
+      org.retrostore.data.xray.SystemState candidate = toLegacyState(record);
+      org.retrostore.data.xray.SystemState existing = legacyStates.load(record.token);
+      if (existing == null) {
+        creates++;
+      } else if (statesEqual(existing, candidate)) {
+        reuses++;
+      } else if (isExpired(existing, bundle.capturedAt)) {
+        expiredReplacements++;
+      } else {
+        throw new ValidationException(
+            "A reverse-sync token collides with a different live legacy state");
+      }
+    }
+    return new PreflightReport(
+        bundle.records.size(), creates, reuses, expiredReplacements);
   }
 
   private static Map<String, byte[]> readArchive(InputStream source) throws IOException {
@@ -284,6 +317,60 @@ public final class NormalizedStateArchiveValidator {
     return result;
   }
 
+  private static boolean isExpired(
+      org.retrostore.data.xray.SystemState state, Instant capturedAt) {
+    return capturedAt.toEpochMilli() - state.addTimestamp > LEGACY_MAX_AGE_MILLIS;
+  }
+
+  private static boolean statesEqual(
+      org.retrostore.data.xray.SystemState left,
+      org.retrostore.data.xray.SystemState right) {
+    if (left.token != right.token
+        || left.addTimestamp != right.addTimestamp
+        || left.model != right.model
+        || !registersEqual(left.registers, right.registers)
+        || left.memoryRegions == null
+        || right.memoryRegions == null
+        || left.memoryRegions.size() != right.memoryRegions.size()) {
+      return false;
+    }
+    for (int index = 0; index < left.memoryRegions.size(); index++) {
+      org.retrostore.data.xray.SystemState.MemoryRegion leftRegion =
+          left.memoryRegions.get(index);
+      org.retrostore.data.xray.SystemState.MemoryRegion rightRegion =
+          right.memoryRegions.get(index);
+      if (leftRegion == null
+          || rightRegion == null
+          || leftRegion.start != rightRegion.start
+          || !java.util.Arrays.equals(leftRegion.data, rightRegion.data)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private static boolean registersEqual(
+      org.retrostore.data.xray.SystemState.Registers left,
+      org.retrostore.data.xray.SystemState.Registers right) {
+    return left != null
+        && right != null
+        && left.ix == right.ix
+        && left.iy == right.iy
+        && left.pc == right.pc
+        && left.sp == right.sp
+        && left.af == right.af
+        && left.bc == right.bc
+        && left.de == right.de
+        && left.hl == right.hl
+        && left.af_prime == right.af_prime
+        && left.bc_prime == right.bc_prime
+        && left.de_prime == right.de_prime
+        && left.hl_prime == right.hl_prime
+        && left.i == right.i
+        && left.r_1 == right.r_1
+        && left.r_2 == right.r_2;
+  }
+
   private static Instant parseInstant(String value, String name) {
     if (isEmpty(value)) {
       throw new ValidationException("State archive " + name + " is malformed");
@@ -380,6 +467,43 @@ public final class NormalizedStateArchiveValidator {
         result.add(toLegacyState(record));
       }
       return Collections.unmodifiableList(result);
+    }
+  }
+
+  /** Read-only legacy lookup used only by collision preflight. */
+  public interface LegacyStateReader {
+    org.retrostore.data.xray.SystemState load(long token);
+  }
+
+  /** Aggregate-only preflight result; token values are deliberately absent. */
+  public static final class PreflightReport {
+    private final int stateCount;
+    private final int creates;
+    private final int reuses;
+    private final int expiredReplacements;
+
+    private PreflightReport(
+        int stateCount, int creates, int reuses, int expiredReplacements) {
+      this.stateCount = stateCount;
+      this.creates = creates;
+      this.reuses = reuses;
+      this.expiredReplacements = expiredReplacements;
+    }
+
+    public int getStateCount() {
+      return stateCount;
+    }
+
+    public int getCreates() {
+      return creates;
+    }
+
+    public int getReuses() {
+      return reuses;
+    }
+
+    public int getExpiredReplacements() {
+      return expiredReplacements;
     }
   }
 

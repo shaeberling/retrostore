@@ -71,7 +71,7 @@ def build_legacy_state_reverse_plan(
         ],
         "blockers_before_apply_can_exist": [
             "legacy_state_archive_importer_is_not_enabled",
-            "legacy_exact_token_collision_preflight_is_not_rehearsed",
+            "legacy_exact_token_preflight_has_not_run_against_frozen_production",
             "full_per-state_legacy_RPC_reconciliation_is_not_rehearsed",
         ],
     }
