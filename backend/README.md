@@ -38,8 +38,7 @@ data. Every admin page verifies a revoked-aware Firebase session cookie and an
 administrator or publisher role from the named Firestore database, with the
 initial custom claim retained only as a bootstrap fallback until a user profile
 exists. Session creation additionally requires a verified email, a sign-in less
-than five minutes old, and a matching HTTP-only double-submit CSRF cookie. The
-synchronized catalog remains read-only.
+than five minutes old, and a matching HTTP-only double-submit CSRF cookie.
 
 Build the local CSS after changing templates or JavaScript:
 
@@ -68,28 +67,14 @@ request. Publishers cannot access the user inventory or role mutations. Each
 role change requires CSRF validation and atomically writes both the user profile
 and audit event. Administrators cannot change their own role.
 
-The **Staging** area is the only catalog mutation surface currently enabled. It
-uses the top-level `apps`, `authors`, `media`, and `screenshots` working
-collections. Materialized `PUBLISHED` baseline records preserve the exact IDs
-and metadata of the active immutable snapshot, are visible only to
-administrators until explicitly linked to an account, and are read-only in both
-the service layer and UI. An administrator can create a copy-on-write metadata
-draft for a published app. The editable overlay lives in `appDrafts/{appId}`,
-is bound to the exact baseline snapshot and source fingerprint, inherits all
-media and screenshot references, and never modifies the source `apps/{appId}`
-document. Replacement media and screenshots live in `appDraftMedia` and
-`appDraftScreenshots`; removing an inherited asset changes only the overlay,
-while removing a draft upload deletes only that draft-owned object. Draft
-creation, metadata updates, asset changes, ordering, and discard are optimistic
-and audited. Discard cascades through draft-only objects but cannot delete a
-published document or object. A stale draft cannot enter a publication
-candidate. New `STAGING` records are separate from the versioned
-`catalogSnapshots` mirror consumed by the compatibility API, so they cannot
-affect public results. Their writes include an atomic `auditEvents` record. App
-creation uses a UUID4 form request ID for idempotent retries and enforces
-publisher ownership server-side. The staged detail page supports edits guarded
-by an optimistic integer revision and deletion guarded by exact-name
-confirmation.
+The application area uses the top-level `apps`, `authors`, `media`, and
+`screenshots` collections as the single canonical catalog. `STAGING` records
+remain admin-only until one validated Firestore transaction changes their
+status to `PUBLISHED`; the public API reads only published records.
+Administrators edit published records directly, while publishers can edit only
+their own unpublished records. App creation uses a UUID4 request ID for
+idempotent retries. Metadata and asset changes retain optimistic revisions,
+ownership enforcement, CSRF validation, and atomic audit events.
 It also manages the exact four disk slots plus cassette, command, and BASIC
 media, and an explicitly ordered screenshot list. Uploads are size-limited,
 checksum-addressed, written to private immutable object paths, and committed to
@@ -111,8 +96,8 @@ metadata plus one `STAGED_RPK_IMPORTED` audit event in a single Firestore
 transaction. Newly created immutable objects are removed if any upload or the
 metadata transaction fails. The package is limited to 32 MiB encoded and 24 MiB
 of decoded assets, with at most four disks and 32 screenshots. Neither upload is
-retained as a temporary package object, and the active synchronized catalog
-remains read-only.
+retained as a temporary package object. An imported application remains private
+until it is published.
 
 The read-only lifecycle reconciler checks one exact staged app without emitting
 document IDs, object paths, or account identifiers. It verifies linked document
@@ -281,8 +266,8 @@ with `--approvals`. The strict format, expiry/staleness rules, and operational
 policy are documented in `retrostore/contract/APPROVED_DIFFERENCES.md`.
 
 For the full read-only data gate, discover every app and media reference from
-App Engine and replay the identical generated corpus against a synchronized
-candidate:
+App Engine and replay the identical generated corpus against the direct
+Firestore/Cloud Storage candidate:
 
 ```shell
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
@@ -571,7 +556,16 @@ UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
   --output /tmp/retrostore-isolated-cloud-comparison.json
 ```
 
-## Normalized catalog mirror
+## Retained migration tooling (not used by serving code)
+
+The following snapshot, synchronization, and activation commands document the
+completed one-time import path and remain available only as rollback and audit
+tools. The Cloud Run API and admin service do not load `catalogSnapshots`, read
+`catalogControl/active`, build whole-catalog mirrors, or use copy-on-write
+published-app drafts. Normal operation uses the canonical top-level `apps`,
+`authors`, `media`, and `screenshots` collections described above.
+
+### Normalized catalog mirror
 
 The first Phase 2 persistence boundary is implemented without creating cloud
 resources. `CatalogMirror` loads versioned, language-neutral app, media, and
@@ -619,7 +613,7 @@ not read or mutate Firebase. The persistence boundary described below is the
 only path that can copy a validated archive into the isolated replacement
 resources.
 
-## Controlled cloud catalog import
+### Controlled cloud catalog import
 
 The cloud importer validates the complete archive and target names before it
 constructs cloud clients. It defaults to a zero-write dry run:
@@ -706,7 +700,7 @@ but it has no activation option. It reloads the active mirror after staging and
 fails unless the complete active snapshot is unchanged. Activation remains a
 separate guarded, audited compare-and-swap operation.
 
-## Exact snapshot export and legacy reverse planning
+### Exact snapshot export and legacy reverse planning
 
 One exact staged or ready cloud snapshot can be read back through the migrator
 identity and written as a create-only normalized archive. The command requires
@@ -757,7 +751,7 @@ no servlet registration, entity mapper, ID allocator, Blobstore/Search adapter,
 Objectify call, or apply method. The candidate's catalog values and IDs are not
 returned in its preflight report.
 
-## Controlled working-catalog materialization
+### Controlled working-catalog materialization
 
 The initial admin working set is derived deterministically from the same
 validated archive and its active immutable snapshot. It preserves historical
@@ -805,7 +799,7 @@ control record already proves an idempotent completed operation. The command
 does not upload, replace, or delete objects and never moves
 `catalogControl/active`.
 
-## Stage-only publication candidates
+### Stage-only publication candidates
 
 The publication builder reads the immutable source portion of the live working
 collections, reconciles its control record and single audit event, validates
@@ -837,7 +831,7 @@ identity: all nested app, media, and screenshot documents are reloaded and
 hashed. The command refuses a working baseline that is not based on the exact
 active snapshot, never uploads objects, and cannot move `catalogControl/active`.
 
-## Private pinned preview and guarded activation
+### Private pinned preview and guarded activation
 
 The compatibility API can be pinned to one explicit `STAGED` or `READY`
 snapshot by setting both `RETROSTORE_CATALOG_SNAPSHOT_ID` and

@@ -93,10 +93,12 @@ def test_candidate_url_guard_accepts_only_service_and_tagged_origins() -> None:
     tagged = (
         "https://downloads1---retrostore-api-compat-candidate-zzch7qgr2a-uc.a.run.app/"
     )
+    final_tagged = "https://canonical1---retrostore-api-next-zzch7qgr2a-uc.a.run.app/"
 
     assert _candidate_origin(service) == service
     assert _candidate_origin(legacy_service) == legacy_service
     assert _candidate_origin(tagged) == tagged.rstrip("/")
+    assert _candidate_origin(final_tagged) == final_tagged.rstrip("/")
     for invalid in (
         "http://retrostore-api-compat-candidate-760396810462.us-central1.run.app",
         "https://evil.example.test",

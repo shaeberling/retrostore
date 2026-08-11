@@ -2,7 +2,7 @@
 
 Status: In progress
 
-Last updated: 2026-08-10
+Last updated: 2026-08-11
 
 ## Migration rule
 
@@ -11,14 +11,56 @@ App Engine system remains live and unchanged at `retrostore.org`. Run the same
 compatibility corpus and all real clients against both endpoints until every
 in-scope function matches. Then, after an explicit operator go/no-go, switch
 production once to the already-tested replacement map. Keep the original map
-and synchronized legacy data available for immediate rollback. CDN is disabled
+and App Engine deployment available for immediate rollback. CDN is disabled
 initially but remains a possible measured future optimization; there is no
 percentage rollout or fixed-duration soak requirement.
+
+## Approved simplified catalog architecture
+
+The production catalog has one canonical Firestore representation: top-level
+`apps`, `authors`, `media`, and `screenshots` collections. `STAGING` apps are
+admin-only and `PUBLISHED` apps are visible to the public API. Publishing is a
+single validated Firestore transaction that changes an app's status; it does
+not build or activate a whole-catalog release.
+
+The API reads canonical metadata on demand and reads Cloud Storage bytes only
+for the media, screenshot, region, or download requested. Process startup does
+not read Firestore or download catalog objects. Optional in-process caches may
+be added later, but correctness must never depend on a warm cache.
+
+The former `catalogSnapshots`, `catalogControl/active`, synchronized working
+control, pinned preview, and copy-on-write draft layers are migration history,
+not the target runtime architecture. Keep them untouched while the parallel
+candidate is verified, stop creating new records through them, and remove them
+only after production cutover and rollback retirement. The retained normalized
+export and compatibility reports provide migration evidence without making
+snapshot activation part of normal operation.
 
 ## Implementation status
 
 Phase 0 and Phase 1 have started on branch `codex/cloud-run-migration-plan`.
 Completed foundation work:
+
+- The approved simplification now serves the canonical top-level Firestore
+  collections directly. The API performs no catalog or object reads at startup,
+  media-reference calls read metadata only, media-region calls read one object
+  range, and the admin inventory no longer loads an active snapshot. All 32
+  published apps, 60 media records, and 90 screenshots in the real database
+  pass the new canonical parsers and reference checks.
+- Draft publication is now one atomic `STAGING` to `PUBLISHED` transition in
+  the canonical `apps` collection. Administrators edit published records
+  directly; the deployed runtime no longer constructs copy-on-write draft or
+  active-snapshot adapters.
+- Zero-traffic revisions `retrostore-api-next-canonical1` and
+  `retrostore-admin-next-canonical2` run the simplified code on Cloud Run. The
+  previous `initial1` revisions still receive 100% of candidate-domain traffic.
+  The isolated API matched 158/158 frozen API cases, 94/94 legacy download
+  cases, the complete 32-app website projection, and all synthetic state
+  lifecycle checks. Container health took 1.18 seconds for the API and 1.4
+  seconds for admin; a scale-from-zero API health request took 2.97 seconds,
+  versus the previously observed 18.98-second preloading request. A full
+  request-driven `listApps` call took 0.54 seconds and subsequent per-app/media
+  calls were generally 0.08-0.39 seconds during the exhaustive run.
 
 - The local gcloud project and repository Firebase default are set to `trs-80`.
 - The API 0.2.13 protobuf schema is vendored with an exact upstream revision,
@@ -1783,6 +1825,17 @@ Phase 1:
   Candidate fallback explicitly fetches `https://retrostore.org`; the
   production binding later uses the existing App Engine DNS origin for
   immediate route-disable rollback.
+- [x] Replace active-snapshot runtime loading with request-driven reads from the
+  canonical top-level Firestore collections and lazy Cloud Storage reads.
+- [x] Validate all real canonical documents and references without downloading
+  binary objects, and retain the frozen compatibility suite as the serving
+  acceptance gate.
+- [x] Replace snapshot publication for new apps with one atomic canonical
+  `PUBLISHED` status transition and direct administrator edits.
+- [x] Deploy non-promoted canonical API/admin revisions, repeat exhaustive
+  App Engine parity, and record cold and warm request latency. API revision
+  `canonical1` and admin revision `canonical2` remain tagged at zero traffic;
+  the original candidate revisions remain at 100%.
 - [ ] Complete interactive Google sign-in and authorized admin navigation on
   `admin-next.retrostore.org`; the login page, redirect, CSP, Firebase redirect
   origin, service readiness, and unauthenticated session boundary already pass.
@@ -1794,12 +1847,11 @@ deployed Phase 2 gate and the admin's first read-only slice are complete. The
 initial Google sign-in, explicit administrator claim, server-session exchange,
 and browser inventory review have passed through the private Cloud Run proxy.
 Administrator/publisher role management is atomically audited in Firestore, and
-the isolated staging app/author create/edit/delete workflow is deployed. The
-isolated media-slot, ordered-screenshot, and guarded RPK import workflows are
-also deployed and have passed complete authenticated lifecycle proofs. The
-working-set-to-immutable-snapshot publication boundary, separate pinned preview,
-guarded activation/rollback command, and copy-on-write draft UI are now deployed
-privately without activation. Front-door preparation, request observability, the
+the canonical app/author/media/screenshot and guarded RPK workflows have passed
+authenticated lifecycle proofs. The earlier snapshot, pinned-preview, guarded
+activation, and copy-on-write machinery is retained only as inactive migration
+history while the simpler direct runtime is verified. Front-door preparation,
+request observability, the
 private comparator, its dashboard, the first private capacity gate, the
 stage-only half of repeatable mirror synchronization, and the read-only
 reverse-sync planner are complete. The revision-bound private comparison
@@ -1810,7 +1862,7 @@ retain all ten historical profiles without granting access and manually review
 the two unmatched legacy administrators. Actual
 legacy reverse writes remain unavailable. The candidate-only load balancer is
 deployed, while production routing still requires the full cutover gate.
-Synchronized-catalog activation remains disabled.
+Whole-catalog activation is no longer part of the target architecture.
 The RetroStore Card and TRS-IO hardware update subsystem stays unchanged on App
 Engine and is not part of that work queue.
 

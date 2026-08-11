@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import time
 import unicodedata
 import uuid
 from collections.abc import Mapping
@@ -150,6 +151,14 @@ class AdminStagingCatalog(Protocol):
         draft: StagedAppDraft,
     ) -> StagedApp: ...
 
+    def publish_app(
+        self,
+        *,
+        identity: AdminIdentity,
+        app_id: str,
+        expected_revision: int,
+    ) -> StagedApp: ...
+
     def delete_app(
         self,
         *,
@@ -211,7 +220,7 @@ class AdminStagingCatalog(Protocol):
 
 
 class FirestoreAdminStagingCatalog:
-    """Write only future top-level collections, never the synchronized mirror."""
+    """Manage draft and published apps in the canonical top-level collections."""
 
     def __init__(
         self, client: firestore.Client, object_store: StagingObjectStore | None = None
@@ -526,7 +535,7 @@ class FirestoreAdminStagingCatalog:
                 raise StagingNotFoundError("Staged app does not exist")
             current = _staged_app(snapshot.id, _document_data(snapshot))
             _require_owner(identity, current)
-            _require_mutable(current)
+            _require_mutable(identity, current)
             if current.revision != expected_revision:
                 raise StagingConflictError(
                     "The staged app changed concurrently; reload before trying again"
@@ -563,7 +572,11 @@ class FirestoreAdminStagingCatalog:
                 audit_reference,
                 {
                     "schemaVersion": 1,
-                    "eventType": "STAGED_APP_UPDATED",
+                    "eventType": (
+                        "APP_UPDATED"
+                        if current.status == "PUBLISHED"
+                        else "STAGED_APP_UPDATED"
+                    ),
                     "status": "SUCCEEDED",
                     "actorUid": identity.uid,
                     "targetId": current.id,
@@ -575,6 +588,93 @@ class FirestoreAdminStagingCatalog:
             return updated
 
         return commit_staged_app_update(transaction)
+
+    def publish_app(
+        self,
+        *,
+        identity: AdminIdentity,
+        app_id: str,
+        expected_revision: int,
+    ) -> StagedApp:
+        """Make one complete staged app visible to the public API atomically."""
+
+        app_id = _existing_app_id(app_id)
+        _require_positive_revision(expected_revision)
+        app_reference = self._client.collection(_APPS_COLLECTION).document(app_id)
+        audit_reference = self._client.collection(_AUDIT_COLLECTION).document()
+        transaction = self._client.transaction()
+        now_ms = time.time_ns() // 1_000_000
+
+        @firestore.transactional
+        def commit_publication(transaction: Any) -> StagedApp:
+            current = _transaction_app(
+                transaction, app_reference, identity, expected_revision
+            )
+            if current.status != "STAGING":
+                raise StagingConflictError("Only a staged app can be published")
+            media_references = [
+                self._client.collection(_MEDIA_COLLECTION).document(media_id)
+                for media_id in _ordered_media_ids(current)
+            ]
+            screenshot_references = [
+                self._client.collection(_SCREENSHOTS_COLLECTION).document(screenshot_id)
+                for screenshot_id in current.screenshot_ids
+            ]
+            media_snapshots = [
+                reference.get(transaction=transaction) for reference in media_references
+            ]
+            screenshot_snapshots = [
+                reference.get(transaction=transaction)
+                for reference in screenshot_references
+            ]
+            if not all(
+                snapshot.exists for snapshot in (*media_snapshots, *screenshot_snapshots)
+            ):
+                raise ValueError("Staged app asset references are incomplete")
+            media = [
+                _staged_media(snapshot.id, _document_data(snapshot))
+                for snapshot in media_snapshots
+            ]
+            screenshots = [
+                _staged_screenshot(snapshot.id, _document_data(snapshot))
+                for snapshot in screenshot_snapshots
+            ]
+            if any(item.app_id != current.id for item in (*media, *screenshots)):
+                raise ValueError("Staged app asset reference belongs to another app")
+
+            updated = replace(
+                current,
+                status="PUBLISHED",
+                revision=current.revision + 1,
+            )
+            transaction.set(
+                app_reference,
+                {
+                    "status": "PUBLISHED",
+                    "revision": updated.revision,
+                    "firstPublishedAtMs": now_ms,
+                    "updatedAtMs": now_ms,
+                    "firstPublishedAt": firestore.SERVER_TIMESTAMP,
+                    "updatedAt": firestore.SERVER_TIMESTAMP,
+                },
+                merge=True,
+            )
+            transaction.create(
+                audit_reference,
+                {
+                    "schemaVersion": 1,
+                    "eventType": "APP_PUBLISHED",
+                    "status": "SUCCEEDED",
+                    "actorUid": identity.uid,
+                    "targetId": current.id,
+                    "previousRevision": current.revision,
+                    "revision": updated.revision,
+                    "createdAt": firestore.SERVER_TIMESTAMP,
+                },
+            )
+            return updated
+
+        return commit_publication(transaction)
 
     def upload_media(
         self,
@@ -1356,7 +1456,7 @@ def _transaction_app(
         raise StagingNotFoundError("Staged app does not exist")
     current = _staged_app(snapshot.id, _document_data(snapshot))
     _require_owner(identity, current)
-    _require_mutable(current)
+    _require_mutable(identity, current)
     if current.revision != expected_revision:
         raise StagingConflictError(
             "The staged app changed concurrently; reload before trying again"
@@ -1486,11 +1586,11 @@ def _require_owner(identity: AdminIdentity, app: StagedApp) -> None:
         raise StagingAuthorizationError("Publisher does not own this staged app")
 
 
-def _require_mutable(app: StagedApp) -> None:
-    if app.status != "STAGING":
-        raise StagingReadOnlyError(
-            "Published baseline records are read-only; create a staged revision instead"
-        )
+def _require_mutable(identity: AdminIdentity, app: StagedApp) -> None:
+    if app.status == "PUBLISHED" and not identity.is_administrator:
+        raise StagingReadOnlyError("Only administrators can change a published app")
+    if app.status not in {"STAGING", "PUBLISHED"}:
+        raise StagingReadOnlyError("This app record is not directly editable")
 
 
 def _request_id(value: str) -> str:

@@ -112,29 +112,46 @@ class CompatibilityApi:
         params = self._parse_media_params(body, allow_legacy_json=True)
         if params is None:
             return _server_error(_NULL_POINTER_ERROR)
-        return _protobuf_message(self._media_response(*params))
+        app_id, media_types = params
+        response = api_pb.ApiResponseMediaImages()
+        slots = self._media_slots(app_id, response)
+        if slots is None:
+            return _protobuf_message(response)
+
+        for slot in slots:
+            if media_types and slot.media_type not in media_types:
+                continue
+            image = response.mediaImage.add()
+            image.CopyFrom(slot.image)
+            if slot.has_body:
+                image.data = slot.read_body()
+        response.success = True
+        response.message = _ALL_GOOD
+        return _protobuf_message(response)
 
     def fetch_media_image_refs(self, body: bytes) -> Response:
         params = self._parse_media_params(body, allow_legacy_json=False)
         if params is None:
             return _server_error(_NULL_POINTER_ERROR)
 
-        app_id, media_types = params
-        media_response = self._media_response(app_id, media_types)
         response = api_pb.ApiResponseMediaImageRefs()
-        if not media_response.success:
-            return _protobuf(response, success=False, message=media_response.message)
+        app_id, media_types = params
+        slots = self._media_slots(app_id, response)
+        if slots is None:
+            return _protobuf_message(response)
 
-        for image in media_response.mediaImage:
-            if not image.data:
+        for slot in slots:
+            if media_types and slot.media_type not in media_types:
+                continue
+            if not slot.has_body:
                 continue
             response.mediaImageRef.add(
-                type=image.type,
-                filename=image.filename,
-                token=f"{app_id}/{image.filename}",
-                uploadTime=image.uploadTime,
-                description=image.description,
-                size=len(image.data),
+                type=slot.image.type,
+                filename=slot.image.filename,
+                token=f"{app_id}/{slot.image.filename}",
+                uploadTime=slot.image.uploadTime,
+                description=slot.image.description,
+                size=slot.body_size,
             )
         return _protobuf(response, success=True, message=_ALL_GOOD)
 
@@ -149,22 +166,22 @@ class CompatibilityApi:
             return _raw(b"")
 
         app_id, filename = token_parts
-        entry = self._storage.get_catalog_entry(app_id)
-        if entry is None:
+        slots = self._storage.get_media_slots(app_id)
+        if slots is None:
             return _raw(b"")
 
-        image = next(
+        slot = next(
             (
-                slot.image
-                for slot in self._storage.get_media_slots(app_id)
-                if slot.image.data and slot.image.filename == filename
+                slot
+                for slot in slots
+                if slot.has_body and slot.image.filename == filename
             ),
             None,
         )
-        if image is None:
+        if slot is None:
             return _server_error(_NULL_POINTER_ERROR)
 
-        return _raw(bytes(image.data[params.start : params.start + params.length]))
+        return _raw(slot.read_body(start=params.start, length=params.length))
 
     def upload_state(self, body: bytes) -> Response:
         params = _parse_protobuf(api_pb.UploadSystemStateParams, body)
@@ -253,8 +270,13 @@ class CompatibilityApi:
             return "Parameter 'start' out of range"
 
         if params.query.strip():
-            matching_ids = self._storage.search_app_ids(params.query)
-            entries = [entry for entry in entries if entry.app.id in matching_ids]
+            needle = params.query.casefold()
+            entries = [
+                entry
+                for entry in entries
+                if needle in entry.app.name.casefold()
+                or needle in entry.app.description.casefold()
+            ]
         media_types = frozenset(params.trs80.media_types)
         if media_types:
             entries = [entry for entry in entries if entry.media_types & media_types]
@@ -262,25 +284,21 @@ class CompatibilityApi:
             return None
         return entries, params.start, params.num
 
-    def _media_response(
-        self, app_id: str, media_types: frozenset[int]
-    ) -> api_pb.ApiResponseMediaImages:
-        response = api_pb.ApiResponseMediaImages()
+    def _media_slots(
+        self,
+        app_id: str,
+        response: api_pb.ApiResponseMediaImages | api_pb.ApiResponseMediaImageRefs,
+    ) -> tuple[Any, ...] | None:
         if not app_id:
             response.success = False
             response.message = "No appId given."
-            return response
-        if self._storage.get_catalog_entry(app_id) is None:
+            return None
+        slots = self._storage.get_media_slots(app_id)
+        if slots is None:
             response.success = False
             response.message = f"Cannot find app with ID '{app_id}'."
-            return response
-
-        for slot in self._storage.get_media_slots(app_id):
-            if not media_types or slot.media_type in media_types:
-                response.mediaImage.add().CopyFrom(slot.image)
-        response.success = True
-        response.message = _ALL_GOOD
-        return response
+            return None
+        return tuple(slots)
 
     @staticmethod
     def _parse_get_app(body: bytes) -> str | None:

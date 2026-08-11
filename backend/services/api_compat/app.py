@@ -3,7 +3,6 @@
 import os
 import zipfile
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -12,7 +11,13 @@ from urllib.parse import quote, urlsplit
 from flask import Flask, Response, abort, jsonify, request
 
 from retrostore.api_compat.service import build_handlers
-from retrostore.api_compat.storage import CompatibilityStorage
+from retrostore.api_compat.storage import (
+    CompatibilityStorage,
+    LegacyDownloadApp,
+    LegacyDownloadMedia,
+    PublicCatalog,
+    PublicScreenshot,
+)
 from retrostore.contracts import PUBLIC_API_METHODS
 from retrostore.observability import register_request_observability
 
@@ -25,27 +30,6 @@ LEGACY_PUBLIC_REDIRECTS = {
 }
 
 
-@dataclass(frozen=True, slots=True)
-class PublicScreenshot:
-    filename: str
-    content_type: str
-    sha256: str
-    body: bytes
-
-
-@dataclass(frozen=True, slots=True)
-class LegacyDownloadMedia:
-    id: str
-    filename: str
-    body: bytes
-
-
-@dataclass(frozen=True, slots=True)
-class LegacyDownloadApp:
-    name: str
-    media: tuple[LegacyDownloadMedia, ...]
-
-
 def create_app(config: Mapping[str, Any] | None = None) -> Flask:
     app = Flask(__name__)
     app.config.from_mapping(
@@ -54,6 +38,7 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
         RETROSTORE_OBSERVABLE_API_METHODS=frozenset(PUBLIC_API_METHODS),
         RETROSTORE_PROJECT=os.environ.get("RETROSTORE_PROJECT"),
         RETROSTORE_REQUEST_LOGGING=True,
+        RETROSTORE_PUBLIC_CATALOG=None,
         RETROSTORE_LEGACY_DOWNLOADS={},
         RETROSTORE_PUBLIC_WEBSITE_APPS=(),
         RETROSTORE_SCREENSHOTS={},
@@ -102,13 +87,17 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
     @app.get("/s/<screenshot_id>")
     @app.get("/assets/screenshots/<screenshot_id>")
     def screenshot(screenshot_id: str) -> Response:
-        screenshots: Mapping[str, PublicScreenshot] = app.config[
-            "RETROSTORE_SCREENSHOTS"
-        ]
-        value = screenshots.get(screenshot_id)
+        public_catalog: PublicCatalog | None = app.config["RETROSTORE_PUBLIC_CATALOG"]
+        if public_catalog is not None:
+            value = public_catalog.get_screenshot(screenshot_id)
+        else:
+            screenshots: Mapping[str, PublicScreenshot] = app.config[
+                "RETROSTORE_SCREENSHOTS"
+            ]
+            value = screenshots.get(screenshot_id)
         if value is None:
             abort(404)
-        response = Response(value.body, mimetype=value.content_type)
+        response = Response(value.read_body(), mimetype=value.content_type)
         response.set_etag(value.sha256, weak=False)
         response.cache_control.public = True
         response.cache_control.max_age = 31_536_000
@@ -123,10 +112,14 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
         if app_id is None:
             return _legacy_download_error("'appId' missing.")
 
-        downloads: Mapping[str, LegacyDownloadApp] = app.config[
-            "RETROSTORE_LEGACY_DOWNLOADS"
-        ]
-        value = downloads.get(app_id)
+        public_catalog: PublicCatalog | None = app.config["RETROSTORE_PUBLIC_CATALOG"]
+        if public_catalog is not None:
+            value = public_catalog.get_download(app_id)
+        else:
+            downloads: Mapping[str, LegacyDownloadApp] = app.config[
+                "RETROSTORE_LEGACY_DOWNLOADS"
+            ]
+            value = downloads.get(app_id)
         if value is None:
             return _legacy_download_error(f"Cannot find app with ID {app_id}")
 
@@ -143,7 +136,7 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
             )
             if selected is None and value.media:
                 return _legacy_download_error(f"Cannot find app with ID {app_id}")
-            body = b"" if selected is None else selected.body
+            body = b"" if selected is None else selected.read_body()
             response = Response(body, content_type="application/octet-stream")
             response.headers["Access-Control-Allow-Origin"] = "*"
             return response
@@ -151,7 +144,7 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
         output = BytesIO()
         with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
             for media in sorted(value.media, key=lambda item: item.filename):
-                archive.writestr(media.filename, media.body)
+                archive.writestr(media.filename, media.read_body())
         filename = _legacy_download_filename(value.name)
         response = Response(output.getvalue(), content_type="application/zip")
         response.headers["Content-Disposition"] = f'attachment; filename="{filename}.zip"'
@@ -159,6 +152,9 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
 
     @app.get("/public/apps.json")
     def public_website_apps() -> Response:
+        public_catalog: PublicCatalog | None = app.config["RETROSTORE_PUBLIC_CATALOG"]
+        if public_catalog is not None:
+            return jsonify(public_catalog.list_website_apps())
         return jsonify(app.config["RETROSTORE_PUBLIC_WEBSITE_APPS"])
 
     def legacy_public_redirect(destination: str) -> Response:
@@ -224,11 +220,11 @@ def create_archive_app(
 
 
 def create_cloud_app(config: Mapping[str, Any] | None = None) -> Flask:
-    """Create the deployable candidate from an active isolated cloud snapshot."""
+    """Create the deployable API from the canonical top-level collections."""
 
+    from retrostore.api_compat.canonical_storage import CanonicalCompatibilityStorage
     from retrostore.api_compat.google_cloud_state import google_state_storage
-    from retrostore.mirror import MirrorCompatibilityStorage, load_active_catalog_mirror
-    from retrostore.mirror.google_cloud import google_catalog_stores
+    from retrostore.canonical_catalog import google_canonical_catalog
 
     candidate_config: dict[str, Any] = {
         "RETROSTORE_PROJECT": os.environ.get("RETROSTORE_PROJECT"),
@@ -239,14 +235,10 @@ def create_cloud_app(config: Mapping[str, Any] | None = None) -> Flask:
         "RETROSTORE_PUBLIC_ORIGIN": os.environ.get(
             "RETROSTORE_PUBLIC_ORIGIN", "https://retrostore.org"
         ),
-        "RETROSTORE_CATALOG_SNAPSHOT_ID": os.environ.get(
-            "RETROSTORE_CATALOG_SNAPSHOT_ID"
-        ),
-        "RETROSTORE_CATALOG_SNAPSHOT_MANIFEST_SHA256": os.environ.get(
-            "RETROSTORE_CATALOG_SNAPSHOT_MANIFEST_SHA256"
-        ),
         "RETROSTORE_STATE_DATABASE": os.environ.get("RETROSTORE_STATE_DATABASE"),
         "RETROSTORE_STATE_BUCKET": os.environ.get("RETROSTORE_STATE_BUCKET"),
+        "RETROSTORE_API_STORAGE": None,
+        "RETROSTORE_PUBLIC_CATALOG": None,
         "RETROSTORE_STATE_STORAGE": None,
     }
     if config:
@@ -263,32 +255,7 @@ def create_cloud_app(config: Mapping[str, Any] | None = None) -> Flask:
     if missing:
         raise RuntimeError(f"Cloud catalog configuration is missing: {', '.join(missing)}")
 
-    pinned_snapshot_id = candidate_config.get("RETROSTORE_CATALOG_SNAPSHOT_ID")
-    pinned_manifest_sha256 = candidate_config.get(
-        "RETROSTORE_CATALOG_SNAPSHOT_MANIFEST_SHA256"
-    )
-    if bool(pinned_snapshot_id) != bool(pinned_manifest_sha256):
-        raise RuntimeError(
-            "Pinned catalog preview requires both snapshot ID and manifest SHA-256"
-        )
     public_origin = _public_origin(candidate_config["RETROSTORE_PUBLIC_ORIGIN"])
-
-    object_store, snapshot_store = google_catalog_stores(
-        project=candidate_config["RETROSTORE_PROJECT"],
-        database=candidate_config["RETROSTORE_CATALOG_DATABASE"],
-        bucket=candidate_config["RETROSTORE_ASSETS_BUCKET"],
-    )
-    if pinned_snapshot_id:
-        from retrostore.mirror import CatalogMirror
-
-        mirror = CatalogMirror.from_dict(
-            snapshot_store.load_snapshot_manifest(
-                pinned_snapshot_id, pinned_manifest_sha256
-            ),
-            object_store,
-        )
-    else:
-        mirror = load_active_catalog_mirror(object_store, snapshot_store)
     state_storage = candidate_config["RETROSTORE_STATE_STORAGE"]
     if state_storage is None:
         state_storage = google_state_storage(
@@ -296,16 +263,20 @@ def create_cloud_app(config: Mapping[str, Any] | None = None) -> Flask:
             database=candidate_config["RETROSTORE_STATE_DATABASE"],
             bucket=candidate_config["RETROSTORE_STATE_BUCKET"],
         )
-    candidate_config["RETROSTORE_API_STORAGE"] = MirrorCompatibilityStorage(
-        mirror,
-        screenshot_url=_screenshot_url_resolver(public_origin),
-        state_storage=state_storage,
-    )
-    candidate_config["RETROSTORE_LEGACY_DOWNLOADS"] = _legacy_downloads(mirror)
-    candidate_config["RETROSTORE_PUBLIC_WEBSITE_APPS"] = _public_website_apps(
-        mirror, public_origin
-    )
-    candidate_config["RETROSTORE_SCREENSHOTS"] = _public_screenshots(mirror)
+    if candidate_config["RETROSTORE_API_STORAGE"] is None:
+        repository, object_reader = google_canonical_catalog(
+            project=candidate_config["RETROSTORE_PROJECT"],
+            database=candidate_config["RETROSTORE_CATALOG_DATABASE"],
+            bucket=candidate_config["RETROSTORE_ASSETS_BUCKET"],
+        )
+        storage = CanonicalCompatibilityStorage(
+            repository,
+            object_reader,
+            state_storage,
+            public_origin=public_origin,
+        )
+        candidate_config["RETROSTORE_API_STORAGE"] = storage
+        candidate_config["RETROSTORE_PUBLIC_CATALOG"] = storage
     return create_app(candidate_config)
 
 

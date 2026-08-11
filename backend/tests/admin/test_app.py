@@ -85,6 +85,7 @@ class FakeStagingCatalog:
         default_factory=list
     )
     deletions: list[tuple[AdminIdentity, str, int]] = field(default_factory=list)
+    publications: list[tuple[AdminIdentity, str, int]] = field(default_factory=list)
     media_uploads: list[
         tuple[AdminIdentity, str, int, str, ValidatedAssetUpload]
     ] = field(default_factory=list)
@@ -133,6 +134,15 @@ class FakeStagingCatalog:
 
     def delete_app(self, *, identity, app_id, expected_revision):
         self.deletions.append((identity, app_id, expected_revision))
+
+    def publish_app(self, *, identity, app_id, expected_revision):
+        self.publications.append((identity, app_id, expected_revision))
+        return replace(
+            self.apps[0],
+            id=app_id,
+            status="PUBLISHED",
+            revision=expected_revision + 1,
+        )
 
     def upload_media(
         self, *, identity, app_id, expected_revision, slot, upload
@@ -388,7 +398,6 @@ def test_admin_is_not_ready_until_auth_persistence_and_web_config_exist() -> Non
             "authentication": False,
             "firebase_web": False,
             "persistence": False,
-            "published_app_drafts": False,
             "staging_catalog": False,
             "user_directory": False,
             "user_role_management": False,
@@ -537,9 +546,9 @@ def test_staging_list_form_validation_and_atomic_create_boundary() -> None:
 
     assert listing.status_code == 200
     assert b"Staged Game" in listing.data
-    assert b"cannot appear in the public API" in listing.data
+    assert b"Only published records appear in the public API" in listing.data
     assert form.status_code == 200
-    assert b"New staged application" in form.data
+    assert b"New application" in form.data
     assert rejected.status_code == 400
     assert b"Kept" in rejected.data
     assert b"request identifier is invalid" in rejected.data
@@ -613,6 +622,28 @@ def test_rpk_preview_has_no_side_effects_and_apply_requires_the_same_file() -> N
     assert identity.uid == "user-1"
     assert package.package_sha256 == digest
     assert package.claimed_publisher_email == "claimed@example.test"
+
+
+def test_staged_app_can_be_published_directly() -> None:
+    catalog = FakeStagingCatalog()
+    app = catalog.apps[0]
+    client = _configured_app(staging_catalog=catalog).test_client()
+    csrf_token = _csrf_token(client)
+    client.post(
+        "/admin/session",
+        json={"id_token": "valid-id-token", "csrf_token": csrf_token},
+    )
+
+    response = client.post(
+        f"/admin/staging/apps/{app.id}/publish",
+        data={"csrf_token": csrf_token, "revision": str(app.revision)},
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        f"/admin/staging/apps/{app.id}?published=1"
+    )
+    assert catalog.publications == [(FakeAuthenticator.identity, app.id, 1)]
 
 
 def test_rpk_preview_rejects_the_whole_package_before_catalog_mutation() -> None:
@@ -701,7 +732,7 @@ def test_staging_detail_edit_and_confirmed_delete_lifecycle() -> None:
     )
 
 
-def test_published_baseline_detail_is_read_only() -> None:
+def test_published_app_is_directly_editable_by_an_administrator() -> None:
     baseline = replace(
         FakeStagingCatalog().apps[0],
         id="0FA9D58E-9B99-11E7-B002-5B6133CA5F0C",
@@ -720,12 +751,12 @@ def test_published_baseline_detail_is_read_only() -> None:
     edit = client.get(f"/admin/staging/apps/{baseline.id}/edit")
 
     assert detail.status_code == 200
-    assert b"materialized published baseline" in detail.data
-    assert b"Edit staged app" not in detail.data
-    assert b"Upload screenshot" not in detail.data
+    assert b"public API reads this canonical record directly" in detail.data
+    assert b"Edit app" in detail.data
+    assert b"Upload screenshot" in detail.data
     assert b"Delete staged app" not in detail.data
-    assert b"Create editable draft" in detail.data
-    assert edit.status_code == 409
+    assert b"Create editable draft" not in detail.data
+    assert edit.status_code == 200
 
 
 def test_published_baseline_copy_on_write_draft_lifecycle() -> None:

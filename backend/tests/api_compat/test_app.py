@@ -7,7 +7,6 @@ from flask import Response
 
 from retrostore.api_compat.storage import InMemoryCompatibilityStorage
 from retrostore.generated import ApiProtos_pb2 as api_pb
-from retrostore.mirror import build_catalog_snapshot, import_catalog_mirror
 from services.api_compat.app import (
     LEGACY_PUBLIC_REDIRECTS,
     create_app,
@@ -17,7 +16,7 @@ from services.api_compat.app import (
 )
 from tests.mirror.test_archive import _write_archive
 from tests.mirror.test_catalog import _manifest
-from tests.mirror.test_persistence import MemoryObjectStore, MemorySnapshotStore, _mirror
+from tests.mirror.test_persistence import _mirror
 
 
 def test_liveness_is_independent_of_implementation_readiness() -> None:
@@ -237,16 +236,15 @@ def test_cloud_candidate_fails_closed_without_explicit_resource_names() -> None:
         create_cloud_app({"TESTING": True})
 
 
-def test_cloud_candidate_loads_the_active_snapshot(
+def test_cloud_candidate_defers_canonical_reads_until_an_api_request(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    objects = MemoryObjectStore()
-    snapshots = MemorySnapshotStore()
-
-    import_catalog_mirror(_mirror(), objects, snapshots)
+    mirror = _mirror()
+    repository = _MirrorRepository(mirror)
+    object_reader = _MirrorObjectReader(mirror.object_bytes)
     monkeypatch.setattr(
-        "retrostore.mirror.google_cloud.google_catalog_stores",
-        lambda **kwargs: (objects, snapshots),
+        "retrostore.canonical_catalog.google_canonical_catalog",
+        lambda **kwargs: (repository, object_reader),
     )
     client = create_cloud_app(
         {
@@ -258,7 +256,9 @@ def test_cloud_candidate_loads_the_active_snapshot(
         }
     ).test_client()
 
+    assert repository.calls == []
     readiness = client.get("/readyz")
+    assert repository.calls == []
     response = client.post(
         "/api/getApp",
         data=api_pb.GetAppParams(app_id="app-1").SerializeToString(),
@@ -268,61 +268,53 @@ def test_cloud_candidate_loads_the_active_snapshot(
     assert readiness.status_code == 200
     assert app_response.success is True
     assert app_response.app[0].name == "Armored Patrol"
+    assert repository.calls == ["get_app", "get_screenshots"]
+    assert object_reader.reads == []
 
 
-def test_cloud_preview_can_pin_a_staged_snapshot_without_activation(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    objects = MemoryObjectStore()
-    snapshots = MemorySnapshotStore()
-    active = _mirror(name="Active")
-    preview = _mirror(name="Private Preview")
-    for snapshot_mirror in (active, preview):
-        snapshot = build_catalog_snapshot(snapshot_mirror)
-        for value in snapshot.objects:
-            objects.put_verified(value)
-        snapshots.stage(snapshot)
-    active_snapshot = build_catalog_snapshot(active)
-    preview_snapshot = build_catalog_snapshot(preview)
-    snapshots.activate(active_snapshot.id, active_snapshot.manifest_sha256)
-    monkeypatch.setattr(
-        "retrostore.mirror.google_cloud.google_catalog_stores",
-        lambda **kwargs: (objects, snapshots),
-    )
+class _MirrorRepository:
+    def __init__(self, mirror):
+        self.mirror = mirror
+        self.calls: list[str] = []
 
-    client = create_cloud_app(
-        {
-            "TESTING": True,
-            "RETROSTORE_PROJECT": "trs-80",
-            "RETROSTORE_CATALOG_DATABASE": "retrostore",
-            "RETROSTORE_ASSETS_BUCKET": "trs-80-retrostore-assets",
-            "RETROSTORE_CATALOG_SNAPSHOT_ID": preview_snapshot.id,
-            "RETROSTORE_CATALOG_SNAPSHOT_MANIFEST_SHA256": (
-                preview_snapshot.manifest_sha256
-            ),
-            "RETROSTORE_STATE_STORAGE": InMemoryCompatibilityStorage(),
+    def list_apps(self):
+        self.calls.append("list_apps")
+        return self.mirror.apps
+
+    def get_app(self, app_id):
+        self.calls.append("get_app")
+        return next((app for app in self.mirror.apps if app.id == app_id), None)
+
+    def get_media(self, media_ids, *, app_id):
+        self.calls.append("get_media")
+        return {media_id: self.mirror.media[media_id] for media_id in media_ids}
+
+    def list_media(self):
+        self.calls.append("list_media")
+        return self.mirror.media
+
+    def get_screenshots(self, screenshot_ids, *, app_id):
+        self.calls.append("get_screenshots")
+        return {
+            screenshot_id: self.mirror.screenshots[screenshot_id]
+            for screenshot_id in screenshot_ids
         }
-    ).test_client()
 
-    response = client.post(
-        "/api/getApp",
-        data=api_pb.GetAppParams(app_id="app-1").SerializeToString(),
-    )
-    app_response = api_pb.ApiResponseApps.FromString(response.data)
+    def list_screenshots(self):
+        self.calls.append("list_screenshots")
+        return self.mirror.screenshots
 
-    assert app_response.app[0].name == "Private Preview"
-    assert snapshots.active_id == active_snapshot.id
+    def get_screenshot(self, screenshot_id):
+        self.calls.append("get_screenshot")
+        return self.mirror.screenshots.get(screenshot_id)
 
 
-def test_cloud_preview_requires_a_complete_snapshot_pin() -> None:
-    with pytest.raises(RuntimeError, match="both snapshot ID"):
-        create_cloud_app(
-            {
-                "TESTING": True,
-                "RETROSTORE_PROJECT": "trs-80",
-                "RETROSTORE_CATALOG_DATABASE": "retrostore",
-                "RETROSTORE_ASSETS_BUCKET": "trs-80-retrostore-assets",
-                "RETROSTORE_CATALOG_SNAPSHOT_ID": "catalog-" + "a" * 64,
-                "RETROSTORE_STATE_STORAGE": InMemoryCompatibilityStorage(),
-            }
-        )
+class _MirrorObjectReader:
+    def __init__(self, objects):
+        self.objects = objects
+        self.reads: list[tuple[str, int, int | None]] = []
+
+    def read(self, descriptor, start=0, length=None):
+        self.reads.append((descriptor.path, start, length))
+        body = self.objects[descriptor.path]
+        return body[start:] if length is None else body[start : start + length]

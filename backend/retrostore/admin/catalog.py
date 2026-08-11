@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from typing import Protocol
 
+from retrostore.canonical_catalog import CanonicalCatalogRepository
 from retrostore.mirror import (
     CatalogMirror,
     NormalizedApp,
@@ -51,3 +52,37 @@ class MirrorAdminCatalog:
         )
         screenshots = tuple(self._screenshots[item_id] for item_id in app.screenshot_ids)
         return AdminCatalogDetail(app=app, media=media, screenshots=screenshots)
+
+
+class FirestoreAdminCatalog:
+    """Read published applications directly from the canonical collections."""
+
+    def __init__(self, repository: CanonicalCatalogRepository) -> None:
+        self._repository = repository
+
+    def list_apps(self) -> tuple[NormalizedApp, ...]:
+        return tuple(
+            sorted(
+                self._repository.list_apps(),
+                key=lambda app: (app.name.casefold(), app.id),
+            )
+        )
+
+    def get_app(self, app_id: str) -> AdminCatalogDetail | None:
+        app = self._repository.get_app(app_id)
+        if app is None:
+            return None
+        media_ids = tuple(
+            media_id for _, media_id in app.media_slot_ids() if media_id is not None
+        )
+        media = self._repository.get_media(media_ids, app_id=app.id)
+        screenshots = self._repository.get_screenshots(
+            app.screenshot_ids, app_id=app.id
+        )
+        return AdminCatalogDetail(
+            app=app,
+            media=tuple(media[media_id] for media_id in media_ids),
+            screenshots=tuple(
+                screenshots[screenshot_id] for screenshot_id in app.screenshot_ids
+            ),
+        )

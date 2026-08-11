@@ -543,7 +543,7 @@ def test_staged_update_rejects_non_owner_and_stale_revision(monkeypatch) -> None
     assert client.transaction_value.creates == []
 
 
-def test_materialized_published_app_refuses_in_place_mutation(monkeypatch) -> None:
+def test_published_app_allows_direct_administrator_update(monkeypatch) -> None:
     monkeypatch.setattr(staging.firestore, "transactional", lambda function: function)
     app_id = "0FA9D58E-9B99-11E7-B002-5B6133CA5F0C"
     client = FakeFirestore(
@@ -560,23 +560,77 @@ def test_materialized_published_app_refuses_in_place_mutation(monkeypatch) -> No
     )
     catalog = staging.FirestoreAdminStagingCatalog(client)
 
-    with pytest.raises(staging.StagingReadOnlyError, match="read-only"):
-        catalog.update_app(
-            identity=ADMIN,
+    updated = catalog.update_app(
+        identity=ADMIN,
+        app_id=app_id,
+        expected_revision=1,
+        draft=_draft(name="Updated Published Game"),
+    )
+
+    assert updated.status == "PUBLISHED"
+    assert updated.name == "Updated Published Game"
+    assert client.transaction_value.sets[0][1]["name"] == "Updated Published Game"
+
+
+def test_publisher_cannot_mutate_a_published_app(monkeypatch) -> None:
+    monkeypatch.setattr(staging.firestore, "transactional", lambda function: function)
+    app_id = "0FA9D58E-9B99-11E7-B002-5B6133CA5F0C"
+    client = FakeFirestore(
+        apps=(
+            FakeSnapshot(
+                app_id,
+                {
+                    **_app_document(publisher_uid=PUBLISHER.uid, name="Published Game"),
+                    "revision": 1,
+                    "status": "PUBLISHED",
+                },
+            ),
+        )
+    )
+
+    with pytest.raises(staging.StagingReadOnlyError, match="administrators"):
+        staging.FirestoreAdminStagingCatalog(client).update_app(
+            identity=PUBLISHER,
             app_id=app_id,
             expected_revision=1,
             draft=_draft(),
         )
-    with pytest.raises(staging.StagingReadOnlyError, match="read-only"):
-        catalog.delete_app(
-            identity=ADMIN,
-            app_id=app_id,
-            expected_revision=1,
-        )
 
-    assert client.transaction_value.sets == []
-    assert client.transaction_value.deletes == []
-    assert client.transaction_value.creates == []
+
+def test_publish_app_atomically_flips_status_without_building_a_snapshot(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(staging.firestore, "transactional", lambda function: function)
+    monkeypatch.setattr(staging.time, "time_ns", lambda: 1_234_000_000)
+    app_id = "77777777-7777-4777-8777-777777777777"
+    client = FakeFirestore(
+        apps=(
+            FakeSnapshot(
+                app_id,
+                {
+                    **_app_document(publisher_uid=PUBLISHER.uid, name="Publish Me"),
+                    "revision": 2,
+                    "status": "STAGING",
+                },
+            ),
+        )
+    )
+
+    published = staging.FirestoreAdminStagingCatalog(client).publish_app(
+        identity=PUBLISHER,
+        app_id=app_id,
+        expected_revision=2,
+    )
+
+    assert published.status == "PUBLISHED"
+    assert published.revision == 3
+    update_id, update, merge = client.transaction_value.sets[0]
+    assert update_id == app_id
+    assert update["status"] == "PUBLISHED"
+    assert update["firstPublishedAtMs"] == 1_234
+    assert merge is True
+    assert client.transaction_value.creates[0][1]["eventType"] == "APP_PUBLISHED"
+    assert "catalogSnapshots" not in client.collection_names
 
 
 def test_staged_delete_requires_current_revision_and_keeps_author(monkeypatch) -> None:

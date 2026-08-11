@@ -24,4 +24,4 @@ COPY retrostore ./retrostore
 COPY services ./services
 COPY --from=admin-assets /build/services/admin/static/admin.css ./services/admin/static/admin.css
 
-CMD ["sh", "-c", "exec gunicorn --bind :${PORT:-8080} --workers 2 --threads 8 --timeout 60 'services.admin.app:create_cloud_app()'"]
+CMD ["sh", "-c", "exec gunicorn --bind :${PORT:-8080} --workers 1 --threads 8 --timeout 60 'services.admin.app:create_cloud_app()'"]

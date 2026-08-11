@@ -23,6 +23,16 @@ after Cloud Run invocation. Both services now back the Cloudflare candidate
 domains while production DNS remains on App Engine. Both deployments set all
 replacement resource names explicitly:
 
+On 2026-08-11, request-driven revisions
+`retrostore-api-next-canonical1` (image digest
+`sha256:e2633ca0892e948a07b0fea8a1c3c6be3b80025e6fc28c4ae51fed4e4f0f21ed`)
+and `retrostore-admin-next-canonical2` (image digest
+`sha256:dc85a80747a30f85c42bb8bc0055edda2938921f8062493eba223c16d5e9ef1e`)
+were deployed with tags and zero traffic. The services continue to route 100%
+to their `initial1` revisions. The isolated API passed 158 API, 94 download,
+32-app website-list, and synthetic state-lifecycle checks without a production
+or candidate-domain routing change.
+
 ```shell
 gcloud run deploy retrostore-api-compat-candidate \
   --project trs-80 \
@@ -94,10 +104,13 @@ UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
   --confirm-candidate-url PRIVATE_CANDIDATE_URL
 ```
 
-The cloud candidate loads the catalog from the active durable snapshot and uses
-the isolated state database/bucket for the three public state RPCs. The state
-adapter enforces seven-day logical expiry before reads; Firestore TTL and the
-eight-day bucket lifecycle remain asynchronous cleanup mechanisms.
+The cloud candidate reads published app metadata directly from the canonical
+top-level Firestore collections on each request and downloads Cloud Storage
+objects only when a response needs their bytes. Startup performs no catalog
+load. The isolated state database/bucket still serve only the three public state
+RPCs. The state adapter enforces seven-day logical expiry before reads;
+Firestore TTL and the eight-day bucket lifecycle remain asynchronous cleanup
+mechanisms.
 
 ## Current private candidate
 

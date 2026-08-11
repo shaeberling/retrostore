@@ -41,10 +41,9 @@ from retrostore.admin.auth import (
     AuthorizationError,
     FirebaseAdminAuthenticator,
 )
-from retrostore.admin.catalog import AdminCatalog, MirrorAdminCatalog
+from retrostore.admin.catalog import AdminCatalog, FirestoreAdminCatalog
 from retrostore.admin.drafts import (
     AdminPublishedAppDrafts,
-    FirestorePublishedAppDrafts,
 )
 from retrostore.admin.rpk import RPK_MAX_BYTES, RpkValidationError, ValidatedRpk, validate_rpk
 from retrostore.admin.staging import (
@@ -180,8 +179,6 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
         checks = {
             "authentication": app.config["ADMIN_AUTHENTICATOR"] is not None,
             "persistence": app.config["ADMIN_CATALOG"] is not None,
-            "published_app_drafts": app.config["ADMIN_PUBLISHED_APP_DRAFTS"]
-            is not None,
             "staging_catalog": app.config["ADMIN_STAGING_CATALOG"] is not None,
             "user_directory": app.config["ADMIN_USER_DIRECTORY"] is not None,
             "user_role_management": app.config["ADMIN_USER_ROLE_MANAGER"] is not None,
@@ -311,8 +308,8 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
             },
             errors={},
             form_action=url_for("admin_staging_app_create"),
-            heading="New staged application",
-            submit_label="Create staged app",
+            heading="New application",
+            submit_label="Create draft app",
         )
 
     @app.get("/admin/staging/import")
@@ -368,8 +365,8 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
                     values=form.values,
                     errors=form.errors,
                     form_action=url_for("admin_staging_app_create"),
-                    heading="New staged application",
-                    submit_label="Create staged app",
+                    heading="New application",
+                    submit_label="Create draft app",
                 ),
                 400,
             )
@@ -877,20 +874,24 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
     @app.get("/admin/staging/apps/<app_id>/edit")
     def admin_staging_app_edit(app_id: str) -> str:
         app_record = _staged_app_or_error(app_id)
-        if app_record.status != "STAGING":
-            abort(409, "Published baseline records are read-only")
+        if app_record.status == "PUBLISHED" and not g.admin_identity.is_administrator:
+            abort(403)
+        if app_record.status not in {"STAGING", "PUBLISHED"}:
+            abort(409, "This app record is not directly editable")
         return _render_staging_app_form(
             values=_staged_app_form_values(app_record),
             errors={},
             form_action=url_for("admin_staging_app_update", app_id=app_record.id),
             heading=f"Edit {app_record.name}",
-            submit_label="Save staged app",
+            submit_label="Save app",
+            eyebrow="Canonical catalog",
+            intro="Saving updates the canonical Firestore record atomically.",
         )
 
     @app.post("/admin/staging/apps/<app_id>")
     def admin_staging_app_update(app_id: str) -> Response | tuple[str, int]:
         catalog = _staging_catalog_or_error()
-        form = validate_staged_app_form(request.form)
+        form = validate_staged_app_form(request.form, allow_existing_id=True)
         errors = dict(form.errors)
         if form.values["request_id"] != app_id:
             errors["request_id"] = "The form does not match this staged app; reload it."
@@ -905,8 +906,8 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
                     values={**form.values, "revision": request.form.get("revision", "")},
                     errors=errors,
                     form_action=url_for("admin_staging_app_update", app_id=app_id),
-                    heading="Edit staged application",
-                    submit_label="Save staged app",
+                    heading="Edit application",
+                    submit_label="Save app",
                 ),
                 400,
             )
@@ -924,6 +925,25 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
         except StagingConflictError as error:
             abort(409, str(error))
         return redirect(url_for("admin_staging_app_detail", app_id=updated.id))
+
+    @app.post("/admin/staging/apps/<app_id>/publish")
+    def admin_staging_app_publish(app_id: str) -> Response:
+        catalog = _staging_catalog_or_error()
+        try:
+            published = catalog.publish_app(
+                identity=g.admin_identity,
+                app_id=app_id,
+                expected_revision=_positive_revision(request.form.get("revision")),
+            )
+        except StagingAuthorizationError:
+            abort(403)
+        except StagingNotFoundError:
+            abort(404)
+        except StagingConflictError as error:
+            abort(409, str(error))
+        return redirect(
+            url_for("admin_staging_app_detail", app_id=published.id, published="1")
+        )
 
     @app.post("/admin/staging/apps/<app_id>/delete")
     def admin_staging_app_delete(app_id: str) -> Response:
@@ -993,10 +1013,7 @@ def create_app(config: Mapping[str, Any] | None = None) -> Flask:
 
 
 def create_cloud_app(config: Mapping[str, Any] | None = None) -> Flask:
-    """Create the deployable admin from explicit isolated cloud resources."""
-
-    from retrostore.mirror import load_active_catalog_mirror
-    from retrostore.mirror.google_cloud import google_catalog_stores
+    """Create the deployable admin from the canonical top-level collections."""
 
     candidate_config: dict[str, Any] = {
         "RETROSTORE_PROJECT": os.environ.get("RETROSTORE_PROJECT"),
@@ -1033,27 +1050,19 @@ def create_cloud_app(config: Mapping[str, Any] | None = None) -> Flask:
     if candidate_config["ADMIN_FIREBASE_WEB_CONFIG"]["projectId"] != project:
         raise RuntimeError("Cloud admin Firebase Web project does not match storage project")
 
-    if candidate_config["ADMIN_CATALOG"] is None:
-        object_store, snapshot_store = google_catalog_stores(
-            project=project,
-            database=database,
-            bucket=bucket,
-        )
-        candidate_config["ADMIN_CATALOG"] = MirrorAdminCatalog(
-            load_active_catalog_mirror(object_store, snapshot_store)
-        )
     from google.cloud import firestore, storage
 
     firestore_client = firestore.Client(project=project, database=database)
+    if candidate_config["ADMIN_CATALOG"] is None:
+        from retrostore.canonical_catalog import CanonicalCatalogRepository
+
+        candidate_config["ADMIN_CATALOG"] = FirestoreAdminCatalog(
+            CanonicalCatalogRepository(firestore_client)
+        )
     role_store = FirestoreAdminRoleStore(firestore_client)
     if candidate_config["ADMIN_STAGING_OBJECT_STORE"] is None:
         candidate_config["ADMIN_STAGING_OBJECT_STORE"] = CloudStagingObjectStore(
             storage.Client(project=project).bucket(bucket)
-        )
-    if candidate_config["ADMIN_PUBLISHED_APP_DRAFTS"] is None:
-        candidate_config["ADMIN_PUBLISHED_APP_DRAFTS"] = FirestorePublishedAppDrafts(
-            firestore_client,
-            candidate_config["ADMIN_STAGING_OBJECT_STORE"],
         )
     if candidate_config["ADMIN_STAGING_CATALOG"] is None:
         candidate_config["ADMIN_STAGING_CATALOG"] = FirestoreAdminStagingCatalog(
@@ -1222,10 +1231,10 @@ def _render_staging_app_form(
     submit_label: str,
     back_url: str | None = None,
     cancel_url: str | None = None,
-    eyebrow: str = "Isolated mutation test",
+    eyebrow: str = "Canonical catalog",
     intro: str = (
-        "This saves top-level future-schema documents and an audit event. It does "
-        "not modify the synchronized catalog or public API."
+        "This saves a draft in the canonical Firestore collections. It becomes "
+        "visible to the public API only after publication."
     ),
     discard_action: str | None = None,
     discard_name: str | None = None,

@@ -1,24 +1,27 @@
 {% extends "base.html" %}
 
-{% block title %}{{ app.name }} · Staging · RetroStore Admin{% endblock %}
+{% block title %}{{ app.name }} · RetroStore Admin{% endblock %}
 
 {% block content %}
-  {% set editable_assets = app.status in ["STAGING", "DRAFT"] %}
+  {% set editable_assets = app.status == "STAGING" or (app.status == "PUBLISHED" and admin_identity.is_administrator) or app.status == "DRAFT" %}
   {% if rpk_imported %}
-    <div class="mb-6 rounded-xl border border-emerald-300/25 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100" role="status">The validated RPK metadata and all assets were imported into isolated staging as one catalog transaction.</div>
+    <div class="mb-6 rounded-xl border border-emerald-300/25 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100" role="status">The validated RPK metadata and assets were imported as one draft application.</div>
   {% endif %}
   {% if app.status == "PUBLISHED" %}
     <div class="mb-6 rounded-xl border border-amber-300/25 bg-amber-300/10 px-4 py-3 text-sm leading-6 text-amber-100" role="status">
-      This is the materialized published baseline. It is read-only and continues to be served from the active immutable catalog snapshot.
+      This application is published. The public API reads this canonical record directly.
     </div>
   {% endif %}
   {% if draft_discarded %}
     <div class="mb-6 rounded-xl border border-emerald-300/25 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100" role="status">The editable draft was discarded. The published baseline was untouched.</div>
   {% endif %}
-  <a class="text-sm text-stone-400 hover:text-white" href="{{ url_for('admin_staging_apps') }}">← Staged applications</a>
+  {% if request.args.get('published') == '1' %}
+    <div class="mb-6 rounded-xl border border-emerald-300/25 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100" role="status">The application is now published and visible to the public API.</div>
+  {% endif %}
+  <a class="text-sm text-stone-400 hover:text-white" href="{{ url_for('admin_staging_apps') }}">← Applications</a>
   {% if media_updated or media_deleted or screenshot_added or screenshot_deleted %}
     <div class="mt-5 rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100">
-      The staged assets were updated and the mutation was audited.
+      The application assets were updated.
     </div>
   {% endif %}
   {% if asset_error %}
@@ -26,23 +29,14 @@
   {% endif %}
   <div class="mt-5 flex flex-col gap-4 border-b border-white/10 pb-8 sm:flex-row sm:items-start sm:justify-between">
     <div>
-      <p class="font-mono text-xs uppercase tracking-[0.22em] text-sky-300">{{ "Published baseline" if app.status == "PUBLISHED" else "Isolated staged record" }} · revision {{ app.revision }}</p>
+      <p class="font-mono text-xs uppercase tracking-[0.22em] text-sky-300">{{ "Published" if app.status == "PUBLISHED" else "Draft" }} · revision {{ app.revision }}</p>
       <h1 class="mt-2 text-3xl font-semibold tracking-tight">{{ app.name }}</h1>
       <p class="mt-2 font-mono text-xs text-stone-600">{{ app.id }}</p>
     </div>
-    {% if app.status == "STAGING" %}
-      <a class="w-fit rounded-xl bg-sky-300 px-4 py-2.5 text-sm font-semibold text-stone-950 hover:bg-sky-200" href="{{ url_for('admin_staging_app_edit', app_id=app.id) }}">Edit staged app</a>
+    {% if app.status == "STAGING" or (app.status == "PUBLISHED" and admin_identity.is_administrator) %}
+      <a class="w-fit rounded-xl bg-sky-300 px-4 py-2.5 text-sm font-semibold text-stone-950 hover:bg-sky-200" href="{{ url_for('admin_staging_app_edit', app_id=app.id) }}">Edit app</a>
     {% elif app.status == "DRAFT" %}
       <a class="w-fit rounded-xl bg-amber-300 px-4 py-2.5 text-sm font-semibold text-stone-950 hover:bg-amber-200" href="{{ url_for('admin_published_app_draft_edit', app_id=app.id) }}">Edit draft metadata</a>
-    {% elif app.status == "PUBLISHED" and admin_identity.is_administrator %}
-      {% if draft_record %}
-        <a class="w-fit rounded-xl bg-amber-300 px-4 py-2.5 text-sm font-semibold text-stone-950 hover:bg-amber-200" href="{{ url_for('admin_published_app_draft_detail', app_id=app.id) }}">Continue draft</a>
-      {% else %}
-        <form action="{{ url_for('admin_published_app_draft_create', app_id=app.id) }}" method="post">
-          <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}">
-          <button class="w-fit rounded-xl bg-amber-300 px-4 py-2.5 text-sm font-semibold text-stone-950 hover:bg-amber-200" type="submit">Create editable draft</button>
-        </form>
-      {% endif %}
     {% endif %}
   </div>
 
@@ -68,7 +62,7 @@
     <div class="max-w-3xl">
       <p class="font-mono text-xs uppercase tracking-[0.2em] text-sky-300">Private durable assets</p>
       <h2 class="mt-2 text-xl font-semibold">Media slots</h2>
-      <p class="mt-2 text-sm leading-6 text-stone-400">{% if editable_assets %}Each upload occupies one legacy-compatible slot. Draft replacement or removal changes only the overlay; inherited published objects remain untouched. Media files are limited to 16 MiB.{% else %}These are the exact legacy-compatible slots represented by the active catalog baseline.{% endif %}</p>
+      <p class="mt-2 text-sm leading-6 text-stone-400">Each upload occupies one legacy-compatible slot. Media files are limited to 16 MiB and become public only when the application is published.</p>
     </div>
     <div class="mt-6 overflow-hidden rounded-xl border border-white/10 bg-stone-950/50 divide-y divide-white/10">
       {% for slot, definition in media_slots.items() %}
@@ -169,7 +163,17 @@
     {% endif %}
   </section>
 
-  {% if app.status == "STAGING" %}<section class="mt-8 rounded-2xl border border-red-300/20 bg-red-300/[0.04] p-6">
+  {% if app.status == "STAGING" %}<section class="mt-8 rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.04] p-6">
+    <h2 class="text-lg font-semibold text-emerald-100">Publish application</h2>
+    <p class="mt-2 text-sm leading-6 text-stone-400">Publishing validates all referenced assets and atomically makes this app visible to the public API.</p>
+    <form class="mt-4" action="{{ url_for('admin_staging_app_publish', app_id=app.id) }}" method="post">
+      <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}">
+      <input type="hidden" name="revision" value="{{ app.revision }}">
+      <button class="rounded-xl bg-emerald-300 px-4 py-2.5 text-sm font-semibold text-stone-950 hover:bg-emerald-200" type="submit">Publish app</button>
+    </form>
+  </section>
+
+  <section class="mt-8 rounded-2xl border border-red-300/20 bg-red-300/[0.04] p-6">
     <h2 class="text-lg font-semibold text-red-100">Delete staged record</h2>
     <p class="mt-2 text-sm leading-6 text-stone-400">This removes the staged app plus its staged media and screenshots. Its audit history and potentially shared author record are retained. Enter the exact app name to confirm.</p>
     <form class="mt-4 flex max-w-2xl flex-col gap-3 sm:flex-row" action="{{ url_for('admin_staging_app_delete', app_id=app.id) }}" method="post">

@@ -449,10 +449,10 @@ class MirrorCompatibilityStorage(CompatibilityStorage):
             if needle in app.name.casefold() or needle in app.description.casefold()
         }
 
-    def get_media_slots(self, app_id: str) -> Sequence[MediaSlot]:
+    def get_media_slots(self, app_id: str) -> Sequence[MediaSlot] | None:
         app = next((item for item in self._mirror.apps if item.id == app_id), None)
         if app is None:
-            return ()
+            return None
         slots = []
         for media_type, media_id in app.media_slot_ids():
             image = api_pb.MediaImage()

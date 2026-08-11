@@ -1,6 +1,6 @@
 """Storage abstraction used by the compatibility API."""
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from threading import Lock
 from typing import Protocol
@@ -29,10 +29,71 @@ class CatalogEntry:
 
 @dataclass(frozen=True, slots=True)
 class MediaSlot:
-    """One legacy TRS-80 media slot, including empty positional slots."""
+    """One legacy media slot whose body may be loaded only when requested."""
 
     media_type: int
     image: api_pb.MediaImage
+    size: int | None = None
+    body_reader: Callable[[int, int | None], bytes] | None = None
+
+    @property
+    def has_body(self) -> bool:
+        return self.body_reader is not None or bool(self.image.data)
+
+    def read_body(self, *, start: int = 0, length: int | None = None) -> bytes:
+        if self.body_reader is not None:
+            return self.body_reader(start, length)
+        body = bytes(self.image.data)
+        if length is None:
+            return body[start:]
+        return body[start : start + length]
+
+    @property
+    def body_size(self) -> int:
+        return len(self.image.data) if self.size is None else self.size
+
+
+@dataclass(frozen=True, slots=True)
+class PublicScreenshot:
+    filename: str
+    content_type: str
+    sha256: str
+    body: bytes = b""
+    body_reader: Callable[[int, int | None], bytes] | None = None
+
+    def read_body(self) -> bytes:
+        if self.body_reader is None:
+            return bytes(self.body)
+        return self.body_reader(0, None)
+
+
+@dataclass(frozen=True, slots=True)
+class LegacyDownloadMedia:
+    id: str
+    filename: str
+    body: bytes = b""
+    body_reader: Callable[[int, int | None], bytes] | None = None
+
+    def read_body(self) -> bytes:
+        if self.body_reader is None:
+            return bytes(self.body)
+        return self.body_reader(0, None)
+
+
+@dataclass(frozen=True, slots=True)
+class LegacyDownloadApp:
+    name: str
+    media: tuple[LegacyDownloadMedia, ...]
+
+
+class PublicCatalog(Protocol):
+    """Additional website routes served from the same canonical catalog."""
+
+    def get_screenshot(self, screenshot_id: str) -> PublicScreenshot | None: ...
+
+    def get_download(self, app_id: str) -> LegacyDownloadApp | None: ...
+
+    def list_website_apps(self) -> Sequence[Mapping[str, object]]: ...
 
 
 class StateStorage(Protocol):
@@ -52,7 +113,8 @@ class CompatibilityStorage(StateStorage, Protocol):
 
     def search_app_ids(self, query: str) -> set[str]: ...
 
-    def get_media_slots(self, app_id: str) -> Sequence[MediaSlot]: ...
+    def get_media_slots(self, app_id: str) -> Sequence[MediaSlot] | None: ...
+
 
 class InMemoryCompatibilityStorage:
     """Deterministic adapter for local compatibility and emulator tests."""
@@ -74,7 +136,15 @@ class InMemoryCompatibilityStorage:
             for entry in catalog
         }
         self._media = {
-            app_id: tuple(MediaSlot(slot.media_type, _clone(slot.image)) for slot in slots)
+            app_id: tuple(
+                MediaSlot(
+                    slot.media_type,
+                    _clone(slot.image),
+                    size=slot.size,
+                    body_reader=slot.body_reader,
+                )
+                for slot in slots
+            )
             for app_id, slots in (media or {}).items()
         }
         self._states = {token: _clone(state) for token, state in (states or {}).items()}
@@ -101,9 +171,16 @@ class InMemoryCompatibilityStorage:
             if needle in entry.app.name.casefold() or needle in entry.app.description.casefold()
         }
 
-    def get_media_slots(self, app_id: str) -> Sequence[MediaSlot]:
+    def get_media_slots(self, app_id: str) -> Sequence[MediaSlot] | None:
+        if app_id not in self._catalog:
+            return None
         return tuple(
-            MediaSlot(slot.media_type, _clone(slot.image))
+            MediaSlot(
+                slot.media_type,
+                _clone(slot.image),
+                size=slot.size,
+                body_reader=slot.body_reader,
+            )
             for slot in self._media.get(app_id, ())
         )
 
