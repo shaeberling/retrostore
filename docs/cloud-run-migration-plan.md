@@ -53,11 +53,15 @@ Completed foundation work:
   active-snapshot adapters.
 - Zero-traffic revisions `retrostore-api-next-canonical1` and
   `retrostore-admin-next-canonical2` run the simplified code on Cloud Run. The
-  previous `initial1` revisions still receive 100% of candidate-domain traffic.
-  The isolated API matched 158/158 frozen API cases, 94/94 legacy download
-  cases, the complete 32-app website projection, and all synthetic state
-  lifecycle checks. Container health took 1.18 seconds for the API and 1.4
-  seconds for admin; a scale-from-zero API health request took 2.97 seconds,
+  revisions first passed their gates at zero traffic and now receive 100% of
+  only the parallel candidate services. Production remains on App Engine. The
+  isolated API matched 158/158 frozen API cases, 94/94 legacy download cases,
+  the complete 32-app website projection, and all synthetic state lifecycle
+  checks. After promotion, `next.retrostore.org` again matched 158/158 and the
+  published JVM SDK, pinned TRS-80 KMP client, and embedded C client all passed.
+  `admin-next.retrostore.org` is healthy, ready, and serves the hardened
+  Firebase login boundary. Container health took 1.18 seconds for the API and
+  1.4 seconds for admin; a scale-from-zero API health request took 2.97 seconds,
   versus the previously observed 18.98-second preloading request. A full
   request-driven `listApps` call took 0.54 seconds and subsequent per-app/media
   calls were generally 0.08-0.39 seconds during the exhaustive run.
@@ -1833,9 +1837,10 @@ Phase 1:
 - [x] Replace snapshot publication for new apps with one atomic canonical
   `PUBLISHED` status transition and direct administrator edits.
 - [x] Deploy non-promoted canonical API/admin revisions, repeat exhaustive
-  App Engine parity, and record cold and warm request latency. API revision
-  `canonical1` and admin revision `canonical2` remain tagged at zero traffic;
-  the original candidate revisions remain at 100%.
+  App Engine parity, and record cold and warm request latency. After the
+  zero-traffic gates passed, promote API revision `canonical1` and admin
+  revision `canonical2` to 100% of only their parallel candidate services and
+  repeat the API and real-client gates through Cloudflare.
 - [ ] Complete interactive Google sign-in and authorized admin navigation on
   `admin-next.retrostore.org`; the login page, redirect, CSP, Firebase redirect
   origin, service readiness, and unauthenticated session boundary already pass.

@@ -28,10 +28,13 @@ On 2026-08-11, request-driven revisions
 `sha256:e2633ca0892e948a07b0fea8a1c3c6be3b80025e6fc28c4ae51fed4e4f0f21ed`)
 and `retrostore-admin-next-canonical2` (image digest
 `sha256:dc85a80747a30f85c42bb8bc0055edda2938921f8062493eba223c16d5e9ef1e`)
-were deployed with tags and zero traffic. The services continue to route 100%
-to their `initial1` revisions. The isolated API passed 158 API, 94 download,
-32-app website-list, and synthetic state-lifecycle checks without a production
-or candidate-domain routing change.
+were deployed with tags and zero traffic. The services now route 100% to these
+canonical revisions after their isolated gates passed. The API passed
+158 API, 94 download, 32-app website-list, and synthetic state-lifecycle checks
+before promotion, then passed 158/158 plus the JVM, KMP, and embedded C client
+gate through `next.retrostore.org`. The admin readiness and login boundary pass
+through `admin-next.retrostore.org`. Production routing did not change; the
+prior candidate revisions remain available for immediate rollback.
 
 ```shell
 gcloud run deploy retrostore-api-compat-candidate \
