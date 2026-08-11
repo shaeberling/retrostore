@@ -301,9 +301,7 @@ def _lifecycle_age(rules: Sequence[Mapping[str, Any]]) -> int | None:
     return matches[0] if len(matches) == 1 else None
 
 
-def _creator_binding_matches(
-    policy: Mapping[str, Any], expected: Mapping[str, Any]
-) -> bool:
+def _creator_binding_matches(policy: Mapping[str, Any], expected: Mapping[str, Any]) -> bool:
     matches = []
     for binding in policy.get("bindings", []):
         condition = binding.get("condition", {})
@@ -328,9 +326,7 @@ def _role_members(policy: Mapping[str, Any], role: str) -> set[str]:
 
 def _all_policy_members(policy: Mapping[str, Any]) -> set[str]:
     return {
-        member
-        for binding in policy.get("bindings", [])
-        for member in binding.get("members", [])
+        member for binding in policy.get("bindings", []) for member in binding.get("members", [])
     }
 
 

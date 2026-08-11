@@ -169,11 +169,7 @@ def _validate_baseline(baseline: Mapping[str, Any]) -> list[Mapping[str, Any]]:
         if service.get("anonymous_root_status") not in {401, 403}:
             raise ValueError(f"Private candidate must deny anonymous invocation: {name}")
         invokers = service.get("allowed_invokers")
-        if (
-            not isinstance(invokers, list)
-            or not invokers
-            or set(invokers) & _PUBLIC_MEMBERS
-        ):
+        if not isinstance(invokers, list) or not invokers or set(invokers) & _PUBLIC_MEMBERS:
             raise ValueError(f"Private candidate invoker baseline is unsafe: {name}")
         names.add(name)
     safety = baseline.get("safety")
@@ -229,9 +225,7 @@ def _invoker_members(policy: Mapping[str, Any]) -> set[str]:
     if not isinstance(bindings, list):
         raise ValueError("Cloud Run IAM policy bindings are invalid")
     other_roles = [
-        binding.get("role")
-        for binding in bindings
-        if binding.get("role") != "roles/run.invoker"
+        binding.get("role") for binding in bindings if binding.get("role") != "roles/run.invoker"
     ]
     if other_roles:
         raise ValueError(f"Cloud Run service has unexpected IAM roles: {other_roles!r}")

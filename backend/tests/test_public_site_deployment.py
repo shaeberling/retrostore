@@ -58,20 +58,14 @@ def test_static_deployment_plan_is_closed_create_only_and_not_executable(
     assert "/public/apps.json" not in routes["paths"]
     assert plan["front_door"]["unknown_path_disposition"] == "app_engine_default"
     assert plan["safety"]["apply_capability_present"] is False
-    assert plan["proposed_initial_policy"]["status"] == (
-        "approved_simple_hobby_project_policy"
-    )
+    assert plan["proposed_initial_policy"]["status"] == ("approved_simple_hobby_project_policy")
     assert plan["proposed_initial_policy"]["root_request_resolution"] == (
         "cloud_storage_main_page_suffix"
     )
-    assert plan["proposed_initial_policy"]["deployment_strategy"] == (
-        "single_dedicated_bucket"
-    )
+    assert plan["proposed_initial_policy"]["deployment_strategy"] == ("single_dedicated_bucket")
     assert plan["proposed_initial_policy"]["cdn_enabled"] is False
     assert plan["proposed_initial_policy"]["cache_control"] == "no-store"
-    assert "Cloud CDN later" in plan["proposed_initial_policy"][
-        "future_optional_optimization"
-    ]
+    assert "Cloud CDN later" in plan["proposed_initial_policy"]["future_optional_optimization"]
     assert plan["required_external_approvals"] == []
 
 

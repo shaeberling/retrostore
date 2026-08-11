@@ -102,19 +102,22 @@ def main(argv: Sequence[str] | None = None) -> int:
     candidate_url = _origin(args.candidate_url)
     if reference_url not in {"http://retrostore.org", "https://retrostore.org"}:
         raise ValueError("Reference URL must be the production HTTP or HTTPS origin")
-    with httpx.Client(
-        base_url=reference_url,
-        follow_redirects=False,
-        timeout=args.timeout_seconds,
-    ) as reference, httpx.Client(
-        base_url=candidate_url,
-        headers=_with_candidate_host_header(
-            candidate_url,
-            args.candidate_host_header,
-        ),
-        follow_redirects=False,
-        timeout=args.timeout_seconds,
-    ) as candidate:
+    with (
+        httpx.Client(
+            base_url=reference_url,
+            follow_redirects=False,
+            timeout=args.timeout_seconds,
+        ) as reference,
+        httpx.Client(
+            base_url=candidate_url,
+            headers=_with_candidate_host_header(
+                candidate_url,
+                args.candidate_host_header,
+            ),
+            follow_redirects=False,
+            timeout=args.timeout_seconds,
+        ) as candidate,
+    ):
         report = compare_front_door_fallback_clients(
             reference,
             candidate,
@@ -137,9 +140,7 @@ def _response_fingerprint(response: httpx.Response) -> dict[str, object]:
     behavior = _behavior(response.status_code, body)
     fingerprint: dict[str, object] = {
         "status": response.status_code,
-        "content_type": response.headers.get("content-type", "")
-        .partition(";")[0]
-        .casefold(),
+        "content_type": response.headers.get("content-type", "").partition(";")[0].casefold(),
         "behavior": behavior,
     }
     if behavior != "legacy_login_forward":

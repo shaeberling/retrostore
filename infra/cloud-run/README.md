@@ -11,7 +11,7 @@ administration and Datastore-backed images, remain unchanged on App Engine. A
 future production URL map must keep those route groups pinned to App Engine.
 
 The compatibility API image is built from `backend/` with
-`services/api_compat/cloudbuild.yaml` and stored in the dedicated
+`services/api/cloudbuild.yaml` and stored in the dedicated
 `us-central1-docker.pkg.dev/trs-80/retrostore` repository. The private comparison
 service remains as documented below. The separately deployed final service is
 `retrostore-api-next`. On 2026-08-10 the operator explicitly approved changing

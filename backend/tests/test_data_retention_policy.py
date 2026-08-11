@@ -29,9 +29,7 @@ def test_checked_in_retention_proposal_is_no_delete_and_unapproved() -> None:
 
 def test_retention_proposal_rejects_automatic_deletion() -> None:
     policy = copy.deepcopy(_policy())
-    policy["proposed_policy"]["legacy_data_backups"][
-        "automatic_deletion_enabled"
-    ] = True
+    policy["proposed_policy"]["legacy_data_backups"]["automatic_deletion_enabled"] = True
 
     with pytest.raises(ValueError, match="must not enable automatic deletion"):
         _validator().validate(policy)

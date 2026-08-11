@@ -57,9 +57,7 @@ def test_monitoring_controls_reject_unapproved_notification_channel() -> None:
 
 def test_monitoring_controls_require_current_four_surface_dashboard_text() -> None:
     dashboard, failure, stale, decisions = copy.deepcopy(_values())
-    dashboard["mosaicLayout"]["tiles"][0]["widget"]["text"]["content"] = (
-        "Old 158-only dashboard"
-    )
+    dashboard["mosaicLayout"]["tiles"][0]["widget"]["text"]["content"] = "Old 158-only dashboard"
 
     with pytest.raises(ValueError, match="missing API 158"):
         _validator().validate(dashboard, failure, stale, decisions)

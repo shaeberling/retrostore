@@ -80,8 +80,7 @@ def build_inventory_report(
     }
 
     kind_reports = {
-        kind: _build_kind_report(kind, entities)
-        for kind, entities in entities_by_kind.items()
+        kind: _build_kind_report(kind, entities) for kind, entities in entities_by_kind.items()
     }
     relationships = _reconcile_relationships(entities_by_kind)
     states = _summarize_states(entities_by_kind["SystemState"], now)
@@ -101,9 +100,7 @@ def build_inventory_report(
             "digests_are_aggregate": True,
         },
         "totals": {
-            "application_entities": sum(
-                len(entities_by_kind[kind]) for kind in APPLICATION_KINDS
-            ),
+            "application_entities": sum(len(entities_by_kind[kind]) for kind in APPLICATION_KINDS),
             "records_scanned": sum(len(entities) for entities in entities_by_kind.values()),
         },
         "kinds": kind_reports,
@@ -193,9 +190,7 @@ def _reconcile_relationships(
     apps = entities_by_kind["AppStoreItem"]
     authors = {_key_value(entity.key) for entity in entities_by_kind["Author"]}
     users = {_key_value(entity.key) for entity in entities_by_kind["RetroStoreUser"]}
-    media_by_id = {
-        _key_value(entity.key): entity for entity in entities_by_kind["MediaImage"]
-    }
+    media_by_id = {_key_value(entity.key): entity for entity in entities_by_kind["MediaImage"]}
     blobs = {_key_value(entity.key) for entity in entities_by_kind["__BlobInfo__"]}
     app_ids = {_key_value(entity.key) for entity in apps}
 

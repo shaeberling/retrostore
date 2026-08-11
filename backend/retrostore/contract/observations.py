@@ -48,9 +48,7 @@ def normalize_protobuf(message_type: type[Message], body: bytes) -> dict[str, An
     return _summarize_binary_fields(normalized)
 
 
-def observe_response(
-    scenario: ContractScenario, response: httpx.Response
-) -> ResponseObservation:
+def observe_response(scenario: ContractScenario, response: httpx.Response) -> ResponseObservation:
     body = response.content
     semantic_body = None
     content_type = response.headers.get("content-type")
@@ -74,9 +72,7 @@ def observe_response(
         body_length=len(body),
         body_sha256=hashlib.sha256(body).hexdigest(),
         body_base64=(
-            base64.b64encode(body).decode("ascii")
-            if len(body) <= MAX_INLINE_BODY_BYTES
-            else None
+            base64.b64encode(body).decode("ascii") if len(body) <= MAX_INLINE_BODY_BYTES else None
         ),
         semantic_body=semantic_body,
     )

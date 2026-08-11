@@ -179,9 +179,7 @@ def test_comparator_runtime_audit_detects_scheduler_drift() -> None:
 def test_comparator_runtime_audit_detects_public_bucket_member() -> None:
     baseline = _baseline()
     policy = _bucket_policy(baseline)
-    policy["bindings"].append(
-        {"role": "roles/storage.objectViewer", "members": ["allUsers"]}
-    )
+    policy["bindings"].append({"role": "roles/storage.objectViewer", "members": ["allUsers"]})
 
     report = audit_comparator_runtime(
         baseline,

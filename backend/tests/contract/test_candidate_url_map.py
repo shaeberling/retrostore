@@ -23,8 +23,7 @@ def test_candidate_url_map_is_complete_and_fails_unknown_paths_to_app_engine() -
     matchers = {matcher["name"]: matcher for matcher in rendered["pathMatchers"]}
     candidate = matchers["parallel-candidate"]
     rules = {
-        rule["service"].rsplit("/", 1)[-1]: set(rule["paths"])
-        for rule in candidate["pathRules"]
+        rule["service"].rsplit("/", 1)[-1]: set(rule["paths"]) for rule in candidate["pathRules"]
     }
     api_paths = rules["retrostore-api-next"]
     static_paths = rules["retrostore-public-static"]
@@ -36,16 +35,12 @@ def test_candidate_url_map_is_complete_and_fails_unknown_paths_to_app_engine() -
     assert "/" in static_paths
     assert "/public/apps.json" not in static_paths
     assert candidate["defaultService"].endswith("/retrostore-appengine-default")
-    assert matchers["admin-candidate"]["defaultService"].endswith(
-        "/retrostore-admin-next"
-    )
+    assert matchers["admin-candidate"]["defaultService"].endswith("/retrostore-admin-next")
 
 
 def test_candidate_url_map_rejects_an_unknown_api_wildcard() -> None:
     routes = _routes()
-    group = next(
-        group for group in routes["route_groups"] if group["id"] == "catalog_api_reads"
-    )
+    group = next(group for group in routes["route_groups"] if group["id"] == "catalog_api_reads")
     group["paths"].append({"kind": "prefix", "value": "/api/"})
 
     with pytest.raises(ValueError, match="cannot claim unknown API methods"):

@@ -29,9 +29,7 @@ def test_compare_captures_reports_matching_semantic_responses() -> None:
 
 
 def test_compare_captures_reports_differences() -> None:
-    report = compare_captures(
-        _capture("https://old", "old"), _capture("https://new", "different")
-    )
+    report = compare_captures(_capture("https://old", "old"), _capture("https://new", "different"))
 
     assert report["summary"] == {"total": 1, "matching": 0, "different": 1}
     assert set(report["results"][0]["differences"]) == {"body_length", "semantic_body"}

@@ -8,9 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-_CANDIDATE_URL = (
-    "https://retrostore-api-compat-candidate-760396810462.us-central1.run.app"
-)
+_CANDIDATE_URL = "https://retrostore-api-compat-candidate-760396810462.us-central1.run.app"
 _SERVICE = "retrostore-api-compat-candidate"
 
 
@@ -28,8 +26,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     steps = tuple(
-        _load_step(Path(load_path), Path(metrics_path))
-        for load_path, metrics_path in args.pair
+        _load_step(Path(load_path), Path(metrics_path)) for load_path, metrics_path in args.pair
     )
     concurrencies = [step["configuration"]["concurrency"] for step in steps]
     if len(set(concurrencies)) != len(concurrencies):
@@ -51,12 +48,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         "steps": ordered,
         "summary": {
             "step_count": len(ordered),
-            "total_measured_requests": sum(
-                step["result"]["request_count"] for step in ordered
-            ),
-            "total_response_bytes": sum(
-                step["result"]["response_bytes"] for step in ordered
-            ),
+            "total_measured_requests": sum(step["result"]["request_count"] for step in ordered),
+            "total_response_bytes": sum(step["result"]["response_bytes"] for step in ordered),
             "total_billable_instance_seconds": sum(
                 step["native_metrics"]["billable_instance_seconds"] for step in ordered
             ),
@@ -64,24 +57,17 @@ def main(argv: Sequence[str] | None = None) -> int:
                 step["native_metrics"]["cpu_allocation_seconds"] for step in ordered
             ),
             "total_memory_allocation_gibibyte_seconds": sum(
-                step["native_metrics"]["memory_allocation_gibibyte_seconds"]
-                for step in ordered
+                step["native_metrics"]["memory_allocation_gibibyte_seconds"] for step in ordered
             ),
             "contract_integrity_passes": integrity_passes,
             "highest_passing_concurrency": (
-                max(step["configuration"]["concurrency"] for step in passing)
-                if passing
-                else None
+                max(step["configuration"]["concurrency"] for step in passing) if passing else None
             ),
             "first_nonpassing_concurrency": (
-                min(step["configuration"]["concurrency"] for step in failing)
-                if failing
-                else None
+                min(step["configuration"]["concurrency"] for step in failing) if failing else None
             ),
             "highest_passing_requests_per_second": (
-                max(step["result"]["requests_per_second"] for step in passing)
-                if passing
-                else None
+                max(step["result"]["requests_per_second"] for step in passing) if passing else None
             ),
         },
         "interpretation": {
@@ -175,9 +161,7 @@ def _load_step(load_path: Path, metrics_path: Path) -> dict[str, Any]:
         "load_gate_passes": load_gate["passes"],
         "failed_latency_methods": failed_methods,
         "native_metrics": {
-            "billable_instance_seconds": metric_values["billable_instance_time"]["numeric"][
-                "sum"
-            ],
+            "billable_instance_seconds": metric_values["billable_instance_time"]["numeric"]["sum"],
             "cpu_allocation_seconds": metric_values["cpu_allocation_time"]["numeric"]["sum"],
             "cpu_weighted_mean": _distribution(metric_values, "cpu_utilization", "weighted_mean"),
             "cpu_p95_upper_bound": _histogram(
@@ -189,9 +173,9 @@ def _load_step(load_path: Path, metrics_path: Path) -> dict[str, Any]:
             "memory_p95_upper_bound": _histogram(
                 metric_values, "memory_utilization", "approximate_p95_upper_bound"
             ),
-            "memory_allocation_gibibyte_seconds": metric_values[
-                "memory_allocation_time"
-            ]["numeric"]["sum"],
+            "memory_allocation_gibibyte_seconds": metric_values["memory_allocation_time"][
+                "numeric"
+            ]["sum"],
             "request_latency_weighted_mean_ms": _distribution(
                 metric_values, "request_latency", "weighted_mean"
             ),
@@ -216,15 +200,11 @@ def _load_step(load_path: Path, metrics_path: Path) -> dict[str, Any]:
     }
 
 
-def _distribution(
-    metrics: Mapping[str, Any], name: str, field: str
-) -> float | int | None:
+def _distribution(metrics: Mapping[str, Any], name: str, field: str) -> float | int | None:
     return metrics[name]["distribution"][field]
 
 
-def _histogram(
-    metrics: Mapping[str, Any], name: str, field: str
-) -> float | int | None:
+def _histogram(metrics: Mapping[str, Any], name: str, field: str) -> float | int | None:
     return metrics[name]["distribution"]["histogram"][field]
 
 

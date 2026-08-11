@@ -4,6 +4,7 @@ import json
 from dataclasses import dataclass, field, replace
 from io import BytesIO
 
+from retrostore.admin.apps import AppDetail, AppInput, AppRecord
 from retrostore.admin.assets import ValidatedAssetUpload
 from retrostore.admin.auth import (
     AdminIdentity,
@@ -11,10 +12,7 @@ from retrostore.admin.auth import (
     AuthorizationError,
     SessionCookie,
 )
-from retrostore.admin.catalog import AdminCatalogDetail
-from retrostore.admin.staging import StagedApp, StagedAppDetail, StagedAppDraft
 from retrostore.admin.users import AdminUser
-from retrostore.mirror import NormalizedApp
 from services.admin.app import create_app
 
 FIREBASE_WEB_CONFIG = {
@@ -25,47 +23,12 @@ FIREBASE_WEB_CONFIG = {
 }
 
 
-def _app(app_id: str = "app-1", name: str = "Armored Patrol") -> NormalizedApp:
-    return NormalizedApp(
-        id=app_id,
-        name=name,
-        version="1.0",
-        description="Tank game",
-        release_year=1981,
-        platform="TRS80",
-        model="MODEL_I",
-        categories=("GAME",),
-        author_id="42",
-        author_name="Jane Doe",
-        publisher_email="publisher@example.test",
-        first_published_at_ms=1_500_000_000_000,
-        updated_at_ms=1_600_000_000_000,
-        disk_media_ids=(None, None, None, None),
-        cassette_media_id=None,
-        command_media_id=None,
-        basic_media_id=None,
-        screenshot_ids=(),
-    )
-
-
 @dataclass
-class FakeCatalog:
-    apps: tuple[NormalizedApp, ...] = (_app(),)
-
-    def list_apps(self) -> tuple[NormalizedApp, ...]:
-        return self.apps
-
-    def get_app(self, app_id: str) -> AdminCatalogDetail | None:
-        app = next((item for item in self.apps if item.id == app_id), None)
-        return None if app is None else AdminCatalogDetail(app, (), ())
-
-
-@dataclass
-class FakeStagingCatalog:
-    apps: tuple[StagedApp, ...] = (
-        StagedApp(
+class FakeAppRepository:
+    apps: tuple[AppRecord, ...] = (
+        AppRecord(
             id="11111111-1111-4111-8111-111111111111",
-            name="Staged Game",
+            name="Draft Game",
             version="0.1",
             description="Not public",
             release_year=1982,
@@ -78,27 +41,23 @@ class FakeStagingCatalog:
             revision=1,
         ),
     )
-    creations: list[tuple[AdminIdentity, str, StagedAppDraft]] = field(
-        default_factory=list
-    )
-    updates: list[tuple[AdminIdentity, str, int, StagedAppDraft]] = field(
-        default_factory=list
-    )
+    creations: list[tuple[AdminIdentity, str, AppInput]] = field(default_factory=list)
+    updates: list[tuple[AdminIdentity, str, int, AppInput]] = field(default_factory=list)
     deletions: list[tuple[AdminIdentity, str, int]] = field(default_factory=list)
     publications: list[tuple[AdminIdentity, str, int]] = field(default_factory=list)
-    media_uploads: list[
-        tuple[AdminIdentity, str, int, str, ValidatedAssetUpload]
-    ] = field(default_factory=list)
-    screenshot_uploads: list[
-        tuple[AdminIdentity, str, int, ValidatedAssetUpload]
-    ] = field(default_factory=list)
+    media_uploads: list[tuple[AdminIdentity, str, int, str, ValidatedAssetUpload]] = field(
+        default_factory=list
+    )
+    screenshot_uploads: list[tuple[AdminIdentity, str, int, ValidatedAssetUpload]] = field(
+        default_factory=list
+    )
     rpk_imports: list[tuple[AdminIdentity, object]] = field(default_factory=list)
 
     def list_apps(self, identity):
         return self.apps
 
-    def create_app(self, *, identity, request_id, draft):
-        self.creations.append((identity, request_id, draft))
+    def create_app(self, *, identity, request_id, app_input):
+        self.creations.append((identity, request_id, app_input))
         return self.apps[0]
 
     def import_rpk(self, *, identity, package):
@@ -116,19 +75,19 @@ class FakeStagingCatalog:
 
     def get_app_detail(self, identity, app_id):
         app = self.get_app(identity, app_id)
-        return None if app is None else StagedAppDetail(app, (), ())
+        return None if app is None else AppDetail(app, (), ())
 
-    def update_app(self, *, identity, app_id, expected_revision, draft):
-        self.updates.append((identity, app_id, expected_revision, draft))
+    def update_app(self, *, identity, app_id, expected_revision, app_input):
+        self.updates.append((identity, app_id, expected_revision, app_input))
         return replace(
             self.apps[0],
-            name=draft.name,
-            version=draft.version,
-            description=draft.description,
-            release_year=draft.release_year,
-            model=draft.model,
-            category=draft.category,
-            author_name=draft.author_name,
+            name=app_input.name,
+            version=app_input.version,
+            description=app_input.description,
+            release_year=app_input.release_year,
+            model=app_input.model,
+            category=app_input.category,
+            author_name=app_input.author_name,
             revision=expected_revision + 1,
         )
 
@@ -144,107 +103,13 @@ class FakeStagingCatalog:
             revision=expected_revision + 1,
         )
 
-    def upload_media(
-        self, *, identity, app_id, expected_revision, slot, upload
-    ):
-        self.media_uploads.append(
-            (identity, app_id, expected_revision, slot, upload)
-        )
+    def upload_media(self, *, identity, app_id, expected_revision, slot, upload):
+        self.media_uploads.append((identity, app_id, expected_revision, slot, upload))
         return replace(self.apps[0], revision=expected_revision + 1)
 
     def upload_screenshot(self, *, identity, app_id, expected_revision, upload):
-        self.screenshot_uploads.append(
-            (identity, app_id, expected_revision, upload)
-        )
+        self.screenshot_uploads.append((identity, app_id, expected_revision, upload))
         return replace(self.apps[0], revision=expected_revision + 1)
-
-
-@dataclass
-class FakeDraftCatalog:
-    drafts: dict[str, StagedApp] = field(default_factory=dict)
-    creations: list[tuple[AdminIdentity, str]] = field(default_factory=list)
-    updates: list[tuple[AdminIdentity, str, int, StagedAppDraft]] = field(
-        default_factory=list
-    )
-    discards: list[tuple[AdminIdentity, str, int]] = field(default_factory=list)
-    media_uploads: list[
-        tuple[AdminIdentity, str, int, str, ValidatedAssetUpload]
-    ] = field(default_factory=list)
-    screenshot_uploads: list[
-        tuple[AdminIdentity, str, int, ValidatedAssetUpload]
-    ] = field(default_factory=list)
-
-    def create(self, *, identity, app_id):
-        self.creations.append((identity, app_id))
-        value = self.drafts.get(app_id)
-        if value is None:
-            value = replace(
-                FakeStagingCatalog().apps[0],
-                id=app_id,
-                publisher_uid=identity.uid,
-                publisher_email="legacy@example.test",
-                status="DRAFT",
-            )
-            self.drafts[app_id] = value
-        return value
-
-    def get(self, identity, app_id):
-        return self.drafts.get(app_id)
-
-    def get_detail(self, identity, app_id):
-        value = self.get(identity, app_id)
-        return None if value is None else StagedAppDetail(value, (), ())
-
-    def update(self, *, identity, app_id, expected_revision, draft):
-        self.updates.append((identity, app_id, expected_revision, draft))
-        current = self.drafts[app_id]
-        updated = replace(
-            current,
-            name=draft.name,
-            version=draft.version,
-            description=draft.description,
-            release_year=draft.release_year,
-            model=draft.model,
-            category=draft.category,
-            author_name=draft.author_name,
-            revision=expected_revision + 1,
-        )
-        self.drafts[app_id] = updated
-        return updated
-
-    def discard(self, *, identity, app_id, expected_revision):
-        self.discards.append((identity, app_id, expected_revision))
-        self.drafts.pop(app_id)
-
-    def upload_media(
-        self, *, identity, app_id, expected_revision, slot, upload
-    ):
-        self.media_uploads.append(
-            (identity, app_id, expected_revision, slot, upload)
-        )
-        updated = replace(self.drafts[app_id], revision=expected_revision + 1)
-        self.drafts[app_id] = updated
-        return updated
-
-    def delete_media(self, **kwargs):
-        return replace(self.drafts[kwargs["app_id"]], revision=kwargs["expected_revision"] + 1)
-
-    def upload_screenshot(self, *, identity, app_id, expected_revision, upload):
-        self.screenshot_uploads.append(
-            (identity, app_id, expected_revision, upload)
-        )
-        updated = replace(self.drafts[app_id], revision=expected_revision + 1)
-        self.drafts[app_id] = updated
-        return updated
-
-    def move_screenshot(self, **kwargs):
-        return replace(self.drafts[kwargs["app_id"]], revision=kwargs["expected_revision"] + 1)
-
-    def delete_screenshot(self, **kwargs):
-        return replace(self.drafts[kwargs["app_id"]], revision=kwargs["expected_revision"] + 1)
-
-    def read_screenshot(self, identity, app_id, screenshot_id):
-        return None
 
 
 class FakeAuthenticator:
@@ -308,8 +173,7 @@ def _configured_app(
     *,
     authenticator=None,
     role_manager=_DEFAULT_MANAGER,
-    staging_catalog=None,
-    draft_catalog=None,
+    app_repository=None,
 ):
     if role_manager is _DEFAULT_MANAGER:
         role_manager = FakeUserRoleManager()
@@ -317,11 +181,9 @@ def _configured_app(
         {
             "TESTING": True,
             "ADMIN_AUTHENTICATOR": authenticator or FakeAuthenticator(),
-            "ADMIN_CATALOG": FakeCatalog(),
-            "ADMIN_PUBLISHED_APP_DRAFTS": draft_catalog or FakeDraftCatalog(),
             "ADMIN_FIREBASE_WEB_CONFIG": FIREBASE_WEB_CONFIG,
             "ADMIN_SESSION_COOKIE_SECURE": False,
-            "ADMIN_STAGING_CATALOG": staging_catalog or FakeStagingCatalog(),
+            "ADMIN_APP_REPOSITORY": app_repository or FakeAppRepository(),
             "ADMIN_USER_DIRECTORY": FakeUserDirectory(),
             "ADMIN_USER_ROLE_MANAGER": role_manager,
         }
@@ -395,10 +257,9 @@ def test_admin_is_not_ready_until_auth_persistence_and_web_config_exist() -> Non
     assert response.get_json() == {
         "ready": False,
         "checks": {
+            "applications": False,
             "authentication": False,
             "firebase_web": False,
-            "persistence": False,
-            "staging_catalog": False,
             "user_directory": False,
             "user_role_management": False,
         },
@@ -434,7 +295,7 @@ def test_malformed_firebase_auth_domain_is_not_trusted_by_login_or_csp() -> None
         {
             "TESTING": True,
             "ADMIN_AUTHENTICATOR": FakeAuthenticator(),
-            "ADMIN_CATALOG": FakeCatalog(),
+            "ADMIN_APP_REPOSITORY": FakeAppRepository(),
             "ADMIN_FIREBASE_WEB_CONFIG": config,
             "ADMIN_SESSION_COOKIE_SECURE": False,
         }
@@ -487,7 +348,7 @@ def test_session_exchange_rejects_invalid_or_unauthorized_identities() -> None:
     assert forbidden.status_code == 403
 
 
-def test_authenticated_catalog_list_search_detail_and_logout() -> None:
+def test_authenticated_application_list_detail_and_logout() -> None:
     client = _configured_app().test_client()
     csrf_token = _csrf_token(client)
     client.post(
@@ -496,47 +357,44 @@ def test_authenticated_catalog_list_search_detail_and_logout() -> None:
     )
 
     listing = client.get("/admin/apps")
-    search = client.get("/admin/apps?q=jane")
-    empty = client.get("/admin/apps?q=missing")
-    detail = client.get("/admin/apps/app-1")
+    app_id = FakeAppRepository().apps[0].id
+    detail = client.get(f"/admin/apps/{app_id}")
     missing = client.get("/admin/apps/no-such-app")
     logout = client.post("/admin/logout", data={"csrf_token": csrf_token})
 
     assert listing.status_code == 200
-    assert b"Armored Patrol" in listing.data
+    assert b"Draft Game" in listing.data
     assert b"admin@example.test" in listing.data
-    assert b"Armored Patrol" in search.data
-    assert b"No applications match this search" in empty.data
     assert detail.status_code == 200
-    assert b"Tank game" in detail.data
+    assert b"Not public" in detail.data
     assert missing.status_code == 404
     assert logout.status_code == 302
     assert "retrostore_admin_session=;" in logout.headers["Set-Cookie"]
 
 
-def test_staging_list_form_validation_and_atomic_create_boundary() -> None:
-    catalog = FakeStagingCatalog()
-    client = _configured_app(staging_catalog=catalog).test_client()
+def test_application_list_form_validation_and_atomic_create_boundary() -> None:
+    catalog = FakeAppRepository()
+    client = _configured_app(app_repository=catalog).test_client()
     csrf_token = _csrf_token(client)
     client.post(
         "/admin/session",
         json={"id_token": "valid-id-token", "csrf_token": csrf_token},
     )
 
-    listing = client.get("/admin/staging/apps")
-    form = client.get("/admin/staging/apps/new")
+    listing = client.get("/admin/apps")
+    form = client.get("/admin/apps/new")
     rejected = client.post(
-        "/admin/staging/apps",
+        "/admin/apps",
         data={"csrf_token": csrf_token, "request_id": "bad", "name": "Kept"},
     )
     accepted = client.post(
-        "/admin/staging/apps",
+        "/admin/apps",
         data={
             "csrf_token": csrf_token,
             "request_id": "22222222-2222-4222-8222-222222222222",
             "name": "  New Game  ",
             "version": "  1.0  ",
-            "description": "  A staged application.  ",
+            "description": "  A draft application.  ",
             "release_year": "1983",
             "model": "MODEL_III",
             "category": "GAME_ARCADE",
@@ -545,7 +403,7 @@ def test_staging_list_form_validation_and_atomic_create_boundary() -> None:
     )
 
     assert listing.status_code == 200
-    assert b"Staged Game" in listing.data
+    assert b"Draft Game" in listing.data
     assert b"Only published records appear in the public API" in listing.data
     assert form.status_code == 200
     assert b"New application" in form.data
@@ -553,20 +411,18 @@ def test_staging_list_form_validation_and_atomic_create_boundary() -> None:
     assert b"Kept" in rejected.data
     assert b"request identifier is invalid" in rejected.data
     assert accepted.status_code == 302
-    assert accepted.headers["Location"].endswith(
-        "/admin/staging/apps?app_created=1"
-    )
+    assert accepted.headers["Location"].endswith("/admin/apps?app_created=1")
     assert len(catalog.creations) == 1
-    identity, request_id, draft = catalog.creations[0]
+    identity, request_id, app_input = catalog.creations[0]
     assert identity.uid == "user-1"
     assert request_id == "22222222-2222-4222-8222-222222222222"
-    assert draft.name == "New Game"
-    assert draft.author_name == "Jane Doe"
+    assert app_input.name == "New Game"
+    assert app_input.author_name == "Jane Doe"
 
 
 def test_rpk_preview_has_no_side_effects_and_apply_requires_the_same_file() -> None:
-    catalog = FakeStagingCatalog()
-    client = _configured_app(staging_catalog=catalog).test_client()
+    catalog = FakeAppRepository()
+    client = _configured_app(app_repository=catalog).test_client()
     csrf_token = _csrf_token(client)
     client.post(
         "/admin/session",
@@ -575,9 +431,9 @@ def test_rpk_preview_has_no_side_effects_and_apply_requires_the_same_file() -> N
     body = _rpk_body()
     digest = hashlib.sha256(body).hexdigest()
 
-    page = client.get("/admin/staging/import")
+    page = client.get("/admin/apps/import")
     preview = client.post(
-        "/admin/staging/import/preview",
+        "/admin/apps/import/preview",
         data={
             "csrf_token": csrf_token,
             "file": (BytesIO(body), "C:\\fakepath\\game.rpk"),
@@ -585,7 +441,7 @@ def test_rpk_preview_has_no_side_effects_and_apply_requires_the_same_file() -> N
         content_type="multipart/form-data",
     )
     mismatch = client.post(
-        "/admin/staging/import/apply",
+        "/admin/apps/import/apply",
         data={
             "csrf_token": csrf_token,
             "expected_sha256": digest,
@@ -594,7 +450,7 @@ def test_rpk_preview_has_no_side_effects_and_apply_requires_the_same_file() -> N
         content_type="multipart/form-data",
     )
     applied = client.post(
-        "/admin/staging/import/apply",
+        "/admin/apps/import/apply",
         data={
             "csrf_token": csrf_token,
             "expected_sha256": digest,
@@ -615,7 +471,7 @@ def test_rpk_preview_has_no_side_effects_and_apply_requires_the_same_file() -> N
     assert b"does not match the preview" in mismatch.data
     assert applied.status_code == 302
     assert applied.headers["Location"].endswith(
-        "/admin/staging/apps/8c028afe-96b3-11e7-a68b-5b6133ca5f0c?rpk_imported=1"
+        "/admin/apps/8c028afe-96b3-11e7-a68b-5b6133ca5f0c?rpk_imported=1"
     )
     assert len(catalog.rpk_imports) == 1
     identity, package = catalog.rpk_imports[0]
@@ -624,10 +480,10 @@ def test_rpk_preview_has_no_side_effects_and_apply_requires_the_same_file() -> N
     assert package.claimed_publisher_email == "claimed@example.test"
 
 
-def test_staged_app_can_be_published_directly() -> None:
-    catalog = FakeStagingCatalog()
+def test_app_record_can_be_published_directly() -> None:
+    catalog = FakeAppRepository()
     app = catalog.apps[0]
-    client = _configured_app(staging_catalog=catalog).test_client()
+    client = _configured_app(app_repository=catalog).test_client()
     csrf_token = _csrf_token(client)
     client.post(
         "/admin/session",
@@ -635,20 +491,18 @@ def test_staged_app_can_be_published_directly() -> None:
     )
 
     response = client.post(
-        f"/admin/staging/apps/{app.id}/publish",
+        f"/admin/apps/{app.id}/publish",
         data={"csrf_token": csrf_token, "revision": str(app.revision)},
     )
 
     assert response.status_code == 302
-    assert response.headers["Location"].endswith(
-        f"/admin/staging/apps/{app.id}?published=1"
-    )
+    assert response.headers["Location"].endswith(f"/admin/apps/{app.id}?published=1")
     assert catalog.publications == [(FakeAuthenticator.identity, app.id, 1)]
 
 
 def test_rpk_preview_rejects_the_whole_package_before_catalog_mutation() -> None:
-    catalog = FakeStagingCatalog()
-    client = _configured_app(staging_catalog=catalog).test_client()
+    catalog = FakeAppRepository()
+    client = _configured_app(app_repository=catalog).test_client()
     csrf_token = _csrf_token(client)
     client.post(
         "/admin/session",
@@ -656,7 +510,7 @@ def test_rpk_preview_rejects_the_whole_package_before_catalog_mutation() -> None
     )
 
     response = client.post(
-        "/admin/staging/import/preview",
+        "/admin/apps/import/preview",
         data={
             "csrf_token": csrf_token,
             "file": (BytesIO(b'{"app":{},"trs":{}}'), "broken.rpk"),
@@ -669,27 +523,27 @@ def test_rpk_preview_rejects_the_whole_package_before_catalog_mutation() -> None
     assert catalog.rpk_imports == []
 
 
-def test_staging_detail_edit_and_confirmed_delete_lifecycle() -> None:
-    catalog = FakeStagingCatalog()
+def test_application_detail_edit_and_confirmed_delete_lifecycle() -> None:
+    catalog = FakeAppRepository()
     app_id = catalog.apps[0].id
-    client = _configured_app(staging_catalog=catalog).test_client()
+    client = _configured_app(app_repository=catalog).test_client()
     csrf_token = _csrf_token(client)
     client.post(
         "/admin/session",
         json={"id_token": "valid-id-token", "csrf_token": csrf_token},
     )
 
-    detail = client.get(f"/admin/staging/apps/{app_id}")
-    edit = client.get(f"/admin/staging/apps/{app_id}/edit")
+    detail = client.get(f"/admin/apps/{app_id}")
+    edit = client.get(f"/admin/apps/{app_id}/edit")
     update = client.post(
-        f"/admin/staging/apps/{app_id}",
+        f"/admin/apps/{app_id}",
         data={
             "csrf_token": csrf_token,
             "request_id": app_id,
             "revision": "1",
             "name": "Updated Game",
             "version": "1.1",
-            "description": "Updated staged application.",
+            "description": "Updated draft application.",
             "release_year": "1984",
             "model": "MODEL_4",
             "category": "OTHER",
@@ -697,7 +551,7 @@ def test_staging_detail_edit_and_confirmed_delete_lifecycle() -> None:
         },
     )
     unconfirmed_delete = client.post(
-        f"/admin/staging/apps/{app_id}/delete",
+        f"/admin/apps/{app_id}/delete",
         data={
             "csrf_token": csrf_token,
             "revision": "1",
@@ -705,11 +559,11 @@ def test_staging_detail_edit_and_confirmed_delete_lifecycle() -> None:
         },
     )
     confirmed_delete = client.post(
-        f"/admin/staging/apps/{app_id}/delete",
+        f"/admin/apps/{app_id}/delete",
         data={
             "csrf_token": csrf_token,
             "revision": "1",
-            "confirm_name": "Staged Game",
+            "confirm_name": "Draft Game",
         },
     )
 
@@ -717,9 +571,9 @@ def test_staging_detail_edit_and_confirmed_delete_lifecycle() -> None:
     assert b"revision 1" in detail.data
     assert b"Enter the exact app name" in detail.data
     assert edit.status_code == 200
-    assert b"Edit Staged Game" in edit.data
+    assert b"Edit Draft Game" in edit.data
     assert update.status_code == 302
-    assert update.headers["Location"].endswith(f"/admin/staging/apps/{app_id}")
+    assert update.headers["Location"].endswith(f"/admin/apps/{app_id}")
     assert catalog.updates[0][2] == 1
     assert catalog.updates[0][3].name == "Updated Game"
     assert unconfirmed_delete.status_code == 400
@@ -727,151 +581,40 @@ def test_staging_detail_edit_and_confirmed_delete_lifecycle() -> None:
         (FakeAuthenticator.identity, app_id, 1),
     ]
     assert confirmed_delete.status_code == 302
-    assert confirmed_delete.headers["Location"].endswith(
-        "/admin/staging/apps?app_deleted=1"
-    )
+    assert confirmed_delete.headers["Location"].endswith("/admin/apps?app_deleted=1")
 
 
 def test_published_app_is_directly_editable_by_an_administrator() -> None:
     baseline = replace(
-        FakeStagingCatalog().apps[0],
+        FakeAppRepository().apps[0],
         id="0FA9D58E-9B99-11E7-B002-5B6133CA5F0C",
         publisher_uid="",
         status="PUBLISHED",
     )
-    catalog = FakeStagingCatalog(apps=(baseline,))
-    client = _configured_app(staging_catalog=catalog).test_client()
+    catalog = FakeAppRepository(apps=(baseline,))
+    client = _configured_app(app_repository=catalog).test_client()
     csrf_token = _csrf_token(client)
     client.post(
         "/admin/session",
         json={"id_token": "valid-id-token", "csrf_token": csrf_token},
     )
 
-    detail = client.get(f"/admin/staging/apps/{baseline.id}")
-    edit = client.get(f"/admin/staging/apps/{baseline.id}/edit")
+    detail = client.get(f"/admin/apps/{baseline.id}")
+    edit = client.get(f"/admin/apps/{baseline.id}/edit")
 
     assert detail.status_code == 200
-    assert b"public API reads this canonical record directly" in detail.data
+    assert b"published and visible to the public API" in detail.data
     assert b"Edit app" in detail.data
     assert b"Upload screenshot" in detail.data
-    assert b"Delete staged app" not in detail.data
+    assert b"Delete draft app" not in detail.data
     assert b"Create editable draft" not in detail.data
     assert edit.status_code == 200
 
 
-def test_published_baseline_copy_on_write_draft_lifecycle() -> None:
-    baseline = replace(
-        FakeStagingCatalog().apps[0],
-        id="0FA9D58E-9B99-11E7-B002-5B6133CA5F0C",
-        publisher_uid="",
-        status="PUBLISHED",
-    )
-    catalog = FakeStagingCatalog(apps=(baseline,))
-    drafts = FakeDraftCatalog()
-    client = _configured_app(
-        staging_catalog=catalog, draft_catalog=drafts
-    ).test_client()
-    csrf_token = _csrf_token(client)
-    client.post(
-        "/admin/session",
-        json={"id_token": "valid-id-token", "csrf_token": csrf_token},
-    )
-
-    created = client.post(
-        f"/admin/staging/apps/{baseline.id}/draft/create",
-        data={"csrf_token": csrf_token},
-    )
-    edit = client.get(created.headers["Location"])
-    updated = client.post(
-        f"/admin/staging/apps/{baseline.id}/draft",
-        data={
-            "csrf_token": csrf_token,
-            "request_id": baseline.id,
-            "revision": "1",
-            "name": "Edited Published Game",
-            "version": "2.0",
-            "description": "A copy-on-write metadata change.",
-            "release_year": "1984",
-            "model": "MODEL_III",
-            "category": "OTHER",
-            "author_name": "New Author",
-        },
-    )
-    discarded = client.post(
-        f"/admin/staging/apps/{baseline.id}/draft/discard",
-        data={
-            "csrf_token": csrf_token,
-            "revision": "2",
-            "confirm_name": "Edited Published Game",
-        },
-    )
-
-    assert created.status_code == 302
-    assert "draft_created=1" in created.headers["Location"]
-    assert edit.status_code == 200
-    assert b"Copy-on-write published draft" in edit.data
-    assert updated.status_code == 302
-    assert drafts.updates[0][2] == 1
-    assert discarded.status_code == 302
-    assert drafts.discards == [(FakeAuthenticator.identity, baseline.id, 2)]
-    assert drafts.drafts == {}
-
-
-def test_published_draft_detail_has_copy_on_write_asset_routes() -> None:
-    baseline = replace(
-        FakeStagingCatalog().apps[0],
-        id="0FA9D58E-9B99-11E7-B002-5B6133CA5F0C",
-        publisher_uid="",
-        status="PUBLISHED",
-    )
-    draft_catalog = FakeDraftCatalog()
-    draft_catalog.create(identity=FakeAuthenticator.identity, app_id=baseline.id)
-    client = _configured_app(
-        staging_catalog=FakeStagingCatalog(apps=(baseline,)),
-        draft_catalog=draft_catalog,
-    ).test_client()
-    csrf_token = _csrf_token(client)
-    client.post(
-        "/admin/session",
-        json={"id_token": "valid-id-token", "csrf_token": csrf_token},
-    )
-
-    detail = client.get(f"/admin/staging/apps/{baseline.id}/draft")
-    media = client.post(
-        f"/admin/staging/apps/{baseline.id}/draft/media",
-        data={
-            "csrf_token": csrf_token,
-            "revision": "1",
-            "slot": "disk-1",
-            "description": "Draft disk",
-            "file": (BytesIO(b"draft disk"), "draft.dmk"),
-        },
-        content_type="multipart/form-data",
-    )
-    screenshot = client.post(
-        f"/admin/staging/apps/{baseline.id}/draft/screenshots",
-        data={
-            "csrf_token": csrf_token,
-            "revision": "2",
-            "file": (BytesIO(b"\x89PNG\r\n\x1a\ndraft"), "draft.png"),
-        },
-        content_type="multipart/form-data",
-    )
-
-    assert detail.status_code == 200
-    assert b"Edit draft metadata" in detail.data
-    assert b"Discard copy-on-write draft" in detail.data
-    assert f"/{baseline.id}/draft/media".encode() in detail.data
-    assert media.status_code == 302
-    assert draft_catalog.media_uploads[0][2:4] == (1, "disk-1")
-    assert screenshot.status_code == 302
-    assert draft_catalog.screenshot_uploads[0][2] == 2
-
-
-def test_staging_media_and_screenshot_upload_routes_validate_and_delegate() -> None:
-    catalog = FakeStagingCatalog()
+def test_application_media_and_screenshot_upload_routes_validate_and_delegate() -> None:
+    catalog = FakeAppRepository()
     app_id = catalog.apps[0].id
-    client = _configured_app(staging_catalog=catalog).test_client()
+    client = _configured_app(app_repository=catalog).test_client()
     csrf_token = _csrf_token(client)
     client.post(
         "/admin/session",
@@ -879,7 +622,7 @@ def test_staging_media_and_screenshot_upload_routes_validate_and_delegate() -> N
     )
 
     media = client.post(
-        f"/admin/staging/apps/{app_id}/media",
+        f"/admin/apps/{app_id}/media",
         data={
             "csrf_token": csrf_token,
             "revision": "1",
@@ -890,7 +633,7 @@ def test_staging_media_and_screenshot_upload_routes_validate_and_delegate() -> N
         content_type="multipart/form-data",
     )
     invalid_screenshot = client.post(
-        f"/admin/staging/apps/{app_id}/screenshots",
+        f"/admin/apps/{app_id}/screenshots",
         data={
             "csrf_token": csrf_token,
             "revision": "1",
@@ -899,7 +642,7 @@ def test_staging_media_and_screenshot_upload_routes_validate_and_delegate() -> N
         content_type="multipart/form-data",
     )
     screenshot = client.post(
-        f"/admin/staging/apps/{app_id}/screenshots",
+        f"/admin/apps/{app_id}/screenshots",
         data={
             "csrf_token": csrf_token,
             "revision": "1",

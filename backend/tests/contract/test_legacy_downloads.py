@@ -9,9 +9,9 @@ from retrostore.contract.legacy_downloads import (
     discover_download_scenarios,
     discover_download_scenarios_from_reference,
 )
-from retrostore.mirror import load_catalog_mirror_archive
-from services.api_compat.app import create_archive_app
-from tests.mirror.test_archive import _write_archive
+from retrostore.migration.catalog_mirror import load_catalog_mirror_archive
+from retrostore.testing.flask_api import create_archive_app
+from tests.migration.catalog_mirror.test_archive import _write_archive
 
 
 def test_discovers_and_matches_semantic_download_contract(tmp_path: Path) -> None:
@@ -22,11 +22,10 @@ def test_discovers_and_matches_semantic_download_contract(tmp_path: Path) -> Non
     app = create_archive_app(archive, {"TESTING": True})
     transport = httpx.WSGITransport(app=app)
 
-    with httpx.Client(
-        transport=transport, base_url="http://reference.test"
-    ) as reference, httpx.Client(
-        transport=transport, base_url="http://candidate.test"
-    ) as candidate:
+    with (
+        httpx.Client(transport=transport, base_url="http://reference.test") as reference,
+        httpx.Client(transport=transport, base_url="http://candidate.test") as candidate,
+    ):
         report = compare_download_clients(
             reference,
             candidate,
@@ -52,20 +51,23 @@ def test_detects_typed_media_difference_without_serializing_bytes(tmp_path: Path
     mirror = load_catalog_mirror_archive(archive)
     reference_app = create_archive_app(archive, {"TESTING": True})
     candidate_app = create_archive_app(archive, {"TESTING": True})
-    downloads = dict(candidate_app.config["RETROSTORE_LEGACY_DOWNLOADS"])
+    downloads = dict(candidate_app.config["RETROSTORE_DOWNLOADS"])
     value = downloads["app-1"]
     media = list(value.media)
     media[0] = type(media[0])(media[0].id, media[0].filename, b"changed")
     downloads["app-1"] = type(value)(value.name, tuple(media))
-    candidate_app.config["RETROSTORE_LEGACY_DOWNLOADS"] = downloads
+    candidate_app.config["RETROSTORE_DOWNLOADS"] = downloads
 
-    with httpx.Client(
-        transport=httpx.WSGITransport(app=reference_app),
-        base_url="http://reference.test",
-    ) as reference, httpx.Client(
-        transport=httpx.WSGITransport(app=candidate_app),
-        base_url="http://candidate.test",
-    ) as candidate:
+    with (
+        httpx.Client(
+            transport=httpx.WSGITransport(app=reference_app),
+            base_url="http://reference.test",
+        ) as reference,
+        httpx.Client(
+            transport=httpx.WSGITransport(app=candidate_app),
+            base_url="http://candidate.test",
+        ) as candidate,
+    ):
         report = compare_download_clients(
             reference,
             candidate,
@@ -86,13 +88,9 @@ def test_detects_typed_media_difference_without_serializing_bytes(tmp_path: Path
 
 
 def test_candidate_url_guard_accepts_only_service_and_tagged_origins() -> None:
-    service = (
-        "https://retrostore-api-compat-candidate-760396810462.us-central1.run.app"
-    )
+    service = "https://retrostore-api-compat-candidate-760396810462.us-central1.run.app"
     legacy_service = "https://retrostore-api-compat-candidate-zzch7qgr2a-uc.a.run.app"
-    tagged = (
-        "https://downloads1---retrostore-api-compat-candidate-zzch7qgr2a-uc.a.run.app/"
-    )
+    tagged = "https://downloads1---retrostore-api-compat-candidate-zzch7qgr2a-uc.a.run.app/"
     final_tagged = "https://canonical1---retrostore-api-next-zzch7qgr2a-uc.a.run.app/"
 
     assert _candidate_origin(service) == service

@@ -39,8 +39,7 @@ def _baseline(path: Path) -> Path:
                 "region": "us-central1",
                 "service": "retrostore-api-compat-candidate",
                 "candidate_url": (
-                    "https://retrostore-api-compat-candidate-760396810462."
-                    "us-central1.run.app"
+                    "https://retrostore-api-compat-candidate-760396810462.us-central1.run.app"
                 ),
                 "revision": _REVISION,
                 "revision_ready_at": "2026-08-10T00:39:20Z",
@@ -127,8 +126,7 @@ def _artifact(
                 "kind": "retrostore_legacy_download_comparison",
                 "reference_url": "https://retrostore.org",
                 "candidate": (
-                    "https://retrostore-api-compat-candidate-760396810462."
-                    "us-central1.run.app"
+                    "https://retrostore-api-compat-candidate-760396810462.us-central1.run.app"
                 ),
                 "scope": {"scenario_count": 94},
                 "summary": {
@@ -144,8 +142,7 @@ def _artifact(
                 "kind": "retrostore_public_website_app_list_comparison",
                 "reference_url": "https://retrostore.org",
                 "candidate": (
-                    "https://retrostore-api-compat-candidate-760396810462."
-                    "us-central1.run.app"
+                    "https://retrostore-api-compat-candidate-760396810462.us-central1.run.app"
                 ),
                 "scope": {
                     "reference_app_count": 32,
@@ -167,8 +164,7 @@ def _artifact(
                 "kind": "retrostore_public_redirect_comparison",
                 "reference_url": "https://retrostore.org",
                 "candidate": (
-                    "https://retrostore-api-compat-candidate-760396810462."
-                    "us-central1.run.app"
+                    "https://retrostore-api-compat-candidate-760396810462.us-central1.run.app"
                 ),
                 "scope": {"scenario_count": 6},
                 "summary": {
@@ -288,10 +284,7 @@ def test_schema_two_artifact_remains_valid_historical_evidence() -> None:
 
 def test_soak_streak_restarts_after_failure_and_rejects_staleness() -> None:
     start = datetime(2026, 8, 10, tzinfo=UTC)
-    evidence = [
-        _evidence(start + timedelta(hours=hour), passes=hour != 2)
-        for hour in range(5)
-    ]
+    evidence = [_evidence(start + timedelta(hours=hour), passes=hour != 2) for hour in range(5)]
 
     current = soak_status.evaluate_soak(
         evidence,

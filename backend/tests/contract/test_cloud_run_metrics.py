@@ -139,9 +139,7 @@ def test_summarizes_distribution_histogram_percentile_bounds() -> None:
                             "distributionValue": {
                                 "count": "100",
                                 "mean": 12.0,
-                                "bucketOptions": {
-                                    "explicitBuckets": {"bounds": [10, 20, 30]}
-                                },
+                                "bucketOptions": {"explicitBuckets": {"bounds": [10, 20, 30]}},
                                 "bucketCounts": [40, 55, 4, 1],
                             }
                         },

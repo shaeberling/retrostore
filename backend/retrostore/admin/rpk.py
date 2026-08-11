@@ -13,7 +13,7 @@ from typing import Any
 from retrostore.admin.assets import (
     MEDIA_MAX_BYTES,
     SCREENSHOT_MAX_BYTES,
-    StagingAssetValidationError,
+    AssetValidationError,
     ValidatedAssetUpload,
     validate_media_upload,
     validate_screenshot_upload,
@@ -62,15 +62,13 @@ class ValidatedRpk:
 
 
 def validate_rpk(*, filename: str, body: bytes) -> ValidatedRpk:
-    """Validate an entire package before any staged catalog mutation."""
+    """Validate an entire package before any catalog mutation."""
 
     safe_filename = _safe_filename(filename)
     if not body:
         raise RpkValidationError("Choose a non-empty RPK file.")
     if len(body) > RPK_MAX_BYTES:
-        raise RpkValidationError(
-            f"RPK file must not exceed {RPK_MAX_BYTES // (1024 * 1024)} MiB."
-        )
+        raise RpkValidationError(f"RPK file must not exceed {RPK_MAX_BYTES // (1024 * 1024)} MiB.")
     try:
         text = body.decode("utf-8-sig")
     except UnicodeDecodeError as error:
@@ -86,13 +84,11 @@ def validate_rpk(*, filename: str, body: bytes) -> ValidatedRpk:
     publisher_value = root.get("publisher", {})
     publisher = _mapping(publisher_value, "publisher")
 
-    app_id = _canonical_uuid(_required_text(app, "id", "app.id", 64))
+    app_id = _normalized_uuid(_required_text(app, "id", "app.id", 64))
     name = _required_text(app, "name", "app.name", 200)
     version = _required_text(app, "version", "app.version", 64)
     description = _required_text(app, "description", "app.description", 20_000)
-    author_name = " ".join(
-        _required_text(app, "author", "app.author", 200).split()
-    )
+    author_name = " ".join(_required_text(app, "author", "app.author", 200).split())
     platform = _required_text(app, "platform", "app.platform", 32)
     if platform != "TRS-80":
         raise RpkValidationError("app.platform must be TRS-80.")
@@ -140,12 +136,9 @@ def validate_rpk(*, filename: str, body: bytes) -> ValidatedRpk:
             f"app.screenshot must contain at most {RPK_MAX_SCREENSHOTS} images."
         )
     screenshots = tuple(
-        _screenshot_upload(value, position)
-        for position, value in enumerate(screenshot_values)
+        _screenshot_upload(value, position) for position, value in enumerate(screenshot_values)
     )
-    decoded_size = sum(item.upload.size for item in media) + sum(
-        item.size for item in screenshots
-    )
+    decoded_size = sum(item.upload.size for item in media) + sum(item.size for item in screenshots)
     if decoded_size > RPK_MAX_DECODED_BYTES:
         raise RpkValidationError(
             "Decoded RPK assets must not exceed "
@@ -154,12 +147,8 @@ def validate_rpk(*, filename: str, body: bytes) -> ValidatedRpk:
 
     first_name = _optional_text(publisher, "first_name", "publisher.first_name", 200)
     last_name = _optional_text(publisher, "last_name", "publisher.last_name", 200)
-    claimed_publisher_name = " ".join(
-        item for item in (first_name, last_name) if item
-    )
-    claimed_publisher_email = _optional_text(
-        publisher, "email", "publisher.email", 320
-    )
+    claimed_publisher_name = " ".join(item for item in (first_name, last_name) if item)
+    claimed_publisher_email = _optional_text(publisher, "email", "publisher.email", 320)
     return ValidatedRpk(
         filename=safe_filename,
         package_sha256=hashlib.sha256(body).hexdigest(),
@@ -202,18 +191,14 @@ def _optional_list(value: object, label: str) -> list[object]:
     return value
 
 
-def _required_text(
-    value: Mapping[str, Any], field: str, label: str, maximum: int
-) -> str:
+def _required_text(value: Mapping[str, Any], field: str, label: str, maximum: int) -> str:
     result = _optional_text(value, field, label, maximum)
     if not result:
         raise RpkValidationError(f"{label} is required.")
     return result
 
 
-def _optional_text(
-    value: Mapping[str, Any], field: str, label: str, maximum: int
-) -> str:
+def _optional_text(value: Mapping[str, Any], field: str, label: str, maximum: int) -> str:
     candidate = value.get(field)
     if candidate is None:
         return ""
@@ -225,13 +210,13 @@ def _optional_text(
     return result
 
 
-def _canonical_uuid(value: str) -> str:
+def _normalized_uuid(value: str) -> str:
     try:
         parsed = uuid.UUID(value)
     except ValueError as error:
-        raise RpkValidationError("app.id must be a canonical UUID.") from error
+        raise RpkValidationError("app.id must be a normalized UUID.") from error
     if str(parsed) != value:
-        raise RpkValidationError("app.id must be a lowercase canonical UUID.")
+        raise RpkValidationError("app.id must be a lowercase normalized UUID.")
     return value
 
 
@@ -241,9 +226,7 @@ def _release_year(value: object) -> int:
     try:
         result = int(value)
     except ValueError as error:
-        raise RpkValidationError(
-            "app.year_published must be an integer from 0 to 9999."
-        ) from error
+        raise RpkValidationError("app.year_published must be an integer from 0 to 9999.") from error
     if str(result) != str(value).strip() or not 0 <= result <= 9999:
         raise RpkValidationError("app.year_published must be an integer from 0 to 9999.")
     return result
@@ -275,7 +258,7 @@ def _media_upload(
         return validate_media_upload(
             filename=f"{filename_stem}.{extension}", body=decoded, description=""
         )
-    except StagingAssetValidationError as error:
+    except AssetValidationError as error:
         raise RpkValidationError(f"{label}: {error}") from error
 
 
@@ -291,7 +274,7 @@ def _screenshot_upload(value: object, position: int) -> ValidatedAssetUpload:
         detected = validate_screenshot_upload(
             filename=f"screenshot_{position + 1}.{declared_extension}", body=decoded
         )
-    except StagingAssetValidationError as error:
+    except AssetValidationError as error:
         raise RpkValidationError(f"{label}: {error}") from error
     expected_extensions = {
         "png": "png",

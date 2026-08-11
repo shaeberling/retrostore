@@ -161,8 +161,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 def _pending_decisions(decisions: Mapping[str, Any]) -> set[str]:
     if (
         decisions.get("schema_version") != 1
-        or decisions.get("status")
-        != "candidate_public_resources_approved_no_production_authority"
+        or decisions.get("status") != "candidate_public_resources_approved_no_production_authority"
     ):
         raise ValueError("Migration decision register identity is invalid")
     pending = decisions.get("pending")

@@ -21,7 +21,7 @@ from retrostore.contract.exhaustive import (
     _with_candidate_host_header,
 )
 from retrostore.contracts import PUBLIC_API_METHODS
-from services.api_compat.app import create_representative_app
+from retrostore.testing.flask_api import create_representative_app
 
 TRS80_REVISION = "aecbddcc7f5515fb844bb7a1fc350d8ffaaf5ce5"
 TRS80_KMP_METHODS = frozenset(

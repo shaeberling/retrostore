@@ -47,9 +47,7 @@ def test_success_fixture_covers_catalog_media_metadata_payload_and_range() -> No
     get_app = api_pb.GetAppParams.FromString(scenarios["get_app_existing"].body)
     assert get_app.app_id == FIXTURE_APP_ID
 
-    media = api_pb.FetchMediaImagesParams.FromString(
-        scenarios["fetch_media_images_command"].body
-    )
+    media = api_pb.FetchMediaImagesParams.FromString(scenarios["fetch_media_images_command"].body)
     assert media.app_id == FIXTURE_APP_ID
     assert list(media.media_type) == [api_pb.COMMAND]
 
@@ -63,9 +61,7 @@ def test_success_fixture_covers_catalog_media_metadata_payload_and_range() -> No
 def test_boundary_corpus_covers_catalog_and_media_edges() -> None:
     scenarios = {scenario.name: scenario for scenario in safe_boundary_scenarios()}
 
-    last_page = api_pb.ListAppsParams.FromString(
-        scenarios["list_apps_last_page_truncated"].body
-    )
+    last_page = api_pb.ListAppsParams.FromString(scenarios["list_apps_last_page_truncated"].body)
     assert (last_page.start, last_page.num) == (CATALOG_COUNT_AT_CAPTURE - 1, 2)
 
     tail = api_pb.FetchMediaImageRegionParams.FromString(

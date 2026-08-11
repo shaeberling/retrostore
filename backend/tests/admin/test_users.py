@@ -29,9 +29,7 @@ def _record(
         email_verified=verified,
         disabled=disabled,
         custom_claims=claims,
-        provider_data=tuple(
-            SimpleNamespace(provider_id=provider) for provider in providers
-        ),
+        provider_data=tuple(SimpleNamespace(provider_id=provider) for provider in providers),
     )
 
 
@@ -81,9 +79,7 @@ def test_firebase_user_directory_normalizes_sorts_and_merges_stored_roles(
         return FakePage(records)
 
     monkeypatch.setattr(users.auth, "list_users", list_users)
-    directory = users.FirebaseAdminUserDirectory(
-        "trs-80", app=object(), role_store=role_store
-    )
+    directory = users.FirebaseAdminUserDirectory("trs-80", app=object(), role_store=role_store)
 
     result = directory.list_users()
 
@@ -211,9 +207,7 @@ class FakeCollection:
 
     def stream(self):
         return (
-            document.snapshot
-            for document in self.documents.values()
-            if document.snapshot.exists
+            document.snapshot for document in self.documents.values() if document.snapshot.exists
         )
 
 
@@ -232,8 +226,7 @@ class FakeTransaction:
 class FakeFirestore:
     def __init__(self, user_snapshots=None):
         user_documents = {
-            snapshot.id: FakeDocument(snapshot.id, snapshot)
-            for snapshot in (user_snapshots or ())
+            snapshot.id: FakeDocument(snapshot.id, snapshot) for snapshot in (user_snapshots or ())
         }
         self.collections = {
             "users": FakeCollection(user_documents),
@@ -258,9 +251,7 @@ def test_firestore_role_store_distinguishes_missing_and_explicit_no_access() -> 
     store = users.FirestoreAdminRoleStore(client)
 
     assert store.role_for("missing") == RoleAssignment(configured=False, role=None)
-    assert store.role_for("publisher") == RoleAssignment(
-        configured=True, role="publisher"
-    )
+    assert store.role_for("publisher") == RoleAssignment(configured=True, role="publisher")
     assert store.role_for("denied") == RoleAssignment(configured=True, role=None)
     assert store.roles_by_uid() == {
         "publisher": RoleAssignment(configured=True, role="publisher"),

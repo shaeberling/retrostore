@@ -33,7 +33,7 @@ Useful Cloud Logging filters include:
 ```text
 resource.type="cloud_run_revision"
 jsonPayload.event="http_request"
-jsonPayload.service="retrostore-api-compat"
+jsonPayload.service="retrostore-api"
 ```
 
 ```text
@@ -112,7 +112,7 @@ metrics for the exact revision and load window, including allocation and
 billable time. Both commands default to a no-network plan and require exact
 target confirmations for execution.
 
-The 2026-08-10 revision `retrostore-api-compat-candidate-observability2` run sent
+The 2026-08-10 revision `retrostore-api-candidate-observability2` run sent
 2,000 measured requests at concurrency 8 after 16 warmups. It sustained 39.15
 requests per second with 2,000 HTTP 200 responses, zero transport errors, zero
 5xx responses, zero semantic differences, and passing provisional p95/p99

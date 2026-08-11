@@ -6,7 +6,7 @@ from pathlib import Path
 
 import httpx
 
-from retrostore.api_compat.google_cloud_state import (
+from retrostore.api.google_cloud_state import (
     google_state_storage,
     validate_state_identity,
     validate_state_target,
@@ -15,13 +15,13 @@ from retrostore.contract.approvals import evaluate_approvals
 from retrostore.contract.capture import capture_scenarios, capture_scenarios_with_client
 from retrostore.contract.compare_hosts import compare_captures
 from retrostore.contract.exhaustive import discover_exhaustive_corpus
-from retrostore.mirror import MirrorCompatibilityStorage, load_active_catalog_mirror
-from retrostore.mirror.google_cloud import (
+from retrostore.migration.catalog_mirror import MirrorApiDataStore, load_active_catalog_mirror
+from retrostore.migration.catalog_mirror.google_cloud import (
     gcloud_impersonated_credentials,
     google_catalog_stores,
     validate_catalog_target,
 )
-from services.api_compat.app import create_app
+from services.api.app import create_app
 
 
 def main() -> int:
@@ -69,7 +69,7 @@ def main() -> int:
     app = create_app(
         {
             "TESTING": True,
-            "RETROSTORE_API_STORAGE": MirrorCompatibilityStorage(
+            "RETROSTORE_API_STORAGE": MirrorApiDataStore(
                 mirror,
                 screenshot_url=lambda screenshot: screenshot.legacy_serving_url or "",
                 state_storage=state_storage,

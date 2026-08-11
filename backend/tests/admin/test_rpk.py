@@ -71,7 +71,7 @@ def test_valid_rpk_preserves_historical_id_and_normalizes_assets() -> None:
 @pytest.mark.parametrize(
     ("override", "message"),
     (
-        ({"id": "not-an-id"}, "canonical UUID"),
+        ({"id": "not-an-id"}, "normalized UUID"),
         ({"platform": "Commodore 64"}, "must be TRS-80"),
         ({"categories": "UNKNOWN"}, "supported category"),
         ({"year_published": "1982.0"}, "integer from 0 to 9999"),

@@ -1,5 +1,10 @@
 """Server-side administration boundaries."""
 
+from retrostore.admin.apps import (
+    AppInput,
+    AppRecord,
+    FirestoreAppRepository,
+)
 from retrostore.admin.auth import (
     AdminIdentity,
     AuthenticationError,
@@ -7,12 +12,6 @@ from retrostore.admin.auth import (
     FirebaseAdminAuthenticator,
     RoleAssignment,
     SessionCookie,
-)
-from retrostore.admin.catalog import AdminCatalogDetail, MirrorAdminCatalog
-from retrostore.admin.staging import (
-    FirestoreAdminStagingCatalog,
-    StagedApp,
-    StagedAppDraft,
 )
 from retrostore.admin.users import (
     AdminUser,
@@ -23,7 +22,6 @@ from retrostore.admin.users import (
 )
 
 __all__ = [
-    "AdminCatalogDetail",
     "AdminIdentity",
     "AdminUser",
     "AdminUserRoleManager",
@@ -32,11 +30,10 @@ __all__ = [
     "FirebaseAdminAuthenticator",
     "FirebaseAdminUserDirectory",
     "FirestoreAdminRoleStore",
-    "FirestoreAdminStagingCatalog",
-    "MirrorAdminCatalog",
+    "FirestoreAppRepository",
     "RoleAssignment",
     "SessionCookie",
-    "StagedApp",
-    "StagedAppDraft",
+    "AppRecord",
+    "AppInput",
     "UserRoleChangeError",
 ]

@@ -2,7 +2,7 @@ import pytest
 
 from retrostore.admin.assets import (
     MEDIA_MAX_BYTES,
-    StagingAssetValidationError,
+    AssetValidationError,
     validate_media_slot,
     validate_media_upload,
     validate_screenshot_upload,
@@ -20,23 +20,21 @@ def test_media_upload_normalizes_untrusted_filename_and_hashes_content() -> None
     assert upload.description == "Boot disk"
     assert upload.content_type == "application/octet-stream"
     assert upload.size == 10
-    assert upload.sha256 == (
-        "0bb2f0f3ed953c47d835a7adaefd95afa328e30a5c80fdce417dd12b014ad602"
-    )
+    assert upload.sha256 == ("0bb2f0f3ed953c47d835a7adaefd95afa328e30a5c80fdce417dd12b014ad602")
 
 
 def test_upload_bounds_and_media_slots_are_enforced() -> None:
-    with pytest.raises(StagingAssetValidationError, match="empty"):
+    with pytest.raises(AssetValidationError, match="empty"):
         validate_media_upload(filename="disk.dmk", body=b"", description="")
-    with pytest.raises(StagingAssetValidationError, match="16 MiB"):
+    with pytest.raises(AssetValidationError, match="16 MiB"):
         validate_media_upload(
             filename="disk.dmk",
             body=b"x" * (MEDIA_MAX_BYTES + 1),
             description="",
         )
-    with pytest.raises(StagingAssetValidationError, match="filename"):
+    with pytest.raises(AssetValidationError, match="filename"):
         validate_media_upload(filename="../", body=b"x", description="")
-    with pytest.raises(StagingAssetValidationError, match="supported media slot"):
+    with pytest.raises(AssetValidationError, match="supported media slot"):
         validate_media_slot("disk-5")
     assert validate_media_slot("disk-4") == ("DISK", 3)
     assert validate_media_slot("command") == ("COMMAND", None)
@@ -59,9 +57,9 @@ def test_screenshot_type_is_detected_from_bytes(body, content_type, extension) -
 
 
 def test_screenshot_rejects_extension_only_and_unsafe_formats() -> None:
-    with pytest.raises(StagingAssetValidationError, match="valid PNG"):
+    with pytest.raises(AssetValidationError, match="valid PNG"):
         validate_screenshot_upload(filename="fake.png", body=b"not an image")
-    with pytest.raises(StagingAssetValidationError, match="valid PNG"):
+    with pytest.raises(AssetValidationError, match="valid PNG"):
         validate_screenshot_upload(
             filename="active.svg", body=b"<svg><script>alert(1)</script></svg>"
         )

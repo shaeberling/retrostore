@@ -99,9 +99,7 @@ def evaluate_approvals(
 
     evaluated = copy.deepcopy(report)
     evaluation_date = today or datetime.now(UTC).date()
-    approvals_by_key = {
-        (approval.scenario, approval.field): approval for approval in approvals
-    }
+    approvals_by_key = {(approval.scenario, approval.field): approval for approval in approvals}
     exact_matches: set[tuple[str, str]] = set()
     approved_count = 0
     difference_count = 0

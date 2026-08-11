@@ -160,7 +160,9 @@ def _render_path(path: Mapping[str, Any]) -> str:
 
 
 def _backend_service(name: str) -> str:
-    return f"https://www.googleapis.com/compute/v1/projects/{_PROJECT}/global/backendServices/{name}"
+    return (
+        f"https://www.googleapis.com/compute/v1/projects/{_PROJECT}/global/backendServices/{name}"
+    )
 
 
 def _backend_bucket(name: str) -> str:

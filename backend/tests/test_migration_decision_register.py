@@ -28,8 +28,7 @@ def _load(path: Path) -> dict[str, object]:
 
 def _values() -> tuple[dict[str, object], ...]:
     return tuple(
-        _load(path)
-        for path in (REGISTER_PATH, ROUTES_PATH, THRESHOLDS_PATH, RETENTION_PATH)
+        _load(path) for path in (REGISTER_PATH, ROUTES_PATH, THRESHOLDS_PATH, RETENTION_PATH)
     )
 
 

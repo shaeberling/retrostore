@@ -153,17 +153,20 @@ def main(argv: Sequence[str] | None = None) -> int:
         ),
         (),
     )
-    with httpx.Client(
-        base_url=_HTTPS_ORIGIN,
-        follow_redirects=False,
-        timeout=args.timeout_seconds,
-        trust_env=False,
-    ) as https, httpx.Client(
-        base_url=_HTTP_ORIGIN,
-        follow_redirects=False,
-        timeout=args.timeout_seconds,
-        trust_env=False,
-    ) as http:
+    with (
+        httpx.Client(
+            base_url=_HTTPS_ORIGIN,
+            follow_redirects=False,
+            timeout=args.timeout_seconds,
+            trust_env=False,
+        ) as https,
+        httpx.Client(
+            base_url=_HTTP_ORIGIN,
+            follow_redirects=False,
+            timeout=args.timeout_seconds,
+            trust_env=False,
+        ) as http,
+    ):
         scenarios = discover_download_scenarios_from_reference(https)
         downloads = compare_download_clients(
             https,
@@ -213,9 +216,7 @@ def _response_fingerprint(response: httpx.Response) -> dict[str, Any]:
     return {
         "status": response.status_code,
         "content_type": response.headers.get("content-type"),
-        "access_control_allow_origin": response.headers.get(
-            "access-control-allow-origin"
-        ),
+        "access_control_allow_origin": response.headers.get("access-control-allow-origin"),
         "body_bytes": len(response.content),
         "body_sha256": hashlib.sha256(response.content).hexdigest(),
     }

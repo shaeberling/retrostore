@@ -11,9 +11,7 @@ from retrostore.contract.scenarios import ContractScenario, ScenarioCategory
 from retrostore.contracts import PUBLIC_API_METHODS
 from retrostore.generated import ApiProtos_pb2 as api_pb
 
-_CANDIDATE = (
-    "https://retrostore-api-compat-candidate-760396810462.us-central1.run.app"
-)
+_CANDIDATE = "https://retrostore-api-compat-candidate-760396810462.us-central1.run.app"
 _SERVICE_ACCOUNT = "retrostore-api@trs-80.iam.gserviceaccount.com"
 
 

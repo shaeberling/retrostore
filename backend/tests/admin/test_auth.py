@@ -56,12 +56,8 @@ def test_firebase_exchange_requires_recent_verified_authorized_identity(monkeypa
         (_claims(role=None), "administration role"),
     ),
 )
-def test_firebase_exchange_rejects_stale_or_unauthorized_claims(
-    monkeypatch, claims, error
-) -> None:
-    monkeypatch.setattr(
-        authentication.auth, "verify_id_token", lambda *args, **kwargs: claims
-    )
+def test_firebase_exchange_rejects_stale_or_unauthorized_claims(monkeypatch, claims, error) -> None:
+    monkeypatch.setattr(authentication.auth, "verify_id_token", lambda *args, **kwargs: claims)
     monkeypatch.setattr(authentication.auth, "create_session_cookie", pytest.fail)
     authenticator = authentication.FirebaseAdminAuthenticator("trs-80", app=object())
 
@@ -96,9 +92,7 @@ def test_stored_role_overrides_firebase_claim_on_every_session_check(monkeypatch
         "verify_session_cookie",
         lambda *args, **kwargs: _claims(role="administrator"),
     )
-    resolver = FakeRoleResolver(
-        authentication.RoleAssignment(configured=True, role="publisher")
-    )
+    resolver = FakeRoleResolver(authentication.RoleAssignment(configured=True, role="publisher"))
     authenticator = authentication.FirebaseAdminAuthenticator(
         "trs-80", app=object(), role_resolver=resolver
     )
@@ -143,7 +137,5 @@ def test_authentication_clock_must_be_timezone_aware(monkeypatch) -> None:
         ({}, None),
     ),
 )
-def test_admin_role_from_claims_normalizes_current_and_legacy_claims(
-    claims, expected
-) -> None:
+def test_admin_role_from_claims_normalizes_current_and_legacy_claims(claims, expected) -> None:
     assert authentication.admin_role_from_claims(claims) == expected

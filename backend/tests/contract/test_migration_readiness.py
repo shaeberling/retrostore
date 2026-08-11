@@ -160,9 +160,9 @@ def test_readiness_distinguishes_passing_evidence_from_pending_authority() -> No
     assert report["decisions"]["pending_count"] == 4
     assert report["gates"]["public_resource_creation"]["passes"] is True
     assert report["gates"]["production_cutover"]["passes"] is False
-    assert "private_zero_diff_evidence_not_ready" in report["gates"]["production_cutover"][
-        "blockers"
-    ]
+    assert (
+        "private_zero_diff_evidence_not_ready" in report["gates"]["production_cutover"]["blockers"]
+    )
     assert report["gates"]["app_engine_retirement"]["passes"] is False
     assert report["safety"]["mutation_or_cutover_capability_present"] is False
 
@@ -171,12 +171,8 @@ def test_readiness_reports_failed_real_client_evidence() -> None:
     report = _evaluate(consumers=_consumers(passes=False))
 
     assert report["evidence"]["passes"] is False
-    assert "pinned_consumers_pass" in report["gates"]["private_engineering_evidence"][
-        "blockers"
-    ]
-    assert "evidence:pinned_consumers_pass" in report["gates"]["production_cutover"][
-        "blockers"
-    ]
+    assert "pinned_consumers_pass" in report["gates"]["private_engineering_evidence"]["blockers"]
+    assert "evidence:pinned_consumers_pass" in report["gates"]["production_cutover"]["blockers"]
 
 
 def test_readiness_rejects_evidence_for_a_different_revision() -> None:
@@ -190,9 +186,10 @@ def test_readiness_rejects_evidence_for_a_different_revision() -> None:
 def test_three_report_streak_removes_only_the_evidence_blocker() -> None:
     report = _evaluate(soak=_soak(eligible=True))
 
-    assert "private_zero_diff_evidence_not_ready" not in report["gates"]["production_cutover"][
-        "blockers"
-    ]
+    assert (
+        "private_zero_diff_evidence_not_ready"
+        not in report["gates"]["production_cutover"]["blockers"]
+    )
     assert report["gates"]["production_cutover"]["passes"] is False
     assert "alert_destination" in report["gates"]["production_cutover"]["blockers"]
 

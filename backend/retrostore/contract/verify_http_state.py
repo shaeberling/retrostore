@@ -25,9 +25,7 @@ def verify_http_state_lifecycle(
 
     state = _synthetic_state()
     upload_request = api_pb.UploadSystemStateParams(state=state)
-    upload_http = client.post(
-        "/api/uploadState", content=upload_request.SerializeToString()
-    )
+    upload_http = client.post("/api/uploadState", content=upload_request.SerializeToString())
     upload_http.raise_for_status()
     upload = api_pb.ApiResponseUploadSystemState.FromString(upload_http.content)
     if not upload.success:
@@ -36,9 +34,7 @@ def verify_http_state_lifecycle(
         raise ValueError("Synthetic state upload returned a token outside 100-999")
 
     download_request = api_pb.DownloadSystemStateParams(token=upload.token)
-    download_http = client.post(
-        "/api/downloadState", content=download_request.SerializeToString()
-    )
+    download_http = client.post("/api/downloadState", content=download_request.SerializeToString())
     download_http.raise_for_status()
     download = api_pb.ApiResponseDownloadSystemState.FromString(download_http.content)
     if not download.success:
@@ -50,16 +46,13 @@ def verify_http_state_lifecycle(
         token=upload.token,
         exclude_memory_region_data=True,
     )
-    excluded_http = client.post(
-        "/api/downloadState", content=excluded_request.SerializeToString()
-    )
+    excluded_http = client.post("/api/downloadState", content=excluded_request.SerializeToString())
     excluded_http.raise_for_status()
     excluded = api_pb.ApiResponseDownloadSystemState.FromString(excluded_http.content)
     expected_lengths = [len(region.data) for region in state.memoryRegions]
     if (
         not excluded.success
-        or [region.length for region in excluded.systemState.memoryRegions]
-        != expected_lengths
+        or [region.length for region in excluded.systemState.memoryRegions] != expected_lengths
         or any(region.data for region in excluded.systemState.memoryRegions)
     ):
         raise ValueError("Memory-excluded state download did not preserve only lengths")
@@ -121,9 +114,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.candidate_audience is not None
             or args.candidate_gcloud_identity_token_service_account is not None
         ):
-            raise ValueError(
-                "The public front-door probe cannot use private authentication"
-            )
+            raise ValueError("The public front-door probe cannot use private authentication")
         if args.candidate_gcloud_identity_token_service_account:
             headers = {
                 "Authorization": "Bearer "

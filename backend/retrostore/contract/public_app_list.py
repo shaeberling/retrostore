@@ -20,7 +20,7 @@ from retrostore.contract.legacy_downloads import (
     _CANDIDATE_IDENTITY,
     _candidate_origin,
 )
-from services.api_compat.app import create_archive_app
+from retrostore.testing.flask_api import create_archive_app
 
 _MAX_RESPONSE_BYTES = 4 * 1024 * 1024
 _MAX_APPS = 1_000

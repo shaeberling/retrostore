@@ -3,13 +3,13 @@ from datetime import UTC, datetime
 import httpx
 
 from retrostore.contract.public_redirects import compare_public_redirect_clients
-from services.api_compat.app import LEGACY_PUBLIC_REDIRECTS, create_app
+from services.api.app import PUBLIC_REDIRECTS, create_app
 
 
 def _reference_client(*, wrong_destination: bool = False) -> httpx.Client:
     def handle(request: httpx.Request) -> httpx.Response:
         path = request.url.path.rstrip("/")
-        destination = LEGACY_PUBLIC_REDIRECTS.get(path)
+        destination = PUBLIC_REDIRECTS.get(path)
         if destination is None:
             return httpx.Response(404)
         if wrong_destination and path == "/rsc":

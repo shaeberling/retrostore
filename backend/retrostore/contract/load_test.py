@@ -24,9 +24,7 @@ from retrostore.contract.observations import (
 )
 from retrostore.contract.scenarios import ContractScenario
 
-_PRIVATE_CANDIDATE_URL = (
-    "https://retrostore-api-compat-candidate-760396810462.us-central1.run.app"
-)
+_PRIVATE_CANDIDATE_URL = "https://retrostore-api-compat-candidate-760396810462.us-central1.run.app"
 
 
 @dataclass(frozen=True, slots=True)
@@ -112,8 +110,7 @@ def _run_applied(args: argparse.Namespace) -> dict[str, Any]:
     error_count = sum(sample.error_type is not None for sample in samples)
     mismatch_count = sum(bool(sample.mismatch_fields) for sample in samples)
     server_error_count = sum(
-        sample.status_code is not None and sample.status_code >= 500
-        for sample in samples
+        sample.status_code is not None and sample.status_code >= 500 for sample in samples
     )
     request_count = len(samples)
     server_error_ratio = server_error_count / request_count if request_count else 1.0
@@ -170,19 +167,13 @@ def _run_applied(args: argparse.Namespace) -> dict[str, Any]:
             "error_types": dict(
                 sorted(
                     Counter(
-                        sample.error_type
-                        for sample in samples
-                        if sample.error_type is not None
+                        sample.error_type for sample in samples if sample.error_type is not None
                     ).items()
                 )
             ),
             "mismatch_field_counts": dict(
                 sorted(
-                    Counter(
-                        field
-                        for sample in samples
-                        for field in sample.mismatch_fields
-                    ).items()
+                    Counter(field for sample in samples for field in sample.mismatch_fields).items()
                 )
             ),
         },
@@ -217,12 +208,8 @@ def _capture_reference(
         latencies: dict[str, list[float]] = defaultdict(list)
         for scenario in corpus.scenarios:
             started = time.perf_counter()
-            response = client.post(
-                f"/api/{scenario.method.name}", content=scenario.body
-            )
-            latencies[scenario.method.name].append(
-                (time.perf_counter() - started) * 1000
-            )
+            response = client.post(f"/api/{scenario.method.name}", content=scenario.body)
+            latencies[scenario.method.name].append((time.perf_counter() - started) * 1000)
             observations[scenario.name] = observe_response(scenario, response)
     return observations, dict(latencies), corpus.scenarios, corpus.scope()
 
@@ -264,9 +251,7 @@ async def execute_candidate_load(
                 ordinal = issued
                 issued += 1
                 scenario = scenarios[ordinal % len(scenarios)]
-                samples.append(
-                    await _request_sample(client, scenario, expected[scenario.name])
-                )
+                samples.append(await _request_sample(client, scenario, expected[scenario.name]))
 
         await asyncio.gather(*(worker() for _ in range(concurrency)))
         elapsed = time.perf_counter() - started
@@ -280,9 +265,7 @@ async def _request_sample(
 ) -> RequestSample:
     started = time.perf_counter()
     try:
-        response = await client.post(
-            f"/api/{scenario.method.name}", content=scenario.body
-        )
+        response = await client.post(f"/api/{scenario.method.name}", content=scenario.body)
         latency = (time.perf_counter() - started) * 1000
         actual = observe_response(scenario, response)
         differences = compare_observations(expected, actual)
@@ -326,9 +309,7 @@ def _performance_report(
         p95_limit = max(baseline_p95 * 2.0, baseline_p95 + 250.0)
         p99_limit = max(baseline_p99 * 2.0, baseline_p99 + 500.0)
         passes = (
-            bool(candidate_values)
-            and candidate_p95 <= p95_limit
-            and candidate_p99 <= p99_limit
+            bool(candidate_values) and candidate_p95 <= p95_limit and candidate_p99 <= p99_limit
         )
         all_pass = all_pass and passes
         methods[method] = {

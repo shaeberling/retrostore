@@ -1,4 +1,4 @@
-"""Validated immutable object storage for isolated staged catalog assets."""
+"""Validated immutable object storage for application assets."""
 
 import hashlib
 import unicodedata
@@ -11,7 +11,7 @@ from google.cloud import storage
 
 MEDIA_MAX_BYTES = 16 * 1024 * 1024
 SCREENSHOT_MAX_BYTES = 5 * 1024 * 1024
-STAGED_MEDIA_SLOTS: Mapping[str, tuple[str, int | None]] = {
+MEDIA_SLOTS: Mapping[str, tuple[str, int | None]] = {
     "disk-1": ("DISK", 0),
     "disk-2": ("DISK", 1),
     "disk-3": ("DISK", 2),
@@ -36,15 +36,13 @@ _SCREENSHOT_FORMATS = (
     (
         "image/webp",
         "webp",
-        lambda body: len(body) >= 12
-        and body.startswith(b"RIFF")
-        and body[8:12] == b"WEBP",
+        lambda body: len(body) >= 12 and body.startswith(b"RIFF") and body[8:12] == b"WEBP",
     ),
 )
 
 
-class StagingAssetValidationError(ValueError):
-    """A staged upload is unsafe or outside the accepted bounds."""
+class AssetValidationError(ValueError):
+    """An upload is unsafe or outside the accepted bounds."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -58,27 +56,23 @@ class ValidatedAssetUpload:
     description: str
 
 
-class StagingObjectStore(Protocol):
-    def put_verified(
-        self, *, path: str, body: bytes, sha256: str, content_type: str
-    ) -> bool: ...
+class AssetStore(Protocol):
+    def put_verified(self, *, path: str, body: bytes, sha256: str, content_type: str) -> bool: ...
 
     def read(self, path: str) -> bytes: ...
 
     def delete(self, path: str) -> None: ...
 
 
-class CloudStagingObjectStore:
-    """Create immutable staged objects in one private Cloud Storage bucket."""
+class CloudAssetStore:
+    """Create immutable objects in one private Cloud Storage bucket."""
 
     def __init__(self, bucket: storage.Bucket) -> None:
         self._bucket = bucket
 
-    def put_verified(
-        self, *, path: str, body: bytes, sha256: str, content_type: str
-    ) -> bool:
+    def put_verified(self, *, path: str, body: bytes, sha256: str, content_type: str) -> bool:
         if hashlib.sha256(body).hexdigest() != sha256:
-            raise ValueError("Staged object body does not match its SHA-256")
+            raise ValueError("Object body does not match its SHA-256")
         blob = self._bucket.blob(path)
         blob.metadata = {"sha256": sha256}
         try:
@@ -92,14 +86,14 @@ class CloudStagingObjectStore:
         except PreconditionFailed:
             existing = self.read(path)
             if len(existing) != len(body) or hashlib.sha256(existing).hexdigest() != sha256:
-                raise ValueError(f"Immutable staged object collision: {path}") from None
+                raise ValueError(f"Immutable object collision: {path}") from None
             return False
 
     def read(self, path: str) -> bytes:
         try:
             return bytes(self._bucket.blob(path).download_as_bytes(checksum="auto"))
         except NotFound as error:
-            raise ValueError(f"Staged object is missing: {path}") from error
+            raise ValueError(f"Object is missing: {path}") from error
 
     def delete(self, path: str) -> None:
         try:
@@ -108,9 +102,7 @@ class CloudStagingObjectStore:
             return
 
 
-def validate_media_upload(
-    *, filename: str, body: bytes, description: str
-) -> ValidatedAssetUpload:
+def validate_media_upload(*, filename: str, body: bytes, description: str) -> ValidatedAssetUpload:
     return _validated_upload(
         filename=filename,
         body=body,
@@ -122,9 +114,7 @@ def validate_media_upload(
     )
 
 
-def validate_screenshot_upload(
-    *, filename: str, body: bytes
-) -> ValidatedAssetUpload:
+def validate_screenshot_upload(*, filename: str, body: bytes) -> ValidatedAssetUpload:
     content_type = ""
     extension = ""
     for candidate_type, candidate_extension, detector in _SCREENSHOT_FORMATS:
@@ -133,9 +123,7 @@ def validate_screenshot_upload(
             extension = candidate_extension
             break
     if not content_type:
-        raise StagingAssetValidationError(
-            "Screenshot must be a valid PNG, JPEG, GIF, or WebP image."
-        )
+        raise AssetValidationError("Screenshot must be a valid PNG, JPEG, GIF, or WebP image.")
     return _validated_upload(
         filename=filename,
         body=body,
@@ -149,9 +137,9 @@ def validate_screenshot_upload(
 
 def validate_media_slot(value: str) -> tuple[str, int | None]:
     try:
-        return STAGED_MEDIA_SLOTS[value]
+        return MEDIA_SLOTS[value]
     except KeyError as error:
-        raise StagingAssetValidationError("Select a supported media slot.") from error
+        raise AssetValidationError("Select a supported media slot.") from error
 
 
 def _validated_upload(
@@ -167,15 +155,11 @@ def _validated_upload(
     safe_filename = _safe_filename(filename)
     normalized_description = unicodedata.normalize("NFKC", description).strip()
     if len(normalized_description) > 2_000:
-        raise StagingAssetValidationError(
-            "Media description must not exceed 2000 characters."
-        )
+        raise AssetValidationError("Media description must not exceed 2000 characters.")
     if not body:
-        raise StagingAssetValidationError(f"{label} file is empty.")
+        raise AssetValidationError(f"{label} file is empty.")
     if len(body) > maximum:
-        raise StagingAssetValidationError(
-            f"{label} must not exceed {maximum // (1024 * 1024)} MiB."
-        )
+        raise AssetValidationError(f"{label} must not exceed {maximum // (1024 * 1024)} MiB.")
     digest = hashlib.sha256(body).hexdigest()
     return ValidatedAssetUpload(
         filename=safe_filename,
@@ -197,5 +181,5 @@ def _safe_filename(value: str) -> str:
         or len(filename) > 255
         or any(ord(character) < 32 or ord(character) == 127 for character in filename)
     ):
-        raise StagingAssetValidationError("Upload filename is missing or invalid.")
+        raise AssetValidationError("Upload filename is missing or invalid.")
     return filename

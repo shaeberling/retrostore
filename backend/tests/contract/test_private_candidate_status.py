@@ -7,9 +7,7 @@ import pytest
 
 from retrostore.contract.private_candidate_status import audit_private_candidates
 
-BASELINE_PATH = (
-    Path(__file__).parents[3] / "infra/cloud-run/private-candidate-baseline.json"
-)
+BASELINE_PATH = Path(__file__).parents[3] / "infra/cloud-run/private-candidate-baseline.json"
 
 
 def _baseline() -> dict[str, object]:
@@ -107,9 +105,7 @@ def test_private_candidate_drift_audit_reports_image_and_traffic_drift() -> None
         anonymous_status=lambda _url: 403,
     )
 
-    result = next(
-        item for item in report["services"] if item["name"] == "retrostore-api-preview"
-    )
+    result = next(item for item in report["services"] if item["name"] == "retrostore-api-preview")
     assert result["checks"]["configuration_matches"] is False
     assert result["checks"]["traffic_is_exact_revision_at_100_percent"] is False
     assert report["summary"]["passes"] is False
@@ -136,9 +132,7 @@ def test_private_candidate_drift_audit_detects_public_invoker() -> None:
     )
 
     result = next(
-        item
-        for item in report["services"]
-        if item["name"] == "retrostore-admin-candidate"
+        item for item in report["services"] if item["name"] == "retrostore-admin-candidate"
     )
     assert result["checks"]["no_public_invoker"] is False
     assert result["public_invoker_count"] == 1

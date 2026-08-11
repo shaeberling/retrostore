@@ -14,7 +14,7 @@ from google.cloud.datastore.key import Key
 
 from retrostore.inventory.datastore_source import create_datastore_source
 from retrostore.inventory.report import SourceEntity
-from retrostore.mirror import CatalogMirror, load_catalog_mirror_archive
+from retrostore.migration.catalog_mirror import CatalogMirror, load_catalog_mirror_archive
 
 
 def build_orphaned_blob_report(
@@ -55,9 +55,7 @@ def build_orphaned_blob_report(
 
     referenced_keys = set(references)
     orphan_keys = sorted(set(blob_by_key) - referenced_keys)
-    identities = {
-        key: _content_identity(blob_by_key[key].properties) for key in blob_by_key
-    }
+    identities = {key: _content_identity(blob_by_key[key].properties) for key in blob_by_key}
     referenced_identity_counts = Counter(
         identities[key] for key in referenced_keys if identities[key] is not None
     )
@@ -91,9 +89,7 @@ def build_orphaned_blob_report(
                     matches.append(
                         {
                             "blob_key": referenced_key,
-                            "blob_key_sha256": hashlib.sha256(
-                                referenced_key.encode()
-                            ).hexdigest(),
+                            "blob_key_sha256": hashlib.sha256(referenced_key.encode()).hexdigest(),
                             **origin,
                         }
                     )
@@ -183,9 +179,7 @@ def write_protected_report(report: Mapping[str, Any], output: Path) -> None:
         raise
 
 
-def verify_archive_preservation(
-    report: Mapping[str, Any], archive: Path
-) -> dict[str, Any]:
+def verify_archive_preservation(report: Mapping[str, Any], archive: Path) -> dict[str, Any]:
     """Prove that each orphan's verified duplicate bytes are in the catalog archive."""
 
     mirror = load_catalog_mirror_archive(archive)
@@ -355,9 +349,7 @@ def _timestamp(value: Any) -> str | None:
     return normalized.astimezone(UTC).isoformat()
 
 
-def _verify_mirror_preservation(
-    report: Mapping[str, Any], mirror: CatalogMirror
-) -> dict[str, Any]:
+def _verify_mirror_preservation(report: Mapping[str, Any], mirror: CatalogMirror) -> dict[str, Any]:
     classification = report.get("classification")
     objects = report.get("objects")
     if not isinstance(classification, Mapping) or not isinstance(objects, list):

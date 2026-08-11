@@ -3,7 +3,7 @@
 This directory contains the replacement services being built alongside the
 authoritative App Engine application:
 
-- `services/api_compat`: the frozen public RetroStore API contract.
+- `services/api`: the frozen public RetroStore API contract.
 - `services/admin`: the server-rendered administration application.
 - `retrostore`: shared contract, domain, persistence, and storage code.
 - `tests/contract`: executable compatibility scenarios and comparison tests.
@@ -26,7 +26,7 @@ UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run ruff check .
 Run the fail-closed service skeletons locally from this directory:
 
 ```shell
-UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run flask --app services.api_compat.app run --port 8080
+UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run flask --app services.api.app run --port 8080
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run flask --app services.admin.app run --port 8081
 ```
 
@@ -68,7 +68,7 @@ role change requires CSRF validation and atomically writes both the user profile
 and audit event. Administrators cannot change their own role.
 
 The application area uses the top-level `apps`, `authors`, `media`, and
-`screenshots` collections as the single canonical catalog. `STAGING` records
+`screenshots` collections as the catalog. `STAGING` records
 remain admin-only until one validated Firestore transaction changes their
 status to `PUBLISHED`; the public API reads only published records.
 Administrators edit published records directly, while publishers can edit only
@@ -107,7 +107,7 @@ checkpoint lets the same command prove cleanup after the app document is gone:
 
 ```shell
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
-  -m retrostore.admin.reconcile_staging \
+  -m retrostore.migration.admin.reconcile_staging \
   --project trs-80 \
   --database retrostore \
   --bucket trs-80-retrostore-assets \
@@ -125,19 +125,19 @@ expected audit-event list after deletion. The command is strictly read-only in
 Google Cloud; only its explicitly named local checkpoint is written.
 
 The default API factory reports not-ready until a storage adapter is configured.
-Run the explicit representative candidate when exercising the reviewed local
-compatibility corpus:
+Run the explicit test factory when exercising the reviewed local compatibility
+corpus:
 
 ```shell
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run flask \
-  --app 'services.api_compat.app:create_representative_app()' run --port 8080
+  --app 'retrostore.testing.flask_api:create_representative_app()' run --port 8080
 
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run pytest \
-  tests/api_compat/test_representative_contract.py
+  tests/api/test_representative_contract.py
 ```
 
-All nine handlers depend on `CompatibilityStorage`, not directly on Flask or a
-cloud SDK. `InMemoryCompatibilityStorage` supports deterministic local tests;
+All nine handlers depend on `ApiDataStore`, not directly on Flask or a
+cloud SDK. `InMemoryApiDataStore` supports deterministic local tests;
 the later Firestore/Cloud Storage adapter can replace it without changing
 request parsing or response construction. The representative fixture is
 explicitly local-only and verifies its captured media payload by size and
@@ -562,7 +562,7 @@ The following snapshot, synchronization, and activation commands document the
 completed one-time import path and remain available only as rollback and audit
 tools. The Cloud Run API and admin service do not load `catalogSnapshots`, read
 `catalogControl/active`, build whole-catalog mirrors, or use copy-on-write
-published-app drafts. Normal operation uses the canonical top-level `apps`,
+published-app drafts. Normal operation uses the top-level `apps`,
 `authors`, `media`, and `screenshots` collections described above.
 
 ### Normalized catalog mirror
@@ -571,7 +571,7 @@ The first Phase 2 persistence boundary is implemented without creating cloud
 resources. `CatalogMirror` loads versioned, language-neutral app, media, and
 screenshot metadata through an immutable object reader, verifies every object
 size and SHA-256, and rejects unsafe paths or broken/cross-app references.
-`MirrorCompatibilityStorage` projects that normalized shape back into the
+`MirrorApiDataStore` projects that normalized shape back into the
 frozen protobuf API, including the exact four-disk/cassette/command/BASIC slot
 order and empty placeholders.
 
@@ -586,7 +586,7 @@ production export and print only aggregate evidence with:
 
 ```shell
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
-  -m retrostore.mirror.verify_archive \
+  -m retrostore.migration.catalog_mirror.verify_archive \
   /path/to/retrostore-catalog-export.zip
 ```
 
@@ -595,7 +595,7 @@ catalog and media contents with App Engine:
 
 ```shell
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run flask \
-  --app 'services.api_compat.app:create_archive_app("/path/to/retrostore-catalog-export.zip")' \
+  --app 'services.api.app:create_archive_app("/path/to/retrostore-catalog-export.zip")' \
   run --port 8080
 
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
@@ -605,7 +605,8 @@ UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
   --output /tmp/retrostore-archive-comparison.json
 ```
 
-The format and its current scope are in `retrostore/mirror/FORMAT.md`. The
+The format and its current scope are in
+`retrostore/migration/catalog_mirror/FORMAT.md`. The
 temporary App Engine export route is available only on specially named
 `migration-export-*` default-service versions and additionally enforces the
 RetroStore admin role and explicit confirmation. The export implementation does
@@ -620,7 +621,7 @@ constructs cloud clients. It defaults to a zero-write dry run:
 
 ```shell
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
-  -m retrostore.mirror.import_catalog \
+  -m retrostore.migration.catalog_mirror.import_catalog \
   /path/to/retrostore-catalog-export.zip \
   --project trs-80 \
   --database retrostore \
@@ -634,7 +635,7 @@ An apply additionally requires both `--apply` and an exact
 
 ```shell
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
-  -m retrostore.mirror.import_catalog \
+  -m retrostore.migration.catalog_mirror.import_catalog \
   /path/to/retrostore-catalog-export.zip \
   --project trs-80 \
   --database retrostore \
@@ -664,7 +665,7 @@ stage-only refresh boundary:
 
 ```shell
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
-  -m retrostore.mirror.stage_catalog_refresh \
+  -m retrostore.migration.catalog_mirror.stage_catalog_refresh \
   /path/to/new-retrostore-catalog-export.zip \
   --baseline-archive /path/to/previous-retrostore-catalog-export.zip \
   --project trs-80 \
@@ -681,7 +682,7 @@ project and migrator confirmations:
 
 ```shell
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
-  -m retrostore.mirror.stage_catalog_refresh \
+  -m retrostore.migration.catalog_mirror.stage_catalog_refresh \
   /path/to/new-retrostore-catalog-export.zip \
   --project trs-80 \
   --database retrostore \
@@ -710,7 +711,7 @@ reporting success:
 
 ```shell
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
-  -m retrostore.mirror.export_catalog_snapshot \
+  -m retrostore.migration.catalog_mirror.export_catalog_snapshot \
   --project trs-80 \
   --database retrostore \
   --bucket trs-80-retrostore-assets \
@@ -727,7 +728,7 @@ deterministic reverse-sync plan:
 
 ```shell
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
-  -m retrostore.mirror.plan_legacy_reverse_sync \
+  -m retrostore.migration.catalog_mirror.plan_legacy_reverse_sync \
   --baseline-archive /secure/path/legacy-baseline.zip \
   --candidate-archive /secure/path/candidate.zip \
   --output /tmp/retrostore-legacy-reverse-plan.json
@@ -766,7 +767,7 @@ The command is a zero-write dry run by default:
 
 ```shell
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
-  -m retrostore.admin.materialize_working_catalog \
+  -m retrostore.migration.admin.materialize_working_catalog \
   /path/to/retrostore-catalog-export.zip \
   --project trs-80 \
   --database retrostore \
@@ -778,7 +779,7 @@ Apply requires the exact project confirmation and dedicated keyless migrator:
 
 ```shell
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
-  -m retrostore.admin.materialize_working_catalog \
+  -m retrostore.migration.admin.materialize_working_catalog \
   /path/to/retrostore-catalog-export.zip \
   --project trs-80 \
   --database retrostore \
@@ -816,7 +817,7 @@ identity so no ambient credential can select a different database:
 
 ```shell
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
-  -m retrostore.admin.stage_working_catalog \
+  -m retrostore.migration.admin.stage_working_catalog \
   --project trs-80 \
   --database retrostore \
   --bucket trs-80-retrostore-assets \
@@ -855,7 +856,7 @@ snapshot IDs plus both exact manifest digests:
 
 ```shell
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
-  -m retrostore.admin.activate_catalog_snapshot \
+  -m retrostore.migration.admin.activate_catalog_snapshot \
   --project trs-80 \
   --database retrostore \
   --bucket trs-80-retrostore-assets \
@@ -889,7 +890,7 @@ identity are confirmed:
 
 ```shell
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
-  -m retrostore.api_compat.verify_cloud_state \
+  -m retrostore.migration.state.verify_cloud_state \
   --project trs-80 \
   --database retrostore-state \
   --bucket trs-80-retrostore-state \
@@ -914,7 +915,7 @@ identity into a create-only mode-`0600` archive:
 
 ```shell
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
-  -m retrostore.api_compat.export_state_snapshot \
+  -m retrostore.migration.state.export_state_snapshot \
   --project trs-80 \
   --database retrostore-state \
   --bucket trs-80-retrostore-state \
@@ -933,7 +934,7 @@ Build a token-free rollback plan with:
 
 ```shell
 UV_CACHE_DIR=/tmp/retrostore-uv-cache uv run python \
-  -m retrostore.api_compat.plan_legacy_state_reverse_sync \
+  -m retrostore.migration.state.plan_legacy_state_reverse_sync \
   --state-archive /secure/path/live-states.zip \
   --output /tmp/retrostore-state-reverse-plan.json
 ```

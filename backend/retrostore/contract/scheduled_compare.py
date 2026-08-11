@@ -57,9 +57,7 @@ class ScheduledComparisonConfig:
             raise ValueError(f"Scheduled comparison configuration is missing: {', '.join(missing)}")
         config = cls(
             **values,  # type: ignore[arg-type]
-            report_prefix=os.environ.get(
-                "RETROSTORE_COMPARISON_PREFIX", "operations/comparisons/"
-            ),
+            report_prefix=os.environ.get("RETROSTORE_COMPARISON_PREFIX", "operations/comparisons/"),
             timeout_seconds=float(os.environ.get("RETROSTORE_COMPARISON_TIMEOUT", "30")),
         )
         config.validate()
@@ -148,15 +146,9 @@ def run_scheduled_comparison(
             and surface_reports["public_redirects"]["summary"]["passes"]
         ),
         "api_contract_passes": report["approval_gate"]["passes"],
-        "legacy_downloads_passes": surface_reports["legacy_downloads"]["summary"][
-            "passes"
-        ],
-        "public_app_list_passes": surface_reports["public_app_list"]["summary"][
-            "passes"
-        ],
-        "public_redirects_passes": surface_reports["public_redirects"]["summary"][
-            "passes"
-        ],
+        "legacy_downloads_passes": surface_reports["legacy_downloads"]["summary"]["passes"],
+        "public_app_list_passes": surface_reports["public_app_list"]["summary"]["passes"],
+        "public_redirects_passes": surface_reports["public_redirects"]["summary"]["passes"],
     }
     artifact = {
         "schema_version": 3,
@@ -169,10 +161,7 @@ def run_scheduled_comparison(
     body = (json.dumps(artifact, indent=2, sort_keys=True) + "\n").encode()
     digest = hashlib.sha256(body).hexdigest()
     timestamp = generated_at.strftime("%Y%m%dT%H%M%S%fZ")
-    object_name = (
-        f"{config.report_prefix}{generated_at:%Y/%m/%d}/"
-        f"{timestamp}-{digest[:16]}.json"
-    )
+    object_name = f"{config.report_prefix}{generated_at:%Y/%m/%d}/{timestamp}-{digest[:16]}.json"
     artifact_uri = artifact_store.create(object_name, body)
     result = {
         "artifact_uri": artifact_uri,
@@ -198,16 +187,19 @@ def _compare_additional_surfaces(
     candidate_headers: dict[str, str],
     generated_at: datetime,
 ) -> dict[str, Any]:
-    with httpx.Client(
-        base_url=config.reference_url,
-        follow_redirects=False,
-        timeout=config.timeout_seconds,
-    ) as reference, httpx.Client(
-        base_url=config.candidate_url,
-        headers=candidate_headers,
-        follow_redirects=False,
-        timeout=config.timeout_seconds,
-    ) as candidate:
+    with (
+        httpx.Client(
+            base_url=config.reference_url,
+            follow_redirects=False,
+            timeout=config.timeout_seconds,
+        ) as reference,
+        httpx.Client(
+            base_url=config.candidate_url,
+            headers=candidate_headers,
+            follow_redirects=False,
+            timeout=config.timeout_seconds,
+        ) as candidate,
+    ):
         download_scenarios = discover_download_scenarios_from_reference(reference)
         downloads = compare_download_clients(
             reference,

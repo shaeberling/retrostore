@@ -32,8 +32,7 @@ def _client(*, changed_path: str | None = None) -> httpx.Client:
             200,
             headers={"Content-Type": "text/html"},
             content=(
-                b'<meta http-equiv="refresh" content="0; '
-                b'url=/_ah/conflogin?continue=example">'
+                b'<meta http-equiv="refresh" content="0; url=/_ah/conflogin?continue=example">'
             ),
         )
 

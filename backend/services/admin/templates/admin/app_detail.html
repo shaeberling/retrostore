@@ -1,58 +1,182 @@
 {% extends "base.html" %}
 
-{% block title %}{{ detail.app.name }} · RetroStore Admin{% endblock %}
+{% block title %}{{ app.name }} · RetroStore Admin{% endblock %}
 
 {% block content %}
+  {% set editable_assets = app.status == "STAGING" or (app.status == "PUBLISHED" and admin_identity.is_administrator) %}
+  {% if rpk_imported %}
+    <div class="mb-6 rounded-xl border border-emerald-300/25 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100" role="status">The validated RPK metadata and assets were imported as one draft application.</div>
+  {% endif %}
+  {% if app.status == "PUBLISHED" %}
+    <div class="mb-6 rounded-xl border border-amber-300/25 bg-amber-300/10 px-4 py-3 text-sm leading-6 text-amber-100" role="status">
+      This application is published and visible to the public API.
+    </div>
+  {% endif %}
+  {% if request.args.get('published') == '1' %}
+    <div class="mb-6 rounded-xl border border-emerald-300/25 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100" role="status">The application is now published and visible to the public API.</div>
+  {% endif %}
   <a class="text-sm text-stone-400 hover:text-white" href="{{ url_for('admin_apps') }}">← Applications</a>
+  {% if media_updated or media_deleted or screenshot_added or screenshot_deleted %}
+    <div class="mt-5 rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100">
+      The application assets were updated.
+    </div>
+  {% endif %}
+  {% if asset_error %}
+    <div class="mt-5 rounded-xl border border-red-300/25 bg-red-300/10 px-4 py-3 text-sm text-red-100" role="alert">{{ asset_error }}</div>
+  {% endif %}
   <div class="mt-5 flex flex-col gap-4 border-b border-white/10 pb-8 sm:flex-row sm:items-start sm:justify-between">
     <div>
-      <p class="font-mono text-xs uppercase tracking-[0.22em] text-amber-300">Read-only catalog detail</p>
-      <h1 class="mt-2 text-3xl font-semibold tracking-tight">{{ detail.app.name or "Untitled" }}</h1>
-      <p class="mt-2 font-mono text-xs text-stone-600">{{ detail.app.id }}</p>
+      <p class="font-mono text-xs uppercase tracking-[0.22em] text-sky-300">{{ "Published" if app.status == "PUBLISHED" else "Draft" }} · revision {{ app.revision }}</p>
+      <h1 class="mt-2 text-3xl font-semibold tracking-tight">{{ app.name }}</h1>
+      <p class="mt-2 font-mono text-xs text-stone-600">{{ app.id }}</p>
     </div>
-    <span class="w-fit rounded-full border border-emerald-300/25 bg-emerald-300/10 px-3 py-1 text-xs font-medium text-emerald-200">Synchronized</span>
+    {% if app.status == "STAGING" or (app.status == "PUBLISHED" and admin_identity.is_administrator) %}
+      <a class="w-fit rounded-xl bg-sky-300 px-4 py-2.5 text-sm font-semibold text-stone-950 hover:bg-sky-200" href="{{ url_for('admin_app_edit', app_id=app.id) }}">Edit app</a>
+    {% endif %}
   </div>
 
   <div class="mt-8 grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
     <section class="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
       <h2 class="text-lg font-semibold">Description</h2>
-      <p class="mt-4 whitespace-pre-line text-sm leading-7 text-stone-300">{{ detail.app.description or "No description." }}</p>
+      <p class="mt-4 whitespace-pre-line text-sm leading-7 text-stone-300">{{ app.description }}</p>
     </section>
     <aside class="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
       <h2 class="text-lg font-semibold">Metadata</h2>
       <dl class="mt-4 grid grid-cols-[7rem_1fr] gap-x-3 gap-y-3 text-sm">
-        <dt class="text-stone-500">Version</dt><dd>{{ detail.app.version or "—" }}</dd>
-        <dt class="text-stone-500">Model</dt><dd>{{ detail.app.model }}</dd>
-        <dt class="text-stone-500">Release year</dt><dd>{{ detail.app.release_year or "—" }}</dd>
-        <dt class="text-stone-500">Author</dt><dd>{{ detail.app.author_name or "—" }}</dd>
-        <dt class="text-stone-500">Publisher</dt><dd class="break-all">{{ detail.app.publisher_email or "—" }}</dd>
-        <dt class="text-stone-500">Categories</dt><dd>{{ detail.app.categories|join(", ") or "—" }}</dd>
+        <dt class="text-stone-500">Version</dt><dd>{{ app.version }}</dd>
+        <dt class="text-stone-500">Model</dt><dd>{{ app.model }}</dd>
+        <dt class="text-stone-500">Category</dt><dd>{{ app.category }}</dd>
+        <dt class="text-stone-500">Release year</dt><dd>{{ app.release_year }}</dd>
+        <dt class="text-stone-500">Author</dt><dd>{{ app.author_name }}</dd>
+        <dt class="text-stone-500">Publisher</dt><dd class="break-all">{{ app.publisher_email or "Not linked to a Firebase account" }}</dd>
       </dl>
     </aside>
   </div>
 
-  <div class="mt-6 grid gap-6 lg:grid-cols-2">
-    <section class="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-      <div class="flex items-baseline justify-between"><h2 class="text-lg font-semibold">Media</h2><span class="text-xs text-stone-500">{{ detail.media|length }}</span></div>
-      <ul class="mt-4 divide-y divide-white/5">
-        {% for media in detail.media %}
-          <li class="py-3 first:pt-0 last:pb-0">
-            <div class="flex items-center justify-between gap-4"><span class="truncate text-sm">{{ media.filename or "Unnamed media" }}</span><span class="rounded bg-white/5 px-2 py-1 font-mono text-xs text-stone-400">{{ media.media_type }}</span></div>
-            <div class="mt-1 text-xs text-stone-600">{{ media.object.size }} bytes · {{ media.object.sha256[:12] }}…</div>
+  <section class="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+    <div class="max-w-3xl">
+      <p class="font-mono text-xs uppercase tracking-[0.2em] text-sky-300">Private durable assets</p>
+      <h2 class="mt-2 text-xl font-semibold">Media slots</h2>
+      <p class="mt-2 text-sm leading-6 text-stone-400">Each upload occupies one API media slot. Media files are limited to 16 MiB and become public only when the application is published.</p>
+    </div>
+    <div class="mt-6 overflow-hidden rounded-xl border border-white/10 bg-stone-950/50 divide-y divide-white/10">
+      {% for slot, definition in media_slots.items() %}
+        {% set media = media_by_slot.get(slot) %}
+        <article class="grid gap-4 px-4 py-4 lg:grid-cols-[7rem_minmax(10rem,0.8fr)_minmax(0,2fr)] lg:items-center lg:px-5">
+          <div>
+            <h3 class="text-sm font-medium">{{ slot|replace('-', ' ')|title }}</h3>
+            <p class="mt-0.5 font-mono text-[0.65rem] text-stone-600">{{ definition[0] }}</p>
+          </div>
+          {% if media %}
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="size-1.5 shrink-0 rounded-full bg-emerald-300"></span>
+                <p class="truncate text-xs font-medium text-stone-200" title="{{ media.filename }}">{{ media.filename }}</p>
+              </div>
+              <p class="mt-1 truncate text-[0.65rem] text-stone-600" title="SHA-256 {{ media.sha256 }}">{{ media.size }} bytes · {{ media.sha256[:12] }}…</p>
+              {% if editable_assets %}
+                <form class="mt-1" action="{{ url_for(media_delete_endpoint, app_id=app.id, media_id=media.id) }}" method="post">
+                  <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}">
+                  <input type="hidden" name="revision" value="{{ app.revision }}">
+                  <button class="text-[0.65rem] font-medium text-red-300 hover:text-red-200" type="submit">Remove</button>
+                </form>
+              {% endif %}
+            </div>
+          {% else %}
+            <div class="flex items-center gap-2 text-xs text-stone-600"><span class="size-1.5 rounded-full bg-stone-700"></span>Empty</div>
+          {% endif %}
+          {% if editable_assets %}
+            <form class="grid min-w-0 gap-2 sm:grid-cols-[minmax(10rem,1.2fr)_minmax(8rem,1fr)_auto] sm:items-center" action="{{ url_for(media_upload_endpoint, app_id=app.id) }}" method="post" enctype="multipart/form-data">
+              <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}">
+              <input type="hidden" name="revision" value="{{ app.revision }}">
+              <input type="hidden" name="slot" value="{{ slot }}">
+              <label class="sr-only" for="media-{{ slot }}">{{ 'Replace' if media else 'Upload' }} {{ slot|replace('-', ' ') }} media image</label>
+              <input class="block w-full text-xs text-stone-400 file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-xs file:font-medium file:text-stone-200 hover:file:bg-white/15" id="media-{{ slot }}" name="file" type="file" required>
+              <label class="sr-only" for="media-description-{{ slot }}">Media description</label>
+              <input class="w-full rounded-lg border border-white/10 bg-stone-900 px-3 py-2 text-xs outline-none placeholder:text-stone-600 focus:border-sky-300/50" id="media-description-{{ slot }}" name="description" maxlength="2000" placeholder="Optional description" value="{{ media.description if media else '' }}">
+              <button class="whitespace-nowrap rounded-lg border border-sky-300/25 bg-sky-300/10 px-3 py-2 text-xs font-semibold text-sky-100 hover:bg-sky-300/20" type="submit">{{ 'Replace' if media else 'Upload' }}</button>
+            </form>
+          {% else %}
+            <p class="text-xs text-stone-600">Read-only</p>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+    <div class="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+      <div class="max-w-2xl">
+        <p class="font-mono text-xs uppercase tracking-[0.2em] text-amber-300">Ordered images</p>
+        <h2 class="mt-2 text-xl font-semibold">Screenshots</h2>
+        <p class="mt-2 text-sm leading-6 text-stone-400">PNG, JPEG, GIF, and WebP content is detected from the file bytes. Screenshots are private, checksum-addressed, limited to 5 MiB, and ordered explicitly.</p>
+      </div>
+      {% if editable_assets %}
+        <form class="w-full max-w-md space-y-3" action="{{ url_for(screenshot_upload_endpoint, app_id=app.id) }}" method="post" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}">
+          <input type="hidden" name="revision" value="{{ app.revision }}">
+          <label class="block text-xs font-medium text-stone-300" for="screenshot-file">Add screenshot</label>
+          <input class="block w-full text-xs text-stone-400 file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-xs file:font-medium file:text-stone-200 hover:file:bg-white/15" id="screenshot-file" name="file" type="file" accept="image/png,image/jpeg,image/gif,image/webp" required>
+          <button class="rounded-lg bg-amber-300 px-3 py-2 text-xs font-semibold text-stone-950 hover:bg-amber-200" type="submit">Upload screenshot</button>
+        </form>
+      {% endif %}
+    </div>
+    {% if screenshots %}
+      <ol class="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        {% for screenshot in screenshots %}
+          <li class="overflow-hidden rounded-xl border border-white/10 bg-stone-950/60">
+            <div class="grid aspect-video place-items-center bg-black/40 p-2">
+              <img class="max-h-full max-w-full object-contain" src="{{ url_for(screenshot_content_endpoint, app_id=app.id, screenshot_id=screenshot.id) }}" alt="Screenshot {{ loop.index }} for {{ app.name }}">
+            </div>
+            <div class="p-4">
+              <p class="truncate text-sm text-stone-200" title="{{ screenshot.filename }}">{{ loop.index }}. {{ screenshot.filename }}</p>
+              <p class="mt-1 text-xs text-stone-600">{{ screenshot.content_type }} · {{ screenshot.size }} bytes</p>
+              {% if editable_assets %}<div class="mt-4 flex flex-wrap gap-2">
+                {% if not loop.first %}
+                  <form action="{{ url_for(screenshot_move_endpoint, app_id=app.id, screenshot_id=screenshot.id) }}" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}"><input type="hidden" name="revision" value="{{ app.revision }}"><input type="hidden" name="direction" value="up">
+                    <button class="rounded-lg border border-white/10 px-2.5 py-1.5 text-xs text-stone-300 hover:bg-white/5" type="submit">Move up</button>
+                  </form>
+                {% endif %}
+                {% if not loop.last %}
+                  <form action="{{ url_for(screenshot_move_endpoint, app_id=app.id, screenshot_id=screenshot.id) }}" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}"><input type="hidden" name="revision" value="{{ app.revision }}"><input type="hidden" name="direction" value="down">
+                    <button class="rounded-lg border border-white/10 px-2.5 py-1.5 text-xs text-stone-300 hover:bg-white/5" type="submit">Move down</button>
+                  </form>
+                {% endif %}
+                <form action="{{ url_for(screenshot_delete_endpoint, app_id=app.id, screenshot_id=screenshot.id) }}" method="post">
+                  <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}"><input type="hidden" name="revision" value="{{ app.revision }}">
+                  <button class="rounded-lg border border-red-300/20 px-2.5 py-1.5 text-xs text-red-300 hover:bg-red-300/10" type="submit">Delete</button>
+                </form>
+              </div>{% endif %}
+            </div>
           </li>
-        {% else %}<li class="text-sm text-stone-500">No media.</li>{% endfor %}
-      </ul>
-    </section>
-    <section class="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-      <div class="flex items-baseline justify-between"><h2 class="text-lg font-semibold">Screenshots</h2><span class="text-xs text-stone-500">{{ detail.screenshots|length }}</span></div>
-      <ul class="mt-4 divide-y divide-white/5">
-        {% for screenshot in detail.screenshots %}
-          <li class="py-3 first:pt-0 last:pb-0">
-            <div class="truncate text-sm">{{ screenshot.filename or "Unnamed screenshot" }}</div>
-            <div class="mt-1 text-xs text-stone-600">{{ screenshot.content_type }} · {{ screenshot.object.size }} bytes</div>
-          </li>
-        {% else %}<li class="text-sm text-stone-500">No screenshots.</li>{% endfor %}
-      </ul>
-    </section>
-  </div>
+        {% endfor %}
+      </ol>
+    {% else %}
+      <div class="mt-6 rounded-xl border border-dashed border-white/10 px-4 py-8 text-center text-sm text-stone-600">No screenshots.</div>
+    {% endif %}
+  </section>
+
+  {% if app.status == "STAGING" %}<section class="mt-8 rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.04] p-6">
+    <h2 class="text-lg font-semibold text-emerald-100">Publish application</h2>
+    <p class="mt-2 text-sm leading-6 text-stone-400">Publishing validates all referenced assets and atomically makes this app visible to the public API.</p>
+    <form class="mt-4" action="{{ url_for('admin_app_publish', app_id=app.id) }}" method="post">
+      <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}">
+      <input type="hidden" name="revision" value="{{ app.revision }}">
+      <button class="rounded-xl bg-emerald-300 px-4 py-2.5 text-sm font-semibold text-stone-950 hover:bg-emerald-200" type="submit">Publish app</button>
+    </form>
+  </section>
+
+  <section class="mt-8 rounded-2xl border border-red-300/20 bg-red-300/[0.04] p-6">
+    <h2 class="text-lg font-semibold text-red-100">Delete draft application</h2>
+    <p class="mt-2 text-sm leading-6 text-stone-400">This removes the draft app plus its media and screenshots. Its audit history and potentially shared author record are retained. Enter the exact app name to confirm.</p>
+    <form class="mt-4 flex max-w-2xl flex-col gap-3 sm:flex-row" action="{{ url_for('admin_app_delete', app_id=app.id) }}" method="post">
+      <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}">
+      <input type="hidden" name="revision" value="{{ app.revision }}">
+      <label class="sr-only" for="confirm-name">Enter {{ app.name }} to confirm deletion</label>
+      <input class="min-w-0 flex-1 rounded-xl border border-red-300/20 bg-stone-900 px-4 py-2.5 text-sm outline-none placeholder:text-stone-600 focus:border-red-300/50 focus:ring-2 focus:ring-red-300/10" id="confirm-name" name="confirm_name" placeholder="{{ app.name }}" required autocomplete="off">
+      <button class="rounded-xl border border-red-300/30 bg-red-300/10 px-4 py-2.5 text-sm font-semibold text-red-100 hover:bg-red-300/20" type="submit">Delete draft app</button>
+    </form>
+  </section>{% endif %}
 {% endblock %}

@@ -35,9 +35,7 @@ def test_request_event_is_structured_bounded_and_trace_correlated(capsys) -> Non
             "responseSize": "15",
             "status": 201,
         },
-        "logging.googleapis.com/trace": (
-            "projects/trs-80/traces/0123456789abcdef0123456789abcdef"
-        ),
+        "logging.googleapis.com/trace": ("projects/trs-80/traces/0123456789abcdef0123456789abcdef"),
         "service": "test-service",
         "severity": "INFO",
     }

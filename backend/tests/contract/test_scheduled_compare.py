@@ -81,9 +81,7 @@ def test_scheduled_comparison_uses_identity_token_and_retains_report(capsys) -> 
     )
     assert calls[1][0] == "surfaces"
     assert calls[1][1] == _config()
-    assert calls[1][2] == {
-        "Authorization": "Bearer secret-token-for-https://candidate.example"
-    }
+    assert calls[1][2] == {"Authorization": "Bearer secret-token-for-https://candidate.example"}
     assert calls[1][3] == datetime(2026, 8, 10, 3, 4, 5, tzinfo=UTC)
     assert result["summary"] == {"total": 158, "matching": 158, "different": 0}
     assert result["approval_gate"]["passes"] is True

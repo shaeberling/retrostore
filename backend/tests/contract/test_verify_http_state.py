@@ -5,7 +5,7 @@ import httpx
 import pytest
 
 import retrostore.contract.verify_http_state as command
-from services.api_compat.app import create_representative_app
+from retrostore.testing.flask_api import create_representative_app
 
 
 def test_http_state_lifecycle_checks_all_three_state_rpcs_without_returning_token() -> None:
@@ -133,9 +133,7 @@ def test_apply_mints_identity_token_and_writes_aggregate_report(
     assert "secret" not in output.read_text()
 
 
-def test_pre_dns_apply_uses_only_the_approved_host_override(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_pre_dns_apply_uses_only_the_approved_host_override(tmp_path: Path, monkeypatch) -> None:
     output = tmp_path / "pre-dns.json"
     observed: dict[str, object] = {}
 
@@ -174,6 +172,4 @@ def test_pre_dns_apply_uses_only_the_approved_host_override(
     )
 
     assert observed["headers"] == {"Host": "next.retrostore.org"}
-    assert json.loads(output.read_text())["candidate_host_header"] == (
-        "next.retrostore.org"
-    )
+    assert json.loads(output.read_text())["candidate_host_header"] == ("next.retrostore.org")

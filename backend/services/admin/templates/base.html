@@ -19,8 +19,7 @@
           </a>
           {% if admin_identity %}
             <nav class="hidden items-center gap-1 md:flex" aria-label="Administration">
-              <a class="rounded-lg px-3 py-2 text-sm {{ 'bg-white/10 text-white' if request.endpoint in ('admin_apps', 'admin_app_detail') else 'text-stone-400 hover:bg-white/5 hover:text-white' }}" href="{{ url_for('admin_apps') }}">Applications</a>
-              <a class="rounded-lg px-3 py-2 text-sm {{ 'bg-white/10 text-white' if request.path.startswith('/admin/staging/') else 'text-stone-400 hover:bg-white/5 hover:text-white' }}" href="{{ url_for('admin_staging_apps') }}">Staging</a>
+              <a class="rounded-lg px-3 py-2 text-sm {{ 'bg-white/10 text-white' if request.path.startswith('/admin/apps') else 'text-stone-400 hover:bg-white/5 hover:text-white' }}" href="{{ url_for('admin_apps') }}">Applications</a>
               {% if admin_identity.is_administrator %}
                 <a class="rounded-lg px-3 py-2 text-sm {{ 'bg-white/10 text-white' if request.endpoint == 'admin_users' else 'text-stone-400 hover:bg-white/5 hover:text-white' }}" href="{{ url_for('admin_users') }}">Users</a>
               {% endif %}

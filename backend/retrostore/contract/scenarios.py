@@ -299,10 +299,7 @@ def safe_legacy_json_scenarios() -> tuple[ContractScenario, ...]:
         ContractScenario(
             name="list_apps_legacy_json_out_of_range",
             method=PUBLIC_API_METHODS["listApps"],
-            body=(
-                b'{"start":2147483647,"num":1,"query":"",'
-                b'"trs80":{"mediaTypes":[]}}'
-            ),
+            body=(b'{"start":2147483647,"num":1,"query":"","trs80":{"mediaTypes":[]}}'),
             request_format="legacy_json",
         ),
         ContractScenario(

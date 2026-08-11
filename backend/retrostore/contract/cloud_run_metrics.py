@@ -15,9 +15,7 @@ import httpx
 
 _PROJECT = "trs-80"
 _SERVICE = "retrostore-api-compat-candidate"
-_PRIVATE_CANDIDATE_URL = (
-    "https://retrostore-api-compat-candidate-760396810462.us-central1.run.app"
-)
+_PRIVATE_CANDIDATE_URL = "https://retrostore-api-compat-candidate-760396810462.us-central1.run.app"
 _METRICS = {
     "billable_instance_time": "run.googleapis.com/container/billable_instance_time",
     "cpu_allocation_time": "run.googleapis.com/container/cpu/allocation_time",
@@ -359,9 +357,7 @@ def _summarize_time_series(series: Sequence[Mapping[str, Any]]) -> dict[str, Any
         "distribution": {
             "observation_count": distribution_count,
             "weighted_mean": (
-                distribution_weighted_sum / distribution_count
-                if distribution_count
-                else None
+                distribution_weighted_sum / distribution_count if distribution_count else None
             ),
             "observed_minimum": min(distribution_minima) if distribution_minima else None,
             "observed_maximum": max(distribution_maxima) if distribution_maxima else None,
@@ -390,9 +386,7 @@ def _histogram_percentile_upper_bound(
     return None
 
 
-def _histogram_bucket_upper_bound(
-    options: Mapping[str, Any], bucket_index: int
-) -> float | None:
+def _histogram_bucket_upper_bound(options: Mapping[str, Any], bucket_index: int) -> float | None:
     if "explicitBuckets" in options:
         bounds = [float(value) for value in options["explicitBuckets"].get("bounds", ())]
         return bounds[bucket_index] if bucket_index < len(bounds) else None
@@ -407,9 +401,7 @@ def _histogram_bucket_upper_bound(
         finite = int(exponential["numFiniteBuckets"])
         if bucket_index > finite:
             return None
-        return float(exponential["scale"]) * float(
-            exponential["growthFactor"]
-        ) ** bucket_index
+        return float(exponential["scale"]) * float(exponential["growthFactor"]) ** bucket_index
     return None
 
 
@@ -429,24 +421,16 @@ def _resource_evidence_gate(
         raise ValueError("Source load test has invalid measured/warmup request counts")
     expected_requests = measured_requests + warmup_requests
     native_request_count = int(metrics["request_count"]["numeric"]["sum"] or 0)
-    latency_observation_count = int(
-        metrics["request_latency"]["distribution"]["observation_count"]
-    )
+    latency_observation_count = int(metrics["request_latency"]["distribution"]["observation_count"])
     required_resource_metrics = {
-        "billable_instance_time": int(
-            metrics["billable_instance_time"]["numeric"]["count"]
-        ),
+        "billable_instance_time": int(metrics["billable_instance_time"]["numeric"]["count"]),
         "cpu_allocation_time": int(metrics["cpu_allocation_time"]["numeric"]["count"]),
-        "cpu_utilization": int(
-            metrics["cpu_utilization"]["distribution"]["observation_count"]
-        ),
+        "cpu_utilization": int(metrics["cpu_utilization"]["distribution"]["observation_count"]),
         "instance_count": int(metrics["instance_count"]["numeric"]["count"]),
         "max_request_concurrency": int(
             metrics["max_request_concurrency"]["distribution"]["observation_count"]
         ),
-        "memory_allocation_time": int(
-            metrics["memory_allocation_time"]["numeric"]["count"]
-        ),
+        "memory_allocation_time": int(metrics["memory_allocation_time"]["numeric"]["count"]),
         "memory_utilization": int(
             metrics["memory_utilization"]["distribution"]["observation_count"]
         ),

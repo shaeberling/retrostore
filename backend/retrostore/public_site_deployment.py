@@ -183,9 +183,7 @@ def _verify_bundle(
     if not isinstance(manifest, list) or not isinstance(result, dict):
         raise ValueError("Build report manifest is missing")
     actual_paths = sorted(
-        path.relative_to(bundle).as_posix()
-        for path in bundle.rglob("*")
-        if path.is_file()
+        path.relative_to(bundle).as_posix() for path in bundle.rglob("*") if path.is_file()
     )
     expected_paths: list[str] = []
     aggregate = hashlib.sha256()

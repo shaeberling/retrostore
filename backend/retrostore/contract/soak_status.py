@@ -13,14 +13,12 @@ from typing import Any
 
 from google.cloud import storage
 
-from retrostore.mirror.google_cloud import gcloud_impersonated_credentials
+from retrostore.google_cloud import gcloud_impersonated_credentials
 
 _PROJECT = "trs-80"
 _REGION = "us-central1"
 _SERVICE = "retrostore-api-compat-candidate"
-_CANDIDATE_URL = (
-    "https://retrostore-api-compat-candidate-760396810462.us-central1.run.app"
-)
+_CANDIDATE_URL = "https://retrostore-api-compat-candidate-760396810462.us-central1.run.app"
 _BUCKET = "trs-80-retrostore-assets"
 _PREFIX = "operations/comparisons/"
 _READER = "retrostore-migrator@trs-80.iam.gserviceaccount.com"
@@ -122,18 +120,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             "policy": policy,
             "artifacts": {
                 "validated_count": len(evidence),
-                "before_boundary_count": sum(
-                    item.generated_at < not_before for item in evidence
-                ),
+                "before_boundary_count": sum(item.generated_at < not_before for item in evidence),
                 "at_or_after_boundary_count": sum(
                     item.generated_at >= not_before for item in evidence
                 ),
-                "api_zero_diff_count": sum(
-                    item.api_zero_diff_passes for item in evidence
-                ),
-                "multi_surface_zero_diff_count": sum(
-                    item.zero_diff_passes for item in evidence
-                ),
+                "api_zero_diff_count": sum(item.api_zero_diff_passes for item in evidence),
+                "multi_surface_zero_diff_count": sum(item.zero_diff_passes for item in evidence),
                 "not_multi_surface_eligible_count": sum(
                     not item.zero_diff_passes for item in evidence
                 ),
@@ -235,9 +227,7 @@ def parse_comparison_artifact(object_name: str, body: bytes) -> ComparisonEviden
     difference_fields = _nonnegative_int(
         gate.get("difference_fields"), "approval_gate.difference_fields", object_name
     )
-    unapproved = _nonnegative_int(
-        gate.get("unapproved"), "approval_gate.unapproved", object_name
-    )
+    unapproved = _nonnegative_int(gate.get("unapproved"), "approval_gate.unapproved", object_name)
     expired = _nonnegative_int(
         gate.get("expired_approvals"), "approval_gate.expired_approvals", object_name
     )
@@ -328,8 +318,7 @@ def _validate_additional_surfaces(
     public_differences = public_apps.get("differences")
     if (
         public_apps.get("schema_version") != 1
-        or public_apps.get("kind")
-        != "retrostore_public_website_app_list_comparison"
+        or public_apps.get("kind") != "retrostore_public_website_app_list_comparison"
         or public_apps.get("reference_url") != "https://retrostore.org"
         or public_apps.get("candidate") != _CANDIDATE_URL
         or not isinstance(public_summary, Mapping)
@@ -410,8 +399,7 @@ def _validate_additional_surfaces(
                 and isinstance(result.get("candidate"), Mapping)
                 for result in redirect_results
             )
-            or {result["path"] for result in redirect_results}
-            != expected_redirect_paths
+            or {result["path"] for result in redirect_results} != expected_redirect_paths
         ):
             raise ValueError(f"Public redirect results are inconsistent: {object_name}")
         result_different = sum(not result["matches"] for result in redirect_results)
@@ -429,9 +417,7 @@ def _validate_additional_surfaces(
         redirect_passes = redirect_passes_value
 
     expected_overall = {
-        "passes": (
-            api_gate_passes and download_passes and public_passes and redirect_passes
-        ),
+        "passes": (api_gate_passes and download_passes and public_passes and redirect_passes),
         "api_contract_passes": api_gate_passes,
         "legacy_downloads_passes": download_passes,
         "public_app_list_passes": public_passes,
@@ -477,9 +463,7 @@ def evaluate_soak(
         (right.generated_at - left.generated_at).total_seconds()
         for left, right in zip(streak, streak[1:], strict=False)
     ]
-    duration_seconds = (
-        (as_of - streak[0].generated_at).total_seconds() if streak else 0.0
-    )
+    duration_seconds = (as_of - streak[0].generated_at).total_seconds() if streak else 0.0
     current = bool(streak)
     eligible = current and len(streak) >= required_reports
     reasons = []
@@ -542,9 +526,7 @@ def _load_policy(path: Path) -> dict[str, int]:
         or maximum_unapproved != 0
         or comparison.get("material_fix_restarts_evidence_streak") is not True
     ):
-        raise ValueError(
-            "Monitoring thresholds do not enforce the approved evidence policy"
-        )
+        raise ValueError("Monitoring thresholds do not enforce the approved evidence policy")
     return {"schedule_seconds": schedule, "required_reports": reports}
 
 

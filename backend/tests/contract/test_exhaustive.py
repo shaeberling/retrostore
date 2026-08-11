@@ -8,7 +8,7 @@ from retrostore.contract.exhaustive import (
     _with_candidate_host_header,
     discover_exhaustive_corpus,
 )
-from services.api_compat.app import create_representative_app
+from retrostore.testing.flask_api import create_representative_app
 
 
 def test_exhaustive_corpus_covers_every_fixture_app_and_media_object() -> None:

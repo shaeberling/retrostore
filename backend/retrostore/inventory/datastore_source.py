@@ -21,9 +21,7 @@ class DatastoreSource:
             yield SourceEntity(kind=kind, key=entity.key, properties=entity)
 
 
-def create_datastore_source(
-    *, project: str, database: str, auth: str = "adc"
-) -> DatastoreSource:
+def create_datastore_source(*, project: str, database: str, auth: str = "adc") -> DatastoreSource:
     credentials = None
     if auth == "gcloud":
         credentials = gcloud_credentials(quota_project=project)

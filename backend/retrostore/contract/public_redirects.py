@@ -19,7 +19,7 @@ from retrostore.contract.legacy_downloads import (
     _CANDIDATE_IDENTITY,
     _candidate_origin,
 )
-from services.api_compat.app import LEGACY_PUBLIC_REDIRECTS
+from services.api.app import PUBLIC_REDIRECTS
 
 
 def compare_public_redirect_clients(
@@ -35,7 +35,7 @@ def compare_public_redirect_clients(
         raise ValueError("generated_at must be timezone-aware")
 
     results = []
-    for base_path in LEGACY_PUBLIC_REDIRECTS:
+    for base_path in PUBLIC_REDIRECTS:
         for path in (base_path, f"{base_path}/"):
             expected = _response_fingerprint(reference.get(path))
             actual = _response_fingerprint(candidate.get(path))

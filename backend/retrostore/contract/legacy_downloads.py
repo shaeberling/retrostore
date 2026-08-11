@@ -21,8 +21,8 @@ from retrostore.contract.exhaustive import (
     _public_candidate_origin,
     _with_candidate_host_header,
 )
-from retrostore.mirror import CatalogMirror, load_catalog_mirror_archive
-from services.api_compat.app import create_archive_app
+from retrostore.migration.catalog_mirror import CatalogMirror, load_catalog_mirror_archive
+from retrostore.testing.flask_api import create_archive_app
 
 _MAX_ZIP_ENTRIES = 64
 _MAX_RESPONSE_BYTES = 32 * 1024 * 1024
@@ -206,7 +206,7 @@ def compare_download_clients(
     return {
         "schema_version": 1,
         "generated_at": now.astimezone(UTC).isoformat(),
-        "kind": "retrostore_legacy_download_comparison",
+        "kind": "retrostore_download_app_comparison",
         "reference_url": reference_url,
         "candidate": candidate_label,
         "safety": {
@@ -353,10 +353,7 @@ def _candidate_origin(value: str) -> str:
     host = parsed.hostname or ""
     if (
         parsed.scheme != "https"
-        or (
-            host not in _CANDIDATE_HOSTS
-            and _TAGGED_CANDIDATE_HOST.fullmatch(host) is None
-        )
+        or (host not in _CANDIDATE_HOSTS and _TAGGED_CANDIDATE_HOST.fullmatch(host) is None)
         or parsed.username is not None
         or parsed.password is not None
         or parsed.port is not None

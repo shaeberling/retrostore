@@ -39,9 +39,7 @@ class SessionCookie:
 
 
 class AdminAuthenticator(Protocol):
-    def exchange_id_token(
-        self, id_token: str, *, now: datetime | None = None
-    ) -> SessionCookie: ...
+    def exchange_id_token(self, id_token: str, *, now: datetime | None = None) -> SessionCookie: ...
 
     def verify_session_cookie(self, session_cookie: str) -> AdminIdentity: ...
 
@@ -71,9 +69,7 @@ class FirebaseAdminAuthenticator:
         self._app = app or firebase_app(project)
         self._role_resolver = role_resolver
 
-    def exchange_id_token(
-        self, id_token: str, *, now: datetime | None = None
-    ) -> SessionCookie:
+    def exchange_id_token(self, id_token: str, *, now: datetime | None = None) -> SessionCookie:
         if not id_token:
             raise AuthenticationError("Firebase ID token is missing")
         current = now or datetime.now(UTC)

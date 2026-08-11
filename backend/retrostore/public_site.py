@@ -26,9 +26,7 @@ class _ReferenceParser(HTMLParser):
         super().__init__()
         self.references: list[str] = []
 
-    def handle_starttag(
-        self, tag: str, attrs: list[tuple[str, str | None]]
-    ) -> None:
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         for name, value in attrs:
             if value is not None and name in {"href", "src"}:
                 self.references.append(value)
@@ -66,9 +64,7 @@ def build_public_site(
         }
         missing = _missing_static_references(output)
         if missing:
-            raise ValueError(
-                "Static website has missing local assets: " + ", ".join(missing)
-            )
+            raise ValueError("Static website has missing local assets: " + ", ".join(missing))
         files = sorted(path for path in output.rglob("*") if path.is_file())
         exact_routes = _exact_static_routes(output, files)
         unrouted = _unrouted_static_files(output, files, exact_routes)
@@ -202,9 +198,7 @@ def transform_public_site_text(filename: str, body: str) -> tuple[str, dict[str,
             raise ValueError("Legacy public lightbox paths changed unexpectedly")
         counts["public_app_list_fetch_rewritten"] = 1
         counts["lightbox_paths_rewritten"] = lightbox_count
-        body = body.replace(old_rpc, new_rpc).replace(
-            "/public/lightbox2/", "/lightbox2/"
-        )
+        body = body.replace(old_rpc, new_rpc).replace("/public/lightbox2/", "/lightbox2/")
     elif filename in {"contact.html", "signup.html"}:
         removed = body.count(_REMOVED_MISSING_SCRIPT)
         if removed != 1:
@@ -262,9 +256,7 @@ def legacy_static_content_type(path: str) -> str:
     }.get(suffix, "text/plain")
 
 
-def _static_reference_path(
-    value: str, relative_parent: PurePosixPath
-) -> PurePosixPath | None:
+def _static_reference_path(value: str, relative_parent: PurePosixPath) -> PurePosixPath | None:
     if not value or value.startswith(("#", "//", "data:", "mailto:")):
         return None
     parsed = urlsplit(value)

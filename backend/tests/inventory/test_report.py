@@ -75,9 +75,7 @@ def test_report_is_sanitized_and_reconciles_legacy_references() -> None:
     assert report["blobstore"]["total_bytes"] == 8
     assert report["kinds"]["MediaImage"]["binary_properties"]["data"]["total_bytes"] == 8
     assert (
-        report["kinds"]["SystemState"]["binary_properties"]["memoryRegions[].data"][
-            "total_bytes"
-        ]
+        report["kinds"]["SystemState"]["binary_properties"]["memoryRegions[].data"]["total_bytes"]
         == 3
     )
     assert report["kinds"]["RetroStoreUser"]["aggregate_sha256"] is None

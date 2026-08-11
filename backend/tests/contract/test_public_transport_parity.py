@@ -16,10 +16,7 @@ def _api() -> dict[str, object]:
         },
         "summary": {"total": 158, "matching": 158, "different": 0},
         "approval_gate": {"passes": True, "difference_fields": 0},
-        "results": [
-            {"scenario": f"scenario-{index}", "differences": {}}
-            for index in range(158)
-        ],
+        "results": [{"scenario": f"scenario-{index}", "differences": {}} for index in range(158)],
     }
 
 
@@ -93,7 +90,5 @@ def test_public_transport_report_sanitizes_api_and_static_differences() -> None:
     assert report["surfaces"]["api"]["differences"] == [
         {"scenario": "scenario-0", "fields": ["semantic_body"]}
     ]
-    assert report["surfaces"]["public_static_site"]["differences"] == [
-        "/index.html"
-    ]
+    assert report["surfaces"]["public_static_site"]["differences"] == ["/index.html"]
     assert "catalog value" not in str(report)

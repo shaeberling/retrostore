@@ -97,16 +97,13 @@ def build_legacy_user_report(
     published_user_count = sum(item["published_app_count"] > 0 for item in objects)
     direct_role_count = sum(item["direct_modern_role"] is not None for item in objects)
     direct_role_without_firebase_count = sum(
-        item["direct_modern_role"] is not None and not item["firebase_matches"]
-        for item in objects
+        item["direct_modern_role"] is not None and not item["firebase_matches"] for item in objects
     )
     attribution_only_count = sum(
-        item["direct_modern_role"] is None and item["published_app_count"] > 0
-        for item in objects
+        item["direct_modern_role"] is None and item["published_app_count"] > 0 for item in objects
     )
     unreferenced_without_role_count = sum(
-        item["direct_modern_role"] is None and item["published_app_count"] == 0
-        for item in objects
+        item["direct_modern_role"] is None and item["published_app_count"] == 0 for item in objects
     )
     firebase_role_counts = Counter(user.role or "none" for user in firebase)
     digest = hashlib.sha256()
@@ -137,13 +134,9 @@ def build_legacy_user_report(
             "published_app_count": sum(publisher_counts.values()),
             "legacy_user_with_published_apps_count": published_user_count,
             "legacy_user_with_direct_modern_role_count": direct_role_count,
-            "legacy_direct_role_without_firebase_count": (
-                direct_role_without_firebase_count
-            ),
+            "legacy_direct_role_without_firebase_count": (direct_role_without_firebase_count),
             "legacy_attribution_only_count": attribution_only_count,
-            "legacy_unreferenced_without_modern_role_count": (
-                unreferenced_without_role_count
-            ),
+            "legacy_unreferenced_without_modern_role_count": (unreferenced_without_role_count),
             "firebase_identity_count": len(firebase),
             "firebase_role_counts": dict(sorted(firebase_role_counts.items())),
             "legacy_user_matching_firebase_count": matching_count,

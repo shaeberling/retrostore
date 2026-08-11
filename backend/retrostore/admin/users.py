@@ -177,9 +177,7 @@ class FirebaseAdminUserDirectory:
     def list_users(self) -> tuple[AdminUser, ...]:
         records: Iterable[auth.UserRecord] = auth.list_users(app=self._app).iterate_all()
         assignments = self._role_store.roles_by_uid() if self._role_store else {}
-        users = tuple(
-            _admin_user(record, assignments.get(record.uid)) for record in records
-        )
+        users = tuple(_admin_user(record, assignments.get(record.uid)) for record in records)
         return tuple(sorted(users, key=lambda user: (user.email.casefold(), user.uid)))
 
     def get_user(self, uid: str) -> AdminUser:
@@ -193,13 +191,7 @@ def _admin_user(
 ) -> AdminUser:
     claims = record.custom_claims or {}
     providers = tuple(
-        sorted(
-            {
-                provider.provider_id
-                for provider in record.provider_data
-                if provider.provider_id
-            }
-        )
+        sorted({provider.provider_id for provider in record.provider_data if provider.provider_id})
     )
     role = admin_role_from_claims(claims)
     if assignment is not None and assignment.configured:

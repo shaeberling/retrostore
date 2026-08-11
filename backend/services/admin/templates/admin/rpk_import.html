@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Import RPK · RetroStore Admin{% endblock %}
+
+{% block content %}
+  <a class="text-sm text-stone-400 hover:text-white" href="{{ url_for('admin_apps') }}">← Applications</a>
+  <div class="mt-5 max-w-3xl">
+    <p class="font-mono text-xs uppercase tracking-[0.22em] text-sky-300">Isolated future schema</p>
+    <h1 class="mt-2 text-3xl font-semibold tracking-tight">Import a RetroStore Package</h1>
+    <p class="mt-3 text-sm leading-6 text-stone-400">Validate one legacy RPK in full before writing anything. A successful import creates a private draft in the catalog; it cannot affect the public API until it is published.</p>
+  </div>
+
+  {% if import_error %}
+    <div class="mt-6 max-w-3xl rounded-xl border border-red-300/25 bg-red-300/10 px-4 py-3 text-sm text-red-100" role="alert">{{ import_error }}</div>
+  {% endif %}
+
+  <section class="mt-8 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+    <h2 class="text-lg font-semibold">1. Preview</h2>
+    <p class="mt-2 text-sm leading-6 text-stone-400">The package is parsed in memory and discarded after this request. JSON, IDs, enum values, Base64, file counts, byte limits, and screenshot formats are checked before the preview is shown.</p>
+    <form class="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end" action="{{ url_for('admin_rpk_preview') }}" method="post" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}">
+      <label class="min-w-0 flex-1 text-sm font-medium text-stone-300">RPK file
+        <input class="mt-2 block w-full rounded-xl border border-white/15 bg-stone-950 px-3 py-2.5 text-sm text-stone-200 file:mr-4 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-sm file:text-stone-200" type="file" name="file" accept=".rpk,.json,application/json" required>
+      </label>
+      <button class="rounded-xl bg-sky-300 px-4 py-2.5 text-sm font-semibold text-stone-950 hover:bg-sky-200" type="submit">Validate and preview</button>
+    </form>
+    <p class="mt-3 text-xs text-stone-500">Maximum encoded package size: {{ package_limit_mib }} MiB. No preview data is retained server-side.</p>
+  </section>
+
+  {% if package %}
+    <section class="mt-8 max-w-5xl rounded-2xl border border-sky-300/20 bg-sky-300/[0.04] p-6">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p class="font-mono text-xs uppercase tracking-[0.2em] text-sky-300">Validation passed</p>
+          <h2 class="mt-2 text-2xl font-semibold">{{ package.name }}</h2>
+          <p class="mt-1 font-mono text-xs text-stone-500">{{ package.app_id }}</p>
+        </div>
+        <span class="w-fit rounded-full border border-emerald-300/25 bg-emerald-300/10 px-3 py-1 text-xs font-medium text-emerald-100">Ready to import</span>
+      </div>
+
+      <dl class="mt-6 grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
+        <div><dt class="text-stone-500">Version</dt><dd class="mt-1 text-stone-200">{{ package.version }}</dd></div>
+        <div><dt class="text-stone-500">Model</dt><dd class="mt-1 text-stone-200">{{ package.model|replace("MODEL_", "Model ") }}</dd></div>
+        <div><dt class="text-stone-500">Category</dt><dd class="mt-1 text-stone-200">{{ package.category }}</dd></div>
+        <div><dt class="text-stone-500">Author</dt><dd class="mt-1 text-stone-200">{{ package.author_name }}</dd></div>
+        <div><dt class="text-stone-500">Release year</dt><dd class="mt-1 text-stone-200">{{ package.release_year }}</dd></div>
+        <div><dt class="text-stone-500">Decoded assets</dt><dd class="mt-1 text-stone-200">{{ package.decoded_size }} bytes</dd></div>
+      </dl>
+      <div class="mt-5 rounded-xl border border-white/10 bg-stone-950/50 p-4 text-sm">
+        <div class="text-stone-500">Description</div>
+        <p class="mt-1 whitespace-pre-wrap text-stone-300">{{ package.description }}</p>
+      </div>
+
+      <div class="mt-6 overflow-hidden rounded-xl border border-white/10">
+        <table class="w-full text-left text-sm">
+          <thead class="border-b border-white/10 bg-white/[0.03] text-xs uppercase tracking-wider text-stone-500"><tr><th class="px-4 py-3 font-medium">Asset</th><th class="px-4 py-3 font-medium">File</th><th class="px-4 py-3 text-right font-medium">Bytes</th></tr></thead>
+          <tbody class="divide-y divide-white/5">
+            {% for item in package.media %}
+              <tr><td class="px-4 py-3 text-stone-300">{{ item.slot }}</td><td class="px-4 py-3 font-mono text-xs text-stone-400">{{ item.upload.filename }}</td><td class="px-4 py-3 text-right text-stone-400">{{ item.upload.size }}</td></tr>
+            {% endfor %}
+            {% for screenshot in package.screenshots %}
+              <tr><td class="px-4 py-3 text-stone-300">screenshot {{ loop.index }}</td><td class="px-4 py-3 font-mono text-xs text-stone-400">{{ screenshot.filename }}</td><td class="px-4 py-3 text-right text-stone-400">{{ screenshot.size }}</td></tr>
+            {% endfor %}
+            {% if not package.media and not package.screenshots %}
+              <tr><td class="px-4 py-5 text-center text-stone-500" colspan="3">The package contains no assets.</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-6 rounded-xl border border-amber-300/20 bg-amber-300/[0.06] p-4 text-sm leading-6 text-amber-100">
+        <p>The package claims publisher {{ package.claimed_publisher_name or "—" }}{% if package.claimed_publisher_email %} ({{ package.claimed_publisher_email }}){% endif %}. This is informational only. Ownership will be assigned to the signed-in account {{ admin_identity.email }}.</p>
+        <p class="mt-2">An existing application with ID {{ package.app_id }} will not be overwritten.</p>
+      </div>
+
+      <div class="mt-6 border-t border-white/10 pt-6">
+        <h3 class="font-semibold">2. Import the exact previewed file</h3>
+        <p class="mt-2 text-sm leading-6 text-stone-400">Choose the same file again. Its SHA-256 must match this preview. The browser does not retain the first upload and the server stores no temporary copy.</p>
+        <p class="mt-2 break-all font-mono text-xs text-stone-600">SHA-256 {{ package.package_sha256 }}</p>
+        <form class="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end" action="{{ url_for('admin_rpk_apply') }}" method="post" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="{{ admin_csrf_token }}">
+          <input type="hidden" name="expected_sha256" value="{{ package.package_sha256 }}">
+          <label class="min-w-0 flex-1 text-sm font-medium text-stone-300">Same RPK file
+            <input class="mt-2 block w-full rounded-xl border border-white/15 bg-stone-950 px-3 py-2.5 text-sm text-stone-200 file:mr-4 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-sm file:text-stone-200" type="file" name="file" accept=".rpk,.json,application/json" required>
+          </label>
+          <button class="rounded-xl bg-amber-300 px-4 py-2.5 text-sm font-semibold text-stone-950 hover:bg-amber-200" type="submit">Import application</button>
+        </form>
+      </div>
+    </section>
+  {% endif %}
+{% endblock %}

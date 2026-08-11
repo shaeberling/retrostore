@@ -17,13 +17,13 @@ percentage rollout or fixed-duration soak requirement.
 
 ## Approved simplified catalog architecture
 
-The production catalog has one canonical Firestore representation: top-level
+The production catalog has one Firestore representation: top-level
 `apps`, `authors`, `media`, and `screenshots` collections. `STAGING` apps are
 admin-only and `PUBLISHED` apps are visible to the public API. Publishing is a
 single validated Firestore transaction that changes an app's status; it does
 not build or activate a whole-catalog release.
 
-The API reads canonical metadata on demand and reads Cloud Storage bytes only
+The API reads catalog metadata on demand and reads Cloud Storage bytes only
 for the media, screenshot, region, or download requested. Process startup does
 not read Firestore or download catalog objects. Optional in-process caches may
 be added later, but correctness must never depend on a warm cache.
@@ -41,14 +41,14 @@ snapshot activation part of normal operation.
 Phase 0 and Phase 1 have started on branch `codex/cloud-run-migration-plan`.
 Completed foundation work:
 
-- The approved simplification now serves the canonical top-level Firestore
+- The approved simplification now serves the top-level Firestore
   collections directly. The API performs no catalog or object reads at startup,
   media-reference calls read metadata only, media-region calls read one object
   range, and the admin inventory no longer loads an active snapshot. All 32
   published apps, 60 media records, and 90 screenshots in the real database
-  pass the new canonical parsers and reference checks.
+  pass the catalog parsers and reference checks.
 - Draft publication is now one atomic `STAGING` to `PUBLISHED` transition in
-  the canonical `apps` collection. Administrators edit published records
+  the `apps` collection. Administrators edit published records
   directly; the deployed runtime no longer constructs copy-on-write draft or
   active-snapshot adapters.
 - Zero-traffic revisions `retrostore-api-next-canonical1` and
@@ -65,6 +65,16 @@ Completed foundation work:
   versus the previously observed 18.98-second preloading request. A full
   request-driven `listApps` call took 0.54 seconds and subsequent per-app/media
   calls were generally 0.08-0.39 seconds during the exhaustive run.
+- Runtime names now describe the system that will remain after cutover:
+  `retrostore.api`, `RetroStoreApi`, `GoogleCloudApiDataStore`, and
+  `FirestoreCatalogRepository`. Catalog snapshot, working-copy, reverse-sync,
+  and archive code lives only under `retrostore.migration`; test-only Flask
+  factories and fixtures live under `retrostore.testing`.
+- The admin has one `/admin/apps` area backed by one `AppRepository`. The old
+  read-only Applications screen, separate Staging navigation, and unused
+  copy-on-write published-draft subsystem have been removed. Stored `STAGING`
+  status and historical `STAGED_*` audit values remain unchanged as data
+  compatibility details.
 
 - The local gcloud project and repository Firebase default are set to `trs-80`.
 - The API 0.2.13 protobuf schema is vendored with an exact upstream revision,
@@ -132,7 +142,7 @@ Completed foundation work:
   inventory versions were deleted after validation; production routing remained
   100% on `20230819t145020` throughout.
 - The local Flask compatibility candidate now implements all nine public methods
-  behind a cloud-independent `CompatibilityStorage` boundary. Its explicit
+  behind a cloud-independent `ApiDataStore` boundary. Its explicit
   representative in-memory adapter passes all 45 reviewed App Engine scenarios
   with zero transport or semantic differences. Valid state round-trip, memory
   exclusion, and overlapping-region behavior also have isolated local coverage;
@@ -838,13 +848,15 @@ backend/
 ├── proto/
 │   └── ApiProtos.proto
 ├── retrostore/
-│   ├── auth/
-│   ├── domain/
+│   ├── admin/
+│   ├── api/
+│   ├── catalog/
+│   ├── contract/
 │   ├── generated/
-│   ├── persistence/
-│   └── storage/
+│   ├── migration/
+│   └── testing/
 ├── services/
-│   ├── api_compat/
+│   ├── api/
 │   │   ├── app.py
 │   │   └── Dockerfile
 │   └── admin/
@@ -854,8 +866,9 @@ backend/
 │       └── Dockerfile
 └── tests/
     ├── admin/
+    ├── api/
     ├── contract/
-    └── persistence/
+    └── migration/
 ```
 
 Use a locked `pyproject.toml` dependency set and a pinned Python runtime. The
@@ -981,7 +994,7 @@ Engine, so a missing route definition cannot expose an incomplete handler.
 
 ### Public compatibility API service
 
-`retrostore-api-compat` is a Flask application running behind Gunicorn. It
+`retrostore-api` is a Flask application running behind Gunicorn. It
 should:
 
 - Be independently built and deployed from the admin service.
@@ -1358,7 +1371,7 @@ Exit criteria:
 4. Implement app, author, media, screenshot, user, and import workflows against
    the new Firestore and Storage model.
 5. Add audit events and integration tests for every mutation.
-6. Implement all legacy endpoints in `retrostore-api-compat`, including legacy
+6. Implement all public API endpoints in `retrostore-api`, including existing
    JSON parsing and protobuf response behavior.
 7. Deploy the API candidate to `next.retrostore.org` and the admin candidate to
    `admin-next.retrostore.org`, or the agreed equivalent hostnames.
@@ -1830,18 +1843,18 @@ Phase 1:
   production binding later uses the existing App Engine DNS origin for
   immediate route-disable rollback.
 - [x] Replace active-snapshot runtime loading with request-driven reads from the
-  canonical top-level Firestore collections and lazy Cloud Storage reads.
-- [x] Validate all real canonical documents and references without downloading
+  top-level Firestore collections and lazy Cloud Storage reads.
+- [x] Validate all real catalog documents and references without downloading
   binary objects, and retain the frozen compatibility suite as the serving
   acceptance gate.
-- [x] Replace snapshot publication for new apps with one atomic canonical
+- [x] Replace snapshot publication for new apps with one atomic
   `PUBLISHED` status transition and direct administrator edits.
-- [x] Deploy non-promoted canonical API/admin revisions, repeat exhaustive
+- [x] Deploy non-promoted direct-catalog API/admin revisions, repeat exhaustive
   App Engine parity, and record cold and warm request latency. After the
   zero-traffic gates passed, promote API revision `canonical1` and admin
   revision `canonical2` to 100% of only their parallel candidate services and
   repeat the API and real-client gates through Cloudflare.
-- [ ] Complete interactive Google sign-in and authorized admin navigation on
+- [x] Complete interactive Google sign-in and authorized admin navigation on
   `admin-next.retrostore.org`; the login page, redirect, CSP, Firebase redirect
   origin, service readiness, and unauthenticated session boundary already pass.
 
