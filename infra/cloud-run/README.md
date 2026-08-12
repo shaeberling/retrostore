@@ -23,18 +23,19 @@ after Cloud Run invocation. Both services now back the Cloudflare candidate
 domains while production DNS remains on App Engine. Both deployments set all
 replacement resource names explicitly:
 
-On 2026-08-11, request-driven revisions
-`retrostore-api-next-canonical1` (image digest
-`sha256:e2633ca0892e948a07b0fea8a1c3c6be3b80025e6fc28c4ae51fed4e4f0f21ed`)
-and `retrostore-admin-next-canonical2` (image digest
-`sha256:dc85a80747a30f85c42bb8bc0055edda2938921f8062493eba223c16d5e9ef1e`)
-were deployed with tags and zero traffic. The services now route 100% to these
-canonical revisions after their isolated gates passed. The API passed
-158 API, 94 download, 32-app website-list, and synthetic state-lifecycle checks
-before promotion, then passed 158/158 plus the JVM, KMP, and embedded C client
-gate through `next.retrostore.org`. The admin readiness and login boundary pass
-through `admin-next.retrostore.org`. Production routing did not change; the
-prior candidate revisions remain available for immediate rollback.
+On 2026-08-12, commit `cfa98fd` was built into immutable API and admin images
+and deployed as `retrostore-api-next-cfa98fd` (image digest
+`sha256:236789816f1be3d5841ffc35a4211497c31a7a4dab2a2063342f226086fde1ff`)
+and `retrostore-admin-next-cfa98fd` (image digest
+`sha256:851aff8aebc9536e60efcbdcb5bfc97ec4183fafea4044a0efda01a8aed0c675`).
+Both revisions first received zero traffic. The API then passed 158 API, 94
+download, 32-app website-list, and synthetic state-lifecycle checks; the admin
+passed health, readiness, login, static-asset, redirect, and security-header
+checks. After promotion, the same read-only gates passed through the Cloudflare
+candidate domains and the JVM, KMP, and embedded C clients passed through
+`next.retrostore.org`. Both candidate services now route 100% to the `cfa98fd`
+revisions. Production routing did not change; the earlier `canonical1` and
+`canonical2` revisions remain tagged at zero traffic for immediate rollback.
 
 ```shell
 gcloud run deploy retrostore-api-compat-candidate \

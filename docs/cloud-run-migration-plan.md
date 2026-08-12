@@ -51,14 +51,16 @@ Completed foundation work:
   the `apps` collection. Administrators edit published records
   directly; the deployed runtime no longer constructs copy-on-write draft or
   active-snapshot adapters.
-- Zero-traffic revisions `retrostore-api-next-canonical1` and
-  `retrostore-admin-next-canonical2` run the simplified code on Cloud Run. The
-  revisions first passed their gates at zero traffic and now receive 100% of
-  only the parallel candidate services. Production remains on App Engine. The
-  isolated API matched 158/158 frozen API cases, 94/94 legacy download cases,
-  the complete 32-app website projection, and all synthetic state lifecycle
-  checks. After promotion, `next.retrostore.org` again matched 158/158 and the
-  published JVM SDK, pinned TRS-80 KMP client, and embedded C client all passed.
+- Revisions `retrostore-api-next-cfa98fd` and
+  `retrostore-admin-next-cfa98fd` run the simplified and normalized code from
+  commit `cfa98fd` on Cloud Run. The revisions first passed their gates at zero
+  traffic and now receive 100% of only the parallel candidate services.
+  Production remains on App Engine. The isolated API matched 158/158 frozen API
+  cases, 94/94 legacy download cases, the complete 32-app website projection,
+  and all synthetic state lifecycle checks. After promotion,
+  `next.retrostore.org` again matched 158/158 and the published JVM SDK, pinned
+  TRS-80 KMP client, and embedded C client all passed. Plain HTTP retained its
+  fixed-length, byte-identical API response without redirecting.
   `admin-next.retrostore.org` is healthy, ready, and serves the hardened
   Firebase login boundary. Container health took 1.18 seconds for the API and
   1.4 seconds for admin; a scale-from-zero API health request took 2.97 seconds,
@@ -1854,6 +1856,11 @@ Phase 1:
   zero-traffic gates passed, promote API revision `canonical1` and admin
   revision `canonical2` to 100% of only their parallel candidate services and
   repeat the API and real-client gates through Cloudflare.
+- [x] Build commit `cfa98fd`, deploy the normalized runtime names and simplified
+  admin application as zero-traffic `cfa98fd` revisions, repeat the complete
+  revision-local gates, promote only the parallel candidate services, and
+  repeat API, download, website-list, plain-HTTP, admin, JVM, KMP, and embedded
+  C gates through the public Cloudflare hostnames with zero differences.
 - [x] Complete interactive Google sign-in and authorized admin navigation on
   `admin-next.retrostore.org`; the login page, redirect, CSP, Firebase redirect
   origin, service readiness, and unauthenticated session boundary already pass.
